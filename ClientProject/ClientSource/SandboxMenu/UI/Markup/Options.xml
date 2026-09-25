@@ -1,0 +1,22 @@
+<Stack Orientation="Vertical">
+
+  <!-- The picker row is a template on the view model's type: the list asks for it by the item it presents.
+       The list holds a row for every entry it was given; the search text above hides the ones it is not looking
+       for, so the row follows the view model's visibility rather than being built and thrown away. -->
+  <Stack.Resources>
+    <DataTemplate DataType="PickerRowViewModel">
+      <Row Text="{Binding Text}" Command="{Binding PickCommand}" Visible="{Binding Visible}" Height="row" />
+    </DataTemplate>
+  </Stack.Resources>
+
+  <Panel Skin="None" Height="0.16">
+    <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
+    <Button Name="Close" Text="sandboxmenu.close" Width="0.2" Height="0.6" Align="CenterRight" />
+  </Panel>
+
+  <!-- A filter, like the item browser: a component of a large prefab has a long list of properties. -->
+  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="0.12" Clear="True" Focus="True" />
+
+  <List Items="{Binding Options}" Height="0.72" Spacing="3" />
+
+</Stack>

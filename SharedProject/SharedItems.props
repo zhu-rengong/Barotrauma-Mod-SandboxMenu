@@ -1,0 +1,70 @@
+<Project>
+  <PropertyGroup>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RootNamespace>$(ModName)</RootNamespace>
+    <AssemblyName>$(ModName)$(BuildTarget)</AssemblyName>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Authors />
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsePublicizedAssemblies)' != 'true'">
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Vanilla" GeneratePathProperty="true" Version="*-*" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UsePublicizedAssemblies)' == 'true'">
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Vanilla.Publicized" GeneratePathProperty="true" Version="*-*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Libraries" Version="*-*" />
+    <!-- Kept so a future patch finds HarmonyLib at hand; nothing in the mod patches today — every mount point is a
+         host hook or service. When one is needed, patch through the host's IHarmonyProvider rather than a Harmony
+         instance of the mod's own: it hands out one the game creates, names and disposes. Its MonoMod is also what
+         declares IgnoresAccessChecksToAttribute, which AssemblySettings.cs needs three times — so this reference
+         carries the mod's access to the host's internals as well, and is not just an idle one. -->
+    <PackageReference Include="HarmonyX" Version="2.15.0" />
+  </ItemGroup>
+
+  <Import Project="..\References.props" />
+
+  <PropertyGroup>
+    <BarotraumaPackageAssembly Condition="'$(UsePublicizedAssemblies)' != 'true'">$(PkgBarotrauma_ReferenceAssemblies_Vanilla)</BarotraumaPackageAssembly>
+    <BarotraumaPackageAssembly Condition="'$(UsePublicizedAssemblies)' == 'true'">$(PkgBarotrauma_ReferenceAssemblies_Vanilla_Publicized)</BarotraumaPackageAssembly>
+  </PropertyGroup>
+
+  <Target Name="ReadGameVersion" AfterTargets="ResolveAssemblyReferences"
+    BeforeTargets="GenerateAssemblyInfo">
+    <GetAssemblyIdentity AssemblyFiles="$(BarotraumaPackageAssembly)\assemblies\Windows\Barotrauma.dll">
+      <Output TaskParameter="Assemblies" ItemName="GameAssemblyIdentity" />
+    </GetAssemblyIdentity>
+
+    <PropertyGroup>
+      <GameVersion>@(GameAssemblyIdentity->'%(Version)')</GameVersion>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="Detected Barotrauma version: $(GameVersion)" />
+
+    <ItemGroup Label="BarotraumaMetadata">
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>RepositoryUrl</_Parameter1>
+        <_Parameter2>$(RepositoryURL)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>GameVersion</_Parameter1>
+        <_Parameter2>$(GameVersion)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>

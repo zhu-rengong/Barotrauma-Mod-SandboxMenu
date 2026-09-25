@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>7f3a6d1e-5c42-4b8a-9d17-2e6f0a84c931</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>UiFramework</Import_RootNamespace>
+  </PropertyGroup>
+  <!-- The framework's sources are compiled into every project that imports this one, so it ships inside the
+       host's own assembly and needs no deployment of its own. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)**\*.cs" />
+  </ItemGroup>
+</Project>

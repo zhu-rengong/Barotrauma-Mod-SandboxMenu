@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "SandboxMenu.sln",
+    "projects": [
+      "ClientProject\\WindowsClient.csproj",
+      "ServerProject\\WindowsServer.csproj",
+      "SharedProject\\SharedSource.shproj"
+    ]
+  }
+}

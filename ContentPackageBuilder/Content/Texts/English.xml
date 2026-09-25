@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<infotexts language="English" nowhitespace="false" translatedname="English">
+  <sandboxmenu.title>Sandbox Menu</sandboxmenu.title>
+  <sandboxmenu.close>Close</sandboxmenu.close>
+  <sandboxmenu.give>Spawn into inventory</sandboxmenu.give>
+  <sandboxmenu.spawnatcursor>Spawn at the cursor</sandboxmenu.spawnatcursor>
+  <sandboxmenu.empty>Nothing is selected. Right-click the empty space in the list on the left to open the menu and add an item or a template reference.</sandboxmenu.empty>
+
+  <sandboxmenu.additem>+Add item</sandboxmenu.additem>
+  <sandboxmenu.addref>+Add template reference</sandboxmenu.addref>
+  <sandboxmenu.duplicate>Duplicate entry</sandboxmenu.duplicate>
+  <sandboxmenu.delete>Delete</sandboxmenu.delete>
+  <sandboxmenu.edit>Edit</sandboxmenu.edit>
+
+  <sandboxmenu.section.spawn>Spawn</sandboxmenu.section.spawn>
+  <sandboxmenu.section.behaviour>Behaviour</sandboxmenu.section.behaviour>
+  <sandboxmenu.section.properties>Property overrides</sandboxmenu.section.properties>
+
+  <sandboxmenu.field.amount>Amount to spawn</sandboxmenu.field.amount>
+  <sandboxmenu.field.amountround>Round the amount</sandboxmenu.field.amountround>
+  <sandboxmenu.field.identifier>Item identifier</sandboxmenu.field.identifier>
+  <sandboxmenu.field.stacks>Stack count</sandboxmenu.field.stacks>
+  <sandboxmenu.field.fillinventory>Fill the container</sandboxmenu.field.fillinventory>
+  <sandboxmenu.field.equip>Equip on the character</sandboxmenu.field.equip>
+  <sandboxmenu.field.equipslots>Equipment slots</sandboxmenu.field.equipslots>
+  <sandboxmenu.slots.none>No slots chosen</sandboxmenu.slots.none>
+  <sandboxmenu.field.install>Install in the submarine</sandboxmenu.field.install>
+  <sandboxmenu.field.inheritchannel>Inherit the headset's wifi channel</sandboxmenu.field.inheritchannel>
+  <sandboxmenu.field.slotindex>Slot to put it in</sandboxmenu.field.slotindex>
+  <sandboxmenu.field.quality>Quality</sandboxmenu.field.quality>
+  <sandboxmenu.field.tags>Tags</sandboxmenu.field.tags>
+  <sandboxmenu.field.template>Template name</sandboxmenu.field.template>
+
+  <sandboxmenu.preview.none>No item selected yet.</sandboxmenu.preview.none>
+  <sandboxmenu.preview.missing>No item has this identifier.</sandboxmenu.preview.missing>
+
+  <sandboxmenu.summary.unset>(not set)</sandboxmenu.summary.unset>
+  <sandboxmenu.summary.stacks>[count] stack(s)</sandboxmenu.summary.stacks>
+  <sandboxmenu.addproperty>+Add property override</sandboxmenu.addproperty>
+  <sandboxmenu.addchild>+Add item inside</sandboxmenu.addchild>
+
+  <sandboxmenu.togglekey.displayname>Key that opens and closes the menu</sandboxmenu.togglekey.displayname>
+  <sandboxmenu.togglekey.tooltip>Key used to open or close the sandbox menu in-game.</sandboxmenu.togglekey.tooltip>
+  <sandboxmenu.togglekey.press>Press a key... (Esc to cancel)</sandboxmenu.togglekey.press>
+
+  <sandboxmenu.browser.title>Select item</sandboxmenu.browser.title>
+  <sandboxmenu.filter.packages>Content package</sandboxmenu.filter.packages>
+  <sandboxmenu.filter.categories>Item category</sandboxmenu.filter.categories>
+  <sandboxmenu.filter.summary.all>[name]: all</sandboxmenu.filter.summary.all>
+  <sandboxmenu.filter.summary.some>[name]: [count] picked</sandboxmenu.filter.summary.some>
+  <sandboxmenu.browse>Select item</sandboxmenu.browse>
+  <sandboxmenu.browse.component>Select component</sandboxmenu.browse.component>
+  <sandboxmenu.browse.property>Select property</sandboxmenu.browse.property>
+  <sandboxmenu.pick.itemitself>The item itself</sandboxmenu.pick.itemitself>
+  <sandboxmenu.pick.noproperties>This target has no property that can be overridden.</sandboxmenu.pick.noproperties>
+  <sandboxmenu.picker.hint>Left click to spawn here, right click / Esc to cancel</sandboxmenu.picker.hint>
+  <sandboxmenu.status.nocharacter>No character is being controlled.</sandboxmenu.status.nocharacter>
+  <sandboxmenu.status.empty>The spawn set is empty.</sandboxmenu.status.empty>
+  <sandboxmenu.status.spawnqueued>Spawn request queued.</sandboxmenu.status.spawnqueued>
+  <sandboxmenu.clear>Clear set</sandboxmenu.clear>
+  <sandboxmenu.preset.name>Preset name</sandboxmenu.preset.name>
+  <sandboxmenu.preset.save>Save preset</sandboxmenu.preset.save>
+  <sandboxmenu.preset.load>Load preset</sandboxmenu.preset.load>
+  <sandboxmenu.preset.reload>Reload preset</sandboxmenu.preset.reload>
+  <sandboxmenu.preset.open>Open preset file</sandboxmenu.preset.open>
+  <sandboxmenu.status.presetsaved>Preset saved.</sandboxmenu.status.presetsaved>
+  <sandboxmenu.status.cleared>Spawn set cleared.</sandboxmenu.status.cleared>
+  <sandboxmenu.status.presetloaded>Preset "[name]" loaded.</sandboxmenu.status.presetloaded>
+  <sandboxmenu.status.presetreloaded>Preset "[name]" reloaded from disk.</sandboxmenu.status.presetreloaded>
+  <sandboxmenu.status.presetloadfailed>Could not load the preset "[name]". See the log for details.</sandboxmenu.status.presetloadfailed>
+  <sandboxmenu.status.presetsavefailed>Could not save the preset "[name]". See the log for details.</sandboxmenu.status.presetsavefailed>
+  <sandboxmenu.status.templatecycle>The preset refers back to itself through another preset. Rename it or remove the reference, then save again.</sandboxmenu.status.templatecycle>
+  <sandboxmenu.status.presetnotfound>There is no preset file "[name]" yet. Save the preset first.</sandboxmenu.status.presetnotfound>
+  <sandboxmenu.status.presetopened>Preset file "[name]" was opened in the program your system uses for it.</sandboxmenu.status.presetopened>
+  <sandboxmenu.status.presetopenfailed>Could not open the preset file "[name]". See the log for details.</sandboxmenu.status.presetopenfailed>
+  <sandboxmenu.status.nopresetname>Enter a preset name first.</sandboxmenu.status.nopresetname>
+  <sandboxmenu.status.nopresets>No presets were found.</sandboxmenu.status.nopresets>
+
+  <sandboxmenu.status.senttoserver>The spawn request was sent to the server.</sandboxmenu.status.senttoserver>
+  <sandboxmenu.status.serverok>The server queued [count] item(s).</sandboxmenu.status.serverok>
+  <sandboxmenu.status.serverdenied>The server does not let you spawn items.</sandboxmenu.status.serverdenied>
+  <sandboxmenu.status.serverbadpayload>The server could not read the request. See the log for details.</sandboxmenu.status.serverbadpayload>
+  <sandboxmenu.status.servernocharacter>The server has no character of yours to spawn into.</sandboxmenu.status.servernocharacter>
+  <sandboxmenu.status.servernospawner>The server cannot spawn items right now.</sandboxmenu.status.servernospawner>
+  <sandboxmenu.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.status.serverthrottled>
+  <sandboxmenu.status.servertoolarge>The request was too large for the server to read.</sandboxmenu.status.servertoolarge>
+  <sandboxmenu.status.serverfailed>The server refused the request. See the log for details.</sandboxmenu.status.serverfailed>
+  <sandboxmenu.status.spawntoolarge>The spawn set is too large to send to the server.</sandboxmenu.status.spawntoolarge>
+  <sandboxmenu.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.status.sendfailed>
+  <sandboxmenu.status.serverproblems>The server reported [count] problem(s). See the log for details.</sandboxmenu.status.serverproblems>
+
+  <sandboxmenu.allowallclients.displayname>Let every client spawn items</sandboxmenu.allowallclients.displayname>
+  <sandboxmenu.allowallclients.tooltip>When off, only clients with the console commands permission (the host and the admins) can spawn items with the sandbox menu.</sandboxmenu.allowallclients.tooltip>
+</infotexts>

@@ -1,0 +1,36 @@
+---
+description: 通用 .NET 插件/模组工程约束：C# 12 现代特性、风格与注释纪律、宿主程序集直接访问、只构建验证不部署、不影响宿主、UI 分辨率无关、卸载可回收、跨平台、优先宿主原生接口。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-09-28T00:00:00.000Z
+provider:
+---
+
+# 工程约束
+
+1. 用 .NET 8 / C# 12 现代特性：集合表达式、模式匹配、record、FrozenDictionary、主构造函数等；不为旧语法让路。
+2. 统一风格与命名：file-scoped namespace、可空标注、PascalCase 成员、camelCase 局部变量、显式 StringComparison。
+3. 注释少量而关键：只写"为什么"和从代码看不出的约束，代码能自证的不写。
+4. 宿主程序集已 publicize：直接访问其类型与成员，不用反射。
+5. 只构建、只验证：改完跑构建到 0 警告 0 错误并报告，**到此为止**——不部署、不启停宿主程序、不改构建与部署配置（`*.csproj`、`*.props`、打包脚本等）。
+6. 不影响宿主：不写宿主全局状态（样式表、全局 UI 单例、输入状态、全局菜单），不改宿主 UI 与行为，卸载后不留残留。
+7. UI 分辨率无关：尺寸走 DIP 换算，文字走文本缩放或字号标记，不依赖具体分辨率数值。
+8. 宿主程序集的反编译源码在本机固定目录（`d:\Code Repository\FakeFish\Decompile\`，按程序集名找子目录）：查 API 签名、字段与行为去那里检索，不凭记忆猜。
+9. **卸载必须可回收**：宿主在可回收的加载上下文中加载插件，任何遗留强引用都会触发"未能完整卸载"警告并滞留内存。
+   - 挂到**宿主对象**上的东西必须有对称拆解：引用插件代码的宿主组件（窗口、拖拽句柄、覆盖层、输入订阅者）关闭时脱离宿主：`Parent = null` 并移出 GUI 更新列表；销毁视图时同步释放其绑定与作用域。
+   - **注册进插件服务的项不要手工注销**（控制台命令、hook、网络 handler、各类注册器）：服务记着本插件注册了什么，宿主卸载插件时随服务释放一并清掉——清掉即注销。手工 `Deregister*` 是多余动作，还容易踩时序坑——服务释放之后再调用或再 `Register`，后者直接抛 `ObjectDisposedException`。
+   - 不起线程、定时器或异步循环，帧内工作走宿主的帧队列；不把插件对象（委托、视图模型、组件）放进宿主类型或单例的静态字段/集合。
+   - 新增静态可变状态（缓存表、注册表、单例列表）同步登记清理，清理集中在统一入口、随关闭流程执行，不抛异常且不依赖其它类型的初始化顺序。
+   - 验证：卸载后无"未能完整卸载"警告；出现即按上述清单排查，优先查订阅与被塞进宿主侧集合的对象。
+10. **跨平台（Linux / macOS / Windows）**：不依赖单一操作系统。
+    - 禁用：WPF/WinForms（`System.Windows.*` 表现层、`System.Drawing`）、`Microsoft.Win32.Registry`、P/Invoke（`DllImport`）、`Clipboard`、`Environment.OSVersion` 分支。
+    - `System.Windows.Input`（`ICommand` 等）**允许使用**：它在 .NET 基础库 `System.ObjectModel.dll` 里，与 WPF 无关，不要当 WPF 清理。
+    - 路径一律用 `Path.Combine` / `Path.GetInvalidFileNameChars()` 组合，禁硬编码分隔符、盘符、用户目录；同一文件名在保存与读取两侧逐字符一致（Linux/macOS 大小写敏感）。
+    - 打开文件/目录用 `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`，必须有失败兜底。
+    - 验证：Release 构建 0 警告 0 错误 + grep 上述禁用清单。
+11. **优先宿主原生接口，不自造轮子**：宿主已有的服务与扩展接口先用。
+    - 服务经 `GetService<T>()` 一类入口获取；间接调用点必须是本程序集的方法并标 `[MethodImpl(MethodImplOptions.NoInlining)]`（该入口用 `Assembly.GetCallingAssembly()` 识别插件，被内联进 `Lazy` 会报 "Failed to find plugin data for the calling assembly"）。
+    - UI、文本本地化、数据访问同样优先既有类型与机制：本地化字符串自更新不落快照、列表显隐用宿主子项机制、过滤刷新"隐藏而非重建"、能用宿主 hook/回调表达就不打补丁。
+    - 判定顺序：先到反编译源码确认宿主有无现成能力 → 有就直接用 → 确实没有才自研，并注明原生缺什么。宿主提供的成对 API 本身也是第 9 条的卸载保证。
+
+除以上十一条外，实现方式自由发挥。

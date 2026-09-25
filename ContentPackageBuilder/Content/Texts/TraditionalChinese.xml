@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<infotexts language="Traditional Chinese" nowhitespace="true" translatedname="中文（繁體）">
+  <sandboxmenu.title>沙盒選單</sandboxmenu.title>
+  <sandboxmenu.close>關閉</sandboxmenu.close>
+  <sandboxmenu.give>生成到背包</sandboxmenu.give>
+  <sandboxmenu.spawnatcursor>生成到滑鼠位置</sandboxmenu.spawnatcursor>
+  <sandboxmenu.empty>未選中條目。在左側清單的空白處點擊滑鼠右鍵即可開啟選單，新增物品或模板引用。</sandboxmenu.empty>
+
+  <sandboxmenu.additem>+ 新增物品</sandboxmenu.additem>
+  <sandboxmenu.addref>+ 新增模板引用</sandboxmenu.addref>
+  <sandboxmenu.duplicate>複製條目</sandboxmenu.duplicate>
+  <sandboxmenu.delete>刪除</sandboxmenu.delete>
+  <sandboxmenu.edit>編輯</sandboxmenu.edit>
+
+  <sandboxmenu.section.spawn>生成</sandboxmenu.section.spawn>
+  <sandboxmenu.section.behaviour>行為</sandboxmenu.section.behaviour>
+  <sandboxmenu.section.properties>屬性覆蓋</sandboxmenu.section.properties>
+
+  <sandboxmenu.field.amount>生成數量</sandboxmenu.field.amount>
+  <sandboxmenu.field.amountround>生成數量取整</sandboxmenu.field.amountround>
+  <sandboxmenu.field.identifier>物品識別符</sandboxmenu.field.identifier>
+  <sandboxmenu.field.stacks>堆疊數量</sandboxmenu.field.stacks>
+  <sandboxmenu.field.fillinventory>填滿容器</sandboxmenu.field.fillinventory>
+  <sandboxmenu.field.equip>裝備到角色身上</sandboxmenu.field.equip>
+  <sandboxmenu.field.equipslots>裝備槽位</sandboxmenu.field.equipslots>
+  <sandboxmenu.slots.none>未選擇槽位</sandboxmenu.slots.none>
+  <sandboxmenu.field.install>安裝到潛艇</sandboxmenu.field.install>
+  <sandboxmenu.field.inheritchannel>繼承角色耳機的 Wifi 頻道</sandboxmenu.field.inheritchannel>
+  <sandboxmenu.field.slotindex>放入的槽位序號</sandboxmenu.field.slotindex>
+  <sandboxmenu.field.quality>品質</sandboxmenu.field.quality>
+  <sandboxmenu.field.tags>標籤</sandboxmenu.field.tags>
+  <sandboxmenu.field.template>模板名稱</sandboxmenu.field.template>
+  <sandboxmenu.addproperty>+ 新增屬性覆蓋</sandboxmenu.addproperty>
+  <sandboxmenu.addchild>+ 新增容器內物品</sandboxmenu.addchild>
+
+  <sandboxmenu.togglekey.displayname>開啟或關閉選單的快捷鍵</sandboxmenu.togglekey.displayname>
+  <sandboxmenu.togglekey.tooltip>用於在遊戲中開啟或關閉沙盒選單的按鍵。</sandboxmenu.togglekey.tooltip>
+  <sandboxmenu.togglekey.press>請按下按鍵…（Esc 取消）</sandboxmenu.togglekey.press>
+
+  <sandboxmenu.browser.title>選擇物品</sandboxmenu.browser.title>
+  <sandboxmenu.filter.packages>內容包</sandboxmenu.filter.packages>
+  <sandboxmenu.filter.categories>物品類別</sandboxmenu.filter.categories>
+  <sandboxmenu.filter.summary.all>[name]：全部</sandboxmenu.filter.summary.all>
+  <sandboxmenu.filter.summary.some>[name]：已選 [count] 項</sandboxmenu.filter.summary.some>
+  <sandboxmenu.browse>選擇物品</sandboxmenu.browse>
+  <sandboxmenu.browse.component>選擇組件</sandboxmenu.browse.component>
+  <sandboxmenu.browse.property>選擇屬性</sandboxmenu.browse.property>
+  <sandboxmenu.pick.itemitself>（物品自身）</sandboxmenu.pick.itemitself>
+  <sandboxmenu.pick.noproperties>該目標沒有可覆蓋的屬性。</sandboxmenu.pick.noproperties>
+  <sandboxmenu.picker.hint>左鍵在此生成，右鍵或 Esc 取消</sandboxmenu.picker.hint>
+  <sandboxmenu.status.nocharacter>沒有正在控制的角色。</sandboxmenu.status.nocharacter>
+  <sandboxmenu.status.empty>生成集合為空。</sandboxmenu.status.empty>
+  <sandboxmenu.preview.none>尚未指定物品。</sandboxmenu.preview.none>
+  <sandboxmenu.preview.missing>沒有物品使用該識別符。</sandboxmenu.preview.missing>
+
+  <sandboxmenu.summary.unset>（未設定）</sandboxmenu.summary.unset>
+  <sandboxmenu.summary.stacks>[count] 堆</sandboxmenu.summary.stacks>
+  <sandboxmenu.status.spawnqueued>已提交生成請求。</sandboxmenu.status.spawnqueued>
+  <sandboxmenu.clear>清空生成集合</sandboxmenu.clear>
+  <sandboxmenu.preset.name>預設名稱</sandboxmenu.preset.name>
+  <sandboxmenu.preset.save>儲存預設</sandboxmenu.preset.save>
+  <sandboxmenu.preset.load>載入預設</sandboxmenu.preset.load>
+  <sandboxmenu.preset.reload>重載預設</sandboxmenu.preset.reload>
+  <sandboxmenu.preset.open>開啟預設檔案</sandboxmenu.preset.open>
+  <sandboxmenu.status.presetsaved>預設已儲存。</sandboxmenu.status.presetsaved>
+  <sandboxmenu.status.cleared>已清空生成集合。</sandboxmenu.status.cleared>
+  <sandboxmenu.status.presetloaded>已載入預設「[name]」。</sandboxmenu.status.presetloaded>
+  <sandboxmenu.status.presetreloaded>已從磁碟重新載入預設「[name]」。</sandboxmenu.status.presetreloaded>
+  <sandboxmenu.status.presetloadfailed>載入預設「[name]」失敗，詳見日誌。</sandboxmenu.status.presetloadfailed>
+  <sandboxmenu.status.presetsavefailed>儲存預設「[name]」失敗，詳見日誌。</sandboxmenu.status.presetsavefailed>
+  <sandboxmenu.status.templatecycle>該預置透過其它預置引用了它自己。請換個名稱或移除該引用後再儲存。</sandboxmenu.status.templatecycle>
+  <sandboxmenu.status.presetnotfound>還沒有名為「[name]」的預設檔案，請先儲存一次。</sandboxmenu.status.presetnotfound>
+  <sandboxmenu.status.presetopened>已用系統預設程式開啟預設檔案「[name]」。</sandboxmenu.status.presetopened>
+  <sandboxmenu.status.presetopenfailed>開啟預設檔案「[name]」失敗，詳見日誌。</sandboxmenu.status.presetopenfailed>
+  <sandboxmenu.status.nopresetname>請先填寫預設名稱。</sandboxmenu.status.nopresetname>
+  <sandboxmenu.status.nopresets>沒有找到任何預設。</sandboxmenu.status.nopresets>
+
+  <sandboxmenu.status.senttoserver>生成請求已傳送到伺服器。</sandboxmenu.status.senttoserver>
+  <sandboxmenu.status.serverok>伺服器已排入 [count] 個物品。</sandboxmenu.status.serverok>
+  <sandboxmenu.status.serverdenied>伺服器不允許你生成物品。</sandboxmenu.status.serverdenied>
+  <sandboxmenu.status.serverbadpayload>伺服器無法讀取這次請求，詳見日誌。</sandboxmenu.status.serverbadpayload>
+  <sandboxmenu.status.servernocharacter>伺服器沒有你的受控角色可用於生成。</sandboxmenu.status.servernocharacter>
+  <sandboxmenu.status.servernospawner>伺服器目前無法生成物品。</sandboxmenu.status.servernospawner>
+  <sandboxmenu.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.status.serverthrottled>
+  <sandboxmenu.status.servertoolarge>請求過大，伺服器無法讀取。</sandboxmenu.status.servertoolarge>
+  <sandboxmenu.status.serverfailed>伺服器拒絕了這次請求，詳見日誌。</sandboxmenu.status.serverfailed>
+  <sandboxmenu.status.spawntoolarge>生成集合過大，無法傳送給伺服器。</sandboxmenu.status.spawntoolarge>
+  <sandboxmenu.status.sendfailed>無法把請求傳送給伺服器，詳見日誌。</sandboxmenu.status.sendfailed>
+  <sandboxmenu.status.serverproblems>伺服器報告了 [count] 個問題，詳見日誌。</sandboxmenu.status.serverproblems>
+
+  <sandboxmenu.allowallclients.displayname>允許所有客戶端生成物品</sandboxmenu.allowallclients.displayname>
+  <sandboxmenu.allowallclients.tooltip>關閉時，只有擁有主控台命令權限的客戶端（主機與管理員）才能用沙盒選單生成物品。</sandboxmenu.allowallclients.tooltip>
+</infotexts>

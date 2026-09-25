@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<contentpackage name="Sandbox Menu (DLC testing)" corepackage="false" modversion="1.0.0" gameversion="1.15.19.0">
+    <PluginInfo file="%ModDir%/PluginInfo.xml" />
+    <Text file="%ModDir%/Texts/English.xml" />
+    <Text file="%ModDir%/Texts/SimplifiedChinese.xml" />
+    <Text file="%ModDir%/Texts/TraditionalChinese.xml" />
+</contentpackage>

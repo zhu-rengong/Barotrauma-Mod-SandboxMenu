@@ -1,0 +1,79 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharedSource", "SharedProject\SharedSource.shproj", "{8F2A1B3C-4D5E-4F60-9A1B-2C3D4E5F6071}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsClient", "ClientProject\WindowsClient.csproj", "{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MacClient", "ClientProject\MacClient.csproj", "{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LinuxClient", "ClientProject\LinuxClient.csproj", "{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsServer", "ServerProject\WindowsServer.csproj", "{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MacServer", "ServerProject\MacServer.csproj", "{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LinuxServer", "ServerProject\LinuxServer.csproj", "{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Linux", "Linux", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Windows", "Windows", "{23300BE7-7342-491C-8370-FFF7D53F420C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mac", "Mac", "{635F2C86-6242-4B70-9AB8-A21C5B79E02F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061}.Debug|x64.ActiveCfg = Debug|x64
+		{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061}.Debug|x64.Build.0 = Debug|x64
+		{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061}.Release|x64.ActiveCfg = Release|x64
+		{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061}.Release|x64.Build.0 = Release|x64
+		{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172}.Debug|x64.ActiveCfg = Debug|x64
+		{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172}.Debug|x64.Build.0 = Debug|x64
+		{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172}.Release|x64.ActiveCfg = Release|x64
+		{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172}.Release|x64.Build.0 = Release|x64
+		{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283}.Debug|x64.ActiveCfg = Debug|x64
+		{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283}.Debug|x64.Build.0 = Debug|x64
+		{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283}.Release|x64.ActiveCfg = Release|x64
+		{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283}.Release|x64.Build.0 = Release|x64
+		{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71}.Debug|x64.ActiveCfg = Debug|x64
+		{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71}.Debug|x64.Build.0 = Debug|x64
+		{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71}.Release|x64.ActiveCfg = Release|x64
+		{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71}.Release|x64.Build.0 = Release|x64
+		{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082}.Debug|x64.ActiveCfg = Debug|x64
+		{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082}.Debug|x64.Build.0 = Debug|x64
+		{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082}.Release|x64.ActiveCfg = Release|x64
+		{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082}.Release|x64.Build.0 = Release|x64
+		{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193}.Debug|x64.ActiveCfg = Debug|x64
+		{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193}.Debug|x64.Build.0 = Debug|x64
+		{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193}.Release|x64.ActiveCfg = Release|x64
+		{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A1B2C3D4-E5F6-4708-9A0B-1C2D3E4F5061} = {23300BE7-7342-491C-8370-FFF7D53F420C}
+		{B2C3D4E5-F6A7-4819-8B0C-2D3E4F506172} = {635F2C86-6242-4B70-9AB8-A21C5B79E02F}
+		{C3D4E5F6-A7B8-492A-9C0D-3E4F50617283} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F71} = {23300BE7-7342-491C-8370-FFF7D53F420C}
+		{E5F6A7B8-C9D0-4E1F-8A2B-3C4D5E6F7082} = {635F2C86-6242-4B70-9AB8-A21C5B79E02F}
+		{F6A7B8C9-D0E1-4F20-9B3C-4D5E6F708193} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D4E5F6A7-B8C9-4D0E-9F1A-2B3C4D5E6F70}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		SharedProject\SharedProject.projitems*{a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5061}*SharedItemsImports = 5
+		SharedProject\SharedProject.projitems*{b2c3d4e5-f6a7-4819-8b0c-2d3e4f506172}*SharedItemsImports = 5
+		SharedProject\SharedProject.projitems*{8f2a1b3c-4d5e-4f60-9a1b-2c3d4e5f6071}*SharedItemsImports = 13
+		SharedProject\SharedProject.projitems*{c3d4e5f6-a7b8-492a-9c0d-3e4f50617283}*SharedItemsImports = 5
+		SharedProject\SharedProject.projitems*{d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f71}*SharedItemsImports = 5
+		SharedProject\SharedProject.projitems*{e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7082}*SharedItemsImports = 5
+		SharedProject\SharedProject.projitems*{f6a7b8c9-d0e1-4f20-9b3c-4d5e6f708193}*SharedItemsImports = 5
+	EndGlobalSection
+EndGlobal

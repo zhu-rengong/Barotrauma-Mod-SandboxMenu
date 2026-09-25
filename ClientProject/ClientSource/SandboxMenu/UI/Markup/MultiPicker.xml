@@ -1,0 +1,21 @@
+<Stack Orientation="Vertical">
+
+  <!-- Every entry the picker was given has a row here; the search text below hides the ones it is not looking for,
+       so a row keeps its tick box and its tick instead of being built again on every keystroke. -->
+  <Stack.Resources>
+    <DataTemplate DataType="ToggleRowViewModel">
+      <Tick Selected="{Binding Selected, Mode=TwoWay}" Text="{Binding Label}" Visible="{Binding Visible}" Width="1" Height="0.07" />
+    </DataTemplate>
+  </Stack.Resources>
+
+  <Panel Skin="None" Height="0.16">
+    <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
+    <Button Name="Close" Text="sandboxmenu.close" Width="0.2" Height="0.6" Align="CenterRight" />
+  </Panel>
+
+  <!-- A filter, like the item browser: a package or a category can be looked up by typing. -->
+  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="0.12" Clear="True" />
+
+  <List Items="{Binding Options}" Height="0.72" Spacing="3" />
+
+</Stack>

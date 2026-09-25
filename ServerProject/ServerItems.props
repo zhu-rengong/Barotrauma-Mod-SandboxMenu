@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <BuildTarget>Server</BuildTarget>
+    <DefineConstants>$(DefineConstants);SERVER</DefineConstants>
+  </PropertyGroup>
+  <Import Project="..\BuildData.props" />
+</Project>

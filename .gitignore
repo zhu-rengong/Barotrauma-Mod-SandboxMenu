@@ -1,0 +1,77 @@
+## Visual Studio / .NET temporary files and build results
+## Trimmed from the standard VisualStudio.gitignore
+
+[Rr]efs/
+*.DotSettings.user
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings
+
+# Mono auto generated files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options directory
+.vs/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Files built by Visual Studio
+*.pdb
+*.cache
+*.log
+*.tlog
+*.scc
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.rsp
+
+# ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+.idea/*
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Local history
+.history/
+.localhistory/
+
+# User
+/UserBuildData.props
+
+# CodeBuddy session artifacts (only the project rules under .codebuddy/rules/ are tracked)
+.codebuddy/*
+!.codebuddy/rules/

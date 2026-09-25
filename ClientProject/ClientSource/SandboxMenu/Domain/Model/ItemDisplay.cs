@@ -1,0 +1,67 @@
+namespace SandboxMenu.Domain.Model;
+
+public sealed class ItemDisplay
+{
+    private readonly ItemPrefab _prefab;
+    private readonly LocalizedString _name;
+    private readonly LocalizedString? _description;
+
+    private ItemDisplay(ItemPrefab prefab, string identifier, LocalizedString name, LocalizedString? description, Sprite? icon)
+    {
+        _prefab = prefab;
+        Identifier = identifier;
+        _name = name;
+        _description = description;
+        Icon = icon;
+    }
+
+    public string Identifier { get; }
+
+    public LocalizedString Name => _name;
+
+    public LocalizedString Description => _description ?? string.Empty;
+
+    public Sprite? Icon { get; }
+
+    public RichString Title => RichString.Rich(_name + IdentifierSuffix);
+
+    internal RichString TitleFor(LocalizedString title) => RichString.Rich(title + IdentifierSuffix);
+
+    private string IdentifierSuffix => $" ‖color:{UiMetrics.TextDim.ToStringHex()}‖{Identifier}‖color:end‖";
+
+    public RichString ToolTip => RichString.Rich(ToolTipText);
+
+    private LocalizedString ToolTipText
+    {
+        get
+        {
+            LocalizedString name = _prefab.Category.HasFlag(MapEntityCategory.Legacy)
+                ? TextManager.GetWithVariable("legacyitemformat", "[name]", _name, FormatCapitals.No)
+                : _name;
+
+            LocalizedString text = "‖color:" + ((Color)GUIStyle.TextColorBright).ToStringHex() + "‖" + name + "‖color:end‖";
+
+            if (_description is { } description) { text += "\n" + description; }
+
+            if (_prefab.ContentPackage is { } package)
+            {
+                text += "\n‖color:" + package.GetAccentColor().ToStringHex() + "‖" + package.Name + "‖color:end‖";
+            }
+
+            return text;
+        }
+    }
+
+    internal static ItemDisplay For(ItemPrefab prefab)
+    {
+        string identifier = prefab.Identifier.Value;
+
+        LocalizedString? own = prefab.Name;
+        LocalizedString name = string.IsNullOrEmpty(own?.Value) ? identifier : own;
+
+        return new ItemDisplay(prefab, identifier, name, prefab.Description, prefab.InventoryIcon ?? prefab.Sprite);
+    }
+
+    internal static ItemDisplay? For(string identifier)
+        => ItemPrefabLookup.By(identifier) is { } prefab ? For(prefab) : null;
+}

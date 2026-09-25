@@ -1,0 +1,117 @@
+<Stack Orientation="Vertical">
+
+  <Stack.Resources>
+    <DataTemplate DataType="SectionRow">
+      <Text Text="{Binding Label}" Font="SubHeading" FontSize="24" Height="section" Padding="8" TextAlign="Center" />
+    </DataTemplate>
+
+    <DataTemplate DataType="HintRow">
+      <Text Text="{Binding Label}" FontSize="22" Height="fill" TextAlign="Center"
+            Wrap="True" Scale="False" Padding="8" />
+    </DataTemplate>
+
+    <DataTemplate DataType="TickRow">
+      <Field LabelText="{Binding Label}">
+        <Tick Selected="{Binding Value, Mode=TwoWay}" Width="0.16" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="TextRow">
+      <Field LabelText="{Binding Label}">
+        <TextBox Text="{Binding Text, Mode=TwoWay}" Width="1" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="SlotRow">
+      <Field LabelText="{Binding Label}">
+        <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="RangeRow">
+      <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
+        <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
+        <Number Value="{Binding Min, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
+        <Number Value="{Binding Max, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="IntRow">
+      <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
+        <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
+        <Number Value="{Binding Value, Mode=TwoWay}" Width="0.3" Integer="True" Min="0" Max="{Binding Limit}" />
+      </Field>
+    </DataTemplate>
+    <DataTemplate DataType="BrowseRow">
+      <Field LabelText="{Binding Label}">
+        <TextBox Text="{Binding Text, Mode=TwoWay}" Width="0.72" />
+        <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="ItemPreviewRow">
+      <Row Text="{Binding Title}" FontSize="16" Icon="{Binding Icon}" SubText="{Binding SubText}"
+           ToolTip="{Binding ToolTip}" Height="0.12" />
+    </DataTemplate>
+
+    <DataTemplate DataType="PropertyRow">
+      <Field LabelText="{Binding Label}" LabelWidth="0.12" ControlWidth="0.86">
+        <TextBox Text="{Binding ComponentName, Mode=TwoWay}" Width="0.24" />
+        <Button Literal="..." Command="{Binding BrowseComponentCommand}" Width="0.08" />
+        <TextBox Text="{Binding PropertyName, Mode=TwoWay}" Width="0.22" />
+        <Button Literal="..." Command="{Binding BrowsePropertyCommand}" Width="0.08" />
+        <TextBox Text="{Binding Value, Mode=TwoWay}" Width="0.24" />
+        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.12" />
+      </Field>
+    </DataTemplate>
+
+    <DataTemplate DataType="ButtonRow">
+      <Button Text="{Binding Label}" Command="{Binding Command}" Width="1" Height="row" />
+    </DataTemplate>
+    <DataTemplate DataType="TreeEntryViewModel">
+      <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" Indent="{Binding Indent}"
+           TextColor="{Binding ColorName}" Selected="{Binding IsSelected}"
+           Command="{Binding SelectCommand}" SecondaryCommand="{Binding MenuCommand}" Height="row" />
+    </DataTemplate>  </Stack.Resources>
+  <!-- Title band. A plain panel rather than a stack: only outside a layout group does the close button's
+       Align anchor put it on the right edge. The drag area is its own panel so that the (invisible, but
+       clickable) drag handle never covers the close button. -->
+  <Panel Skin="None" Height="0.08">
+    <Panel Name="DragArea" Skin="None" Width="0.84" Height="1" Align="CenterLeft">
+      <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
+    </Panel>
+    <Button Name="Close" Text="sandboxmenu.close" Width="0.16" Height="0.6" Align="CenterRight" />
+  </Panel>
+
+  <!-- body: the spawn set tree and the editor -->
+  <Stack Orientation="Horizontal" Height="0.75">
+    <Panel Skin="InnerFrame" Width="0.36">
+      <List Items="{Binding Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
+    </Panel>
+
+    <Panel Skin="InnerFrame" Width="0.64">
+      <List Items="{Binding Editor.Rows}" Height="1" Spacing="4" />
+    </Panel>
+  </Stack>
+
+  <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
+       be done with it -->
+  <Stack Orientation="Horizontal" Height="0.09" ChildAnchor="CenterLeft">
+    <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
+      <TextBox Text="{Binding PresetName, Mode=TwoWay}" Width="1" />
+    </Field>
+    <Button Text="sandboxmenu.preset.save" Command="{Binding SavePresetCommand}" Width="0.15" Height="0.66" />
+    <Button Text="sandboxmenu.preset.load" Command="{Binding LoadPresetCommand}" Width="0.15" Height="0.66" />
+    <Button Text="sandboxmenu.preset.reload" Command="{Binding ReloadPresetCommand}" Width="0.15" Height="0.66" />
+    <Button Text="sandboxmenu.preset.open" Command="{Binding OpenPresetCommand}" Width="0.15" Height="0.66" />
+  </Stack>
+
+  <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
+  <Stack Orientation="Horizontal" Height="0.08" ChildAnchor="CenterLeft">
+    <Button Text="sandboxmenu.clear" Command="{Binding ClearSetCommand}" Width="0.15" Height="0.66" />
+    <Button Text="sandboxmenu.give" Command="{Binding SpawnIntoInventoryCommand}" Width="0.19" Height="0.66" />
+    <Button Text="sandboxmenu.spawnatcursor" Command="{Binding SpawnAtCursorCommand}" Width="0.21" Height="0.66" />
+    <Text Text="{Binding Status}" FontSize="18" Width="0.45" Color="Accent" Padding="8" />
+  </Stack>
+
+</Stack>

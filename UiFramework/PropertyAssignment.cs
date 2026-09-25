@@ -1,0 +1,184 @@
+using System.Windows.Input;
+
+namespace UiFramework;
+
+internal sealed class PropertyAssignment(
+    ViewLoadContext view,
+    MarkupNode node,
+    ViewElement element,
+    PropertyMetadata property)
+{
+    internal PropertyMetadata Property { get; } = property;
+
+    internal ViewElement Element { get; } = element;
+
+    internal void SetText(string text)
+    {
+        if (Property.KeyText && !string.IsNullOrEmpty(text))
+        {
+            SetKeyText(text);
+            return;
+        }
+
+        (object? value, bool ok) = ValueReader.Read(text, Property.ValueType, () => null);
+        if (!ok)
+        {
+            Report($"'{text}' is not a {Friendly(Property.ValueType)}");
+            return;
+        }
+
+        Property.Apply(Element, value);
+    }
+
+    internal void SetValue(object? value, string source)
+    {
+        (object? converted, bool ok) = ValueReader.Convert(value, Property.ValueType);
+        if (!ok)
+        {
+            Report($"'{source}' does not give a {Friendly(Property.ValueType)}");
+            return;
+        }
+
+        Property.Apply(Element, converted);
+    }
+
+    internal void Bind(BindingOptions options)
+    {
+        object? source = ResolveSource(options, out string where);
+        Binding? binding = null;
+
+        BindingMode mode = options.Mode ?? Property.DefaultMode;
+
+        if (mode is BindingMode.TwoWay or BindingMode.OneWayToSource && Element is not IPropertyObserver)
+        {
+            Report($"'{Property.Name}' cannot be written back to '{where}'");
+            return;
+        }
+
+        var request = new BindingRequest
+        {
+            Source = source,
+            Path = options.Path,
+            Mode = mode,
+            TargetType = Property.ValueType,
+            Apply = value => SetValue(value, where),
+            Changed = value => view.Dispatch(() => binding?.PushFromTarget(value)),
+            Converter = options.Converter is { } name ? ValueConverters.Find(name) : null,
+            ConverterParameter = options.ConverterParameter,
+            Format = options.Format,
+            Fallback = options.Fallback,
+            NullValue = options.NullValue,
+            Report = Report
+        };
+
+        binding = Binding.Attach(request);
+        view.Own(binding);
+
+        // The control reports its own changes through this registration; without it a two way binding would only
+        // ever be written to, never hear from its control. Only a mode that writes may arm it: arm every binding
+        // and the last one wins, so the control's change travels to the wrong property and is dropped on the way
+        if (mode is BindingMode.TwoWay or BindingMode.OneWayToSource && Element is IPropertyObserver observer)
+        {
+            observer.Observe(Property.Name, request.Changed);
+        }
+
+        if (Property.ValueType == typeof(ICommand) && Element is ICommandElement commandElement)
+        {
+            view.Own(Binding.Attach(new BindingRequest
+            {
+                Source = source,
+                Path = string.Empty,
+                Mode = BindingMode.OneWay,
+                TargetType = typeof(object),
+                Apply = _ => commandElement.RefreshCanExecute(),
+                Report = Report
+            }));
+        }
+    }
+
+    internal void BindMulti(IReadOnlyList<BindingOptions> bindings, string? converter, string? parameter)
+    {
+        if (converter is not { } name || ValueConverters.FindMulti(name) is not { } multi)
+        {
+            Report($"unknown multi value converter '{converter}'");
+            return;
+        }
+
+        object?[] values = new object?[bindings.Count];
+
+        void Recompute() => SetValue(multi.Convert(values, Property.ValueType, parameter), "multi binding");
+
+        for (int i = 0; i < bindings.Count; i++)
+        {
+            int index = i;
+            BindingOptions options = bindings[i];
+            object? source = ResolveSource(options, out string where);
+
+            view.Own(Binding.Attach(new BindingRequest
+            {
+                Source = source,
+                Path = options.Path,
+                Mode = BindingMode.OneWay,
+                TargetType = typeof(object),
+                Apply = value =>
+                {
+                    values[index] = value;
+                    Recompute();
+                },
+                Report = Report
+            }));
+        }
+    }
+
+    internal void SetResource(string key, bool reevaluate)
+    {
+        if (view.FindResource(key, Element) is not { } resource)
+        {
+            Report($"no resource named '{key}'");
+            return;
+        }
+
+        if (resource is Styling.Style)
+        {
+            Report($"'{key}' is a style and cannot be the value of '{Property.Name}'");
+            return;
+        }
+
+        if (reevaluate && resource is string text)
+        {
+            SetKeyText(text);
+            return;
+        }
+
+        SetValue(resource, $"resource {key}");
+    }
+
+    internal void Report(string message) => view.Diagnostics.Report($"{Property.Name}: {message}", node);
+
+    private object? ResolveSource(BindingOptions options, out string where)
+    {
+        if (options.ElementName is { } name)
+        {
+            if (view.Names.Find(name) is not { } element)
+            {
+                Report($"no element named '{name}'");
+                where = name;
+                return null;
+            }
+
+            where = $"{name}.{options.Path}";
+            return element.DataContext;
+        }
+
+        where = options.Path;
+        return Element.DataContext;
+    }
+
+    private void SetKeyText(string key)
+    {
+        (object? value, bool ok) = ValueReader.Convert(TextManager.Get(key), Property.ValueType);
+        if (ok) { Property.Apply(Element, value); }
+    }
+
+    private static string Friendly(Type type) => type.Name;
+}

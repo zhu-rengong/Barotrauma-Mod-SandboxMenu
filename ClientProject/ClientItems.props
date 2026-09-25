@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <BuildTarget>Client</BuildTarget>
+    <DefineConstants>$(DefineConstants);CLIENT</DefineConstants>
+  </PropertyGroup>
+  <Import Project="..\BuildData.props" />
+
+  <!-- The view markup ships inside the assembly, so a build produces a single file to deploy. -->
+  <ItemGroup>
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MainWindow.xml" LogicalName="SandboxMenu.MainWindow.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ContextMenu.xml" LogicalName="SandboxMenu.ContextMenu.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Browser.xml" LogicalName="SandboxMenu.Browser.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
+  </ItemGroup>
+</Project>
