@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ModName>SandboxMenu</ModName>
     <!-- Used for the RepositoryUrl assembly metadata injected in SharedItems.props (plugin metadata). -->
-    <RepositoryURL>https://github.com/FakeFish/barotrauma-mod-sandboxmenu</RepositoryURL>
+    <RepositoryURL>https://github.com/zhu-rengong/Barotrauma-Mod-SandboxMenu</RepositoryURL>
     <UsePublicizedAssemblies>true</UsePublicizedAssemblies>
   </PropertyGroup>
 
