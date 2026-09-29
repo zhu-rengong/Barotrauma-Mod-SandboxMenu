@@ -5,8 +5,6 @@ internal abstract class MarkupExtension
     private static Dictionary<string, Func<string, MarkupExtension>>? _kinds;
     private static Dictionary<string, Func<MarkupNode, MarkupExtension>>? _elements;
 
-    // Both tables hold delegates of this assembly, so they are dropped with the rest of the mod's state rather
-    // than staying behind as a registry nothing looks at any more.
     static MarkupExtension() => StaticState.Register(() => (_kinds, _elements) = (null, null));
 
     private static Dictionary<string, Func<string, MarkupExtension>> Kinds => _kinds ??= new(StringComparer.OrdinalIgnoreCase)

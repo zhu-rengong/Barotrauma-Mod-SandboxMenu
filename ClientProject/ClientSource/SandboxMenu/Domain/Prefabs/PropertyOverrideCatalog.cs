@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Globalization;
 using Barotrauma.Items.Components;
 
@@ -13,7 +14,7 @@ internal sealed record PropertyOption(string Name, string TypeName, string Defau
 
 internal static class PropertyOverrideCatalog
 {
-    private static readonly Dictionary<Type, ImmutableArray<PropertyOption>> PropertyCache = [];
+    private static readonly Dictionary<Type, ImmutableArray<PropertyOption>> _propertyCache = [];
 
     private static FrozenDictionary<string, Type>? _componentTypes;
 
@@ -21,12 +22,10 @@ internal static class PropertyOverrideCatalog
 
     internal static void Clear()
     {
-        PropertyCache.Clear();
+        _propertyCache.Clear();
         _componentTypes = null;
     }
 
-    // A component name occurring more than once is numbered, which is the index the override needs to pick
-    // the right one; a name occurring once stays plain.
     internal static IReadOnlyList<OverrideTarget> Targets(string identifier) =>
         DescribeTargets((identifier ?? string.Empty).Trim());
 
@@ -35,14 +34,12 @@ internal static class PropertyOverrideCatalog
         ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
         if (target.Type is not { } type) { return []; }
 
-        if (!PropertyCache.TryGetValue(type, out ImmutableArray<PropertyOption> declared))
+        if (!_propertyCache.TryGetValue(type, out ImmutableArray<PropertyOption> declared))
         {
             declared = [.. DescribeProperties(type)];
-            PropertyCache[type] = declared;
+            _propertyCache[type] = declared;
         }
 
-        // A value the prefab declares for a property wins over the property's own default, which is what the item
-        // is really created with; the cached table stays per type.
         return target.Element is not { } element
             ? declared
             : [.. declared.Select(option => AsDeclaredBy(option, element))];
@@ -82,23 +79,16 @@ internal static class PropertyOverrideCatalog
 
     private static List<PropertyOption> DescribeProperties(Type type)
     {
-        // The editor only ever has a prefab, never a live item, so the properties cannot be read off an instance.
-        // An uninitialized one is enough: the engine reads nothing but the type and the attributes of each
-        // property when it builds the table.
         object probe = RuntimeHelpers.GetUninitializedObject(type);
         List<PropertyOption> options = [];
 
         foreach (SerializableProperty property in SerializableProperty.GetProperties(probe).Values)
         {
-            // Only what the game would load from XML and can parse back from a string: an override is applied
-            // through SerializableProperty.TrySetValue(object, string).
             if (property.Attributes.OfType<Serialize>().FirstOrDefault() is not { } serialize) { continue; }
             if (SerializableProperty.GetSupportedTypeName(property.PropertyType) is not { } typeName) { continue; }
 
             string kind = string.Equals(typeName, "Enum", StringComparison.Ordinal) ? property.PropertyType.Name : typeName;
 
-            // A default computed from the entity (CustomDefaultValueAttribute) cannot be evaluated without one, so
-            // the value the attribute declares is all that can be shown.
             options.Add(new PropertyOption(property.Name, kind, FormatDefault(serialize.DefaultValue)));
         }
 
@@ -106,8 +96,6 @@ internal static class PropertyOverrideCatalog
         return options;
     }
 
-    // The conversion is the one the engine writes a value with, so the text can be handed straight back to the
-    // property: floats in the invariant culture the engine parses them with, the rest as the engine reads them.
     private static string FormatDefault(object? value) => value switch
     {
         null => string.Empty,
@@ -116,8 +104,8 @@ internal static class PropertyOverrideCatalog
         Identifier[] identifiers => string.Join(';', identifiers),
         Identifier identifier => identifier.ToString(),
         float number => number.ToString("G", CultureInfo.InvariantCulture),
-        int number => number.ToString(CultureInfo.CurrentCulture),
-        ushort number => number.ToString(CultureInfo.CurrentCulture),
+        int number => number.ToString(CultureInfo.InvariantCulture),
+        ushort number => number.ToString(CultureInfo.InvariantCulture),
         Point point => XMLExtensions.PointToString(point),
         Vector2 vector => XMLExtensions.Vector2ToString(vector),
         Vector3 vector => XMLExtensions.Vector3ToString(vector, "G"),
@@ -141,7 +129,6 @@ internal static class PropertyOverrideCatalog
         int wanted = Math.Max(1, componentIndex);
         int index = 0;
 
-        // The same count the game uses when it resolves an override: the Nth element with this name.
         foreach (ContentXElement element in root.Elements())
         {
             if (!IsComponent(element)) { continue; }
@@ -154,33 +141,36 @@ internal static class PropertyOverrideCatalog
         return default;
     }
 
-    // The element name either names a component class or it is not a component at all. A capitalized name left over
-    // is listed as well: a plugin can add component types of its own, known only to the game's plugin data.
     private static bool IsComponent(ContentXElement element)
     {
         string name = element.Name.LocalName;
-        if (string.IsNullOrEmpty(name) || NonComponentElements.Contains(name)) { return false; }
+        if (string.IsNullOrEmpty(name) || _nonComponentElements.Contains(name)) { return false; }
 
-        return ComponentTypeFor(name) is not null || char.IsUpper(name[0]);
+        return ComponentTypeFor(name) is not null;
     }
 
     private static Type? ComponentTypeFor(string name) => ComponentTypes.TryGetValue(name, out Type? type) ? type : null;
 
-    // Nothing but the class name is registered: the game looks a component up by exactly the element name, so a
-    // shortened spelling would only offer targets it would never create.
     private static FrozenDictionary<string, Type> ComponentTypes => _componentTypes ??= BuildComponentTypes();
 
     private static FrozenDictionary<string, Type> BuildComponentTypes()
     {
         Dictionary<string, Type> types = new(StringComparer.OrdinalIgnoreCase);
 
-        // The one place the mod asks what the engine's component kinds are, and it asks through the engine's own
-        // helper: an override names a component by its class name and there is no list of them to read instead.
-        // This is type discovery, not reaching a member the assemblies have hidden.
         foreach (Type type in ReflectionUtils.GetDerivedNonAbstract<ItemComponent>())
         {
             types.TryAdd(type.Name, type);
         }
+
+        foreach (PluginData pluginData in PluginData.LoadedPluginData)
+        {
+            foreach (Type type in pluginData.ItemComponents)
+            {
+                types.TryAdd(type.Name, type);
+            }
+        }
+
+        types.TryAdd(typeof(ItemComponent).Name, typeof(ItemComponent));
 
         return types.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
@@ -199,10 +189,7 @@ internal static class PropertyOverrideCatalog
 
     private static OverrideTarget ItemItself => new(string.Empty, 1, TextManager.Get("sandboxmenu.pick.itemitself"));
 
-    // Elements the item's own constructor reads itself (a sprite, a physics body, a price, a status effect
-    // override, an upgrade), which the component loader is never asked about: taking one for a component would
-    // offer a target the game cannot create.
-    private static readonly HashSet<string> NonComponentElements = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _nonComponentElements = new(StringComparer.OrdinalIgnoreCase)
     {
         "sprite", "brokensprite", "inventoryicon", "decorativesprite", "infectedsprite",
         "damagedinfectedsprite", "containedsprite", "upgradepreviewsprite", "minimapicon",

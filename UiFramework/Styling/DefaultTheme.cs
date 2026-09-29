@@ -10,18 +10,13 @@ internal static class DefaultTheme
 
     private static ResourceDictionary Build()
     {
-        var theme = new ResourceDictionary();
+        ResourceDictionary theme = new();
 
         theme.Set("SectionHeader", new Style
         {
             Key = "SectionHeader",
             TargetType = "Text",
-            Setters =
-            [
-
-                new Setter("FontSize", MarkupValue.Parse("24")),
-
-            ]
+            Setters = [new Setter("FontSize", MarkupValue.Parse("24"))]
         });
 
         theme.Set("Text", new Style
@@ -31,8 +26,7 @@ internal static class DefaultTheme
             [
                 new Setter("FontSize", MarkupValue.Parse("22")),
                 new Setter("Wrap", MarkupValue.Parse("True")),
-                new Setter("Scale", MarkupValue.Parse("False")),
-
+                new Setter("Scale", MarkupValue.Parse("False"))
             ]
         });
 

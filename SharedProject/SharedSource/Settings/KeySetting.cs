@@ -3,13 +3,13 @@ using System.Xml.Linq;
 using Barotrauma.Networking;
 using Microsoft.Xna.Framework.Input;
 
-namespace SandboxMenu;
+namespace SandboxMenu.Settings;
 
-public sealed class KeySetting : BaseSetting<KeyBind>
+internal sealed class KeySetting : BaseSetting<KeyBind>
 {
-    private static readonly MouseButton[] AllMouseButtons = Enum.GetValues<MouseButton>();
+    private static readonly MouseButton[] _allMouseButtons = Enum.GetValues<MouseButton>();
 
-    private static readonly Color LabelColor = UiMetrics.Text;
+    private static readonly Color _labelColor = UiMetrics.Text;
 
     private GUIButton? _button;
     private GUICustomComponent? _capture;
@@ -46,7 +46,7 @@ public sealed class KeySetting : BaseSetting<KeyBind>
     {
         MainUI = new GUIFrame(new RectTransform(new Vector2(1f, 0.12f), null!), style: null!);
 
-        var layout = new GUILayoutGroup(new RectTransform(Vector2.One, MainUI.RectTransform), isHorizontal: true)
+        GUILayoutGroup layout = new(new RectTransform(Vector2.One, MainUI.RectTransform), isHorizontal: true)
         {
             ChildAnchor = Anchor.CenterLeft
         };
@@ -54,7 +54,7 @@ public sealed class KeySetting : BaseSetting<KeyBind>
         new GUITextBlock(
             new RectTransform(new Vector2(0.6f, 1f), layout.RectTransform),
             Label,
-            textColor: LabelColor,
+            textColor: _labelColor,
             textAlignment: Alignment.CenterLeft);
 
         _button = new GUIButton(
@@ -72,8 +72,6 @@ public sealed class KeySetting : BaseSetting<KeyBind>
         };
         _button.OnAddedToGUIUpdateList = _ => RefreshButtonText();
 
-        // Polls for the next key/mouse press while capturing. Kept in a field, so its handler can be dropped
-        // again when the plugin is unloaded (see Detach).
         _capture = new GUICustomComponent(new RectTransform(Vector2.One, MainUI.RectTransform), onUpdate: UpdateCapture)
         {
             CanBeFocused = false
@@ -107,7 +105,6 @@ public sealed class KeySetting : BaseSetting<KeyBind>
     {
         if (!_capturing) { return; }
 
-        // Ignore the frame the capture was started on (avoids binding the click itself).
         if (_captureCooldown > 0)
         {
             _captureCooldown--;
@@ -130,7 +127,7 @@ public sealed class KeySetting : BaseSetting<KeyBind>
             return;
         }
 
-        foreach (MouseButton mouse in AllMouseButtons)
+        foreach (MouseButton mouse in _allMouseButtons)
         {
             if (mouse == MouseButton.None) { continue; }
             if (!new KeyBind(mouse).IsHit()) { continue; }

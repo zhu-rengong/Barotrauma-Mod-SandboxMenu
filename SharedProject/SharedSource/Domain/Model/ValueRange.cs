@@ -1,6 +1,6 @@
 namespace SandboxMenu.Domain.Model;
 
-public readonly record struct ValueRange
+internal readonly record struct ValueRange
 {
     public ValueRange(float value)
     {

@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public abstract class ItemRowViewModel : Notifiable, IEditorRow
+internal abstract class ItemRowViewModel : Notifiable, IEditorRow
 {
     private ItemDisplay? _display;
     private bool _visible = true;
@@ -27,7 +27,7 @@ public abstract class ItemRowViewModel : Notifiable, IEditorRow
 
     public virtual RichString Title => Display?.Title ?? string.Empty;
 
-    public virtual RichString SubText => RichString.Rich(Display?.Description ?? string.Empty);
+    public virtual RichString SubText => Display?.Tags ?? RichString.Rich(string.Empty);
 
     public virtual Sprite? Icon => Display?.Icon;
 

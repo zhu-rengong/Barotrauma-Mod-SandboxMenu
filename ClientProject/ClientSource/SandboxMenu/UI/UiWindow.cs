@@ -5,30 +5,27 @@ namespace SandboxMenu.UI;
 
 internal sealed class UiWindow : IPopupWindow
 {
+    private static int _instances;
+
     private readonly GUIFrame _frame;
     private readonly GUIFrame _content;
     private readonly ViewLoadContext _view;
     private readonly int _order;
-    private readonly Point _dipSize;
+    private readonly Point _size;
     private readonly int _id = ++_instances;
 
-    private static int _instances;
-
-    internal UiWindow(string markupFile, Point dipSize, int updateOrder, object viewModel)
+    internal UiWindow(string markupFile, Point size, int updateOrder, object viewModel)
     {
-        _dipSize = dipSize;
+        _size = size;
         _order = updateOrder;
 
-        // Fixed pixel size: laid out in device independent pixels, unchanged by a resolution change.
-        Point size = Fit(dipSize, GUI.Canvas.Rect);
-        _frame = new GUIFrame(new RectTransform(size, GUI.Canvas, Anchor.Center, null, ScaleBasis.Normal, isFixedSize: true), "GUIFrame")
+        Point fit = Fit(size, GUI.Canvas.Rect);
+        _frame = new GUIFrame(new RectTransform(fit, GUI.Canvas, Anchor.Center, null, ScaleBasis.Normal, isFixedSize: true), "GUIFrame")
         {
             Visible = false,
             CanBeFocused = false
         };
 
-        // The content frame absorbs the mouse over the window's empty areas and gives the view the room minus
-        // the margin. The view's root is built into it directly, so its relative sizes resolve against the right
         _content = new GUIFrame(new RectTransform(new Vector2(0.97f, 0.93f), _frame.RectTransform, Anchor.Center), style: null)
         {
             HoverCursor = CursorState.Default
@@ -39,8 +36,6 @@ internal sealed class UiWindow : IPopupWindow
         _view.DiagnosticSink = message => Log.Warn($"#{_id} {message}");
         _view.IsInputBlocked = () => UiWindow.InputBlocked;
 
-        // The markup marks the band that drags the window (the game's own invisible drag handle). Its
-        // draggable area snapshots the screen at construction, so it is refreshed every frame instead.
         if (Find<GUIComponent>("DragArea") is { } dragArea)
         {
             _dragHandle = new GUIDragHandle(new RectTransform(Vector2.One, dragArea.RectTransform), _frame.RectTransform, null);
@@ -55,10 +50,6 @@ internal sealed class UiWindow : IPopupWindow
             };
         }
 
-        // What the view draws and has no control to draw with (a drag's drop indicator) is drawn by a component of
-        // this window's own tree, built last: the game draws a window's components in the order they were built, so
-        // controls nothing — a component whose CanBeFocused is false reports an empty MouseRect, and the game
-        // decides what the mouse is on by that, so this one never takes a click. The frame's child list is what
         _ = new GUICustomComponent(
             new RectTransform(Vector2.One, _frame.RectTransform),
             (spriteBatch, _) => DrawOverlay(spriteBatch))
@@ -170,7 +161,7 @@ internal sealed class UiWindow : IPopupWindow
     private void KeepOnScreen()
     {
         Rectangle canvas = GUI.Canvas.Rect;
-        Point fit = Fit(_dipSize, canvas);
+        Point fit = Fit(_size, canvas);
         if (_frame.RectTransform.NonScaledSize != fit) { _frame.RectTransform.NonScaledSize = fit; }
 
         if (_dragHandle is { } handle) { handle.DragArea = canvas; }
@@ -184,8 +175,8 @@ internal sealed class UiWindow : IPopupWindow
             Math.Clamp(location.X, bounds.X, Math.Max(bounds.X, bounds.Right - size.X)),
             Math.Clamp(location.Y, bounds.Y, Math.Max(bounds.Y, bounds.Bottom - size.Y)));
 
-    private static Point Fit(Point dipSize, Rectangle canvas)
+    private static Point Fit(Point size, Rectangle canvas)
         => new(
-            Math.Clamp(dipSize.X, 1, Math.Max(1, canvas.Width)),
-            Math.Clamp(dipSize.Y, 1, Math.Max(1, canvas.Height)));
+            Math.Clamp(size.X, 1, Math.Max(1, canvas.Width)),
+            Math.Clamp(size.Y, 1, Math.Max(1, canvas.Height)));
 }

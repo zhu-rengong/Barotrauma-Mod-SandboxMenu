@@ -2,14 +2,12 @@ namespace UiFramework;
 
 internal sealed record MarkupDiagnostic(string Message, MarkupNode? Node)
 {
-    public override string ToString() => Node is null ? Message : $"{Node.File}({Node.Line}): {Message}";
+    public override string ToString() => Node is null ? Message : $"{Node.View}({Node.Line}): {Message}";
 }
 
 internal sealed class MarkupDiagnostics(string view)
 {
     private readonly List<MarkupDiagnostic> _items = [];
-
-    internal IReadOnlyList<MarkupDiagnostic> Items => _items;
 
     internal Action<string>? Sink { get; set; }
 

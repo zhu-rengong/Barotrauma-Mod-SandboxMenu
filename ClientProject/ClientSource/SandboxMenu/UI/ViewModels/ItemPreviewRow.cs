@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class ItemPreviewRow : ItemRowViewModel
+internal sealed class ItemPreviewRow : ItemRowViewModel
 {
     private string _fallbackTitle = string.Empty;
     private LocalizedString _fallbackSubText = LocalizedString.EmptyString;
@@ -13,7 +13,7 @@ public sealed class ItemPreviewRow : ItemRowViewModel
 
     internal static ItemPreviewRow For(string identifier)
     {
-        var row = new ItemPreviewRow();
+        ItemPreviewRow row = new();
         row.Show(identifier);
         return row;
     }

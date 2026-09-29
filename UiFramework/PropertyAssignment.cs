@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using UiFramework.Styling;
 
 namespace UiFramework;
 
@@ -44,24 +45,24 @@ internal sealed class PropertyAssignment(
 
     internal void Bind(BindingOptions options)
     {
-        object? source = ResolveSource(options, out string where);
+        object? source = ResolveSource(options, out string sourceName);
         Binding? binding = null;
 
         BindingMode mode = options.Mode ?? Property.DefaultMode;
 
         if (mode is BindingMode.TwoWay or BindingMode.OneWayToSource && Element is not IPropertyObserver)
         {
-            Report($"'{Property.Name}' cannot be written back to '{where}'");
+            Report($"'{Property.Name}' cannot be written back to '{sourceName}'");
             return;
         }
 
-        var request = new BindingRequest
+        BindingRequest request = new()
         {
             Source = source,
             Path = options.Path,
             Mode = mode,
             TargetType = Property.ValueType,
-            Apply = value => SetValue(value, where),
+            Apply = value => SetValue(value, sourceName),
             Changed = value => view.Dispatch(() => binding?.PushFromTarget(value)),
             Converter = options.Converter is { } name ? ValueConverters.Find(name) : null,
             ConverterParameter = options.ConverterParameter,
@@ -74,9 +75,6 @@ internal sealed class PropertyAssignment(
         binding = Binding.Attach(request);
         view.Own(binding);
 
-        // The control reports its own changes through this registration; without it a two way binding would only
-        // ever be written to, never hear from its control. Only a mode that writes may arm it: arm every binding
-        // and the last one wins, so the control's change travels to the wrong property and is dropped on the way
         if (mode is BindingMode.TwoWay or BindingMode.OneWayToSource && Element is IPropertyObserver observer)
         {
             observer.Observe(Property.Name, request.Changed);
@@ -112,7 +110,7 @@ internal sealed class PropertyAssignment(
         {
             int index = i;
             BindingOptions options = bindings[i];
-            object? source = ResolveSource(options, out string where);
+            object? source = ResolveSource(options, out string sourceName);
 
             view.Own(Binding.Attach(new BindingRequest
             {
@@ -138,7 +136,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        if (resource is Styling.Style)
+        if (resource is Style)
         {
             Report($"'{key}' is a style and cannot be the value of '{Property.Name}'");
             return;
@@ -155,22 +153,22 @@ internal sealed class PropertyAssignment(
 
     internal void Report(string message) => view.Diagnostics.Report($"{Property.Name}: {message}", node);
 
-    private object? ResolveSource(BindingOptions options, out string where)
+    private object? ResolveSource(BindingOptions options, out string sourceName)
     {
         if (options.ElementName is { } name)
         {
             if (view.Names.Find(name) is not { } element)
             {
                 Report($"no element named '{name}'");
-                where = name;
+                sourceName = name;
                 return null;
             }
 
-            where = $"{name}.{options.Path}";
+            sourceName = $"{name}.{options.Path}";
             return element.DataContext;
         }
 
-        where = options.Path;
+        sourceName = options.Path;
         return Element.DataContext;
     }
 

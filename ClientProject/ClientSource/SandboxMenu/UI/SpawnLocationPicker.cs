@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu.UI;
 
-public static class SpawnLocationPicker
+internal static class SpawnLocationPicker
 {
     private static Action<Vector2>? _onPicked;
     private static Action? _onCancelled;
@@ -57,20 +57,20 @@ public static class SpawnLocationPicker
         float textScale = MenuTheme.FontScale(MenuTheme.PickerHintFontSize, GUIStyle.SmallFont);
         Vector2 textSize = GUIStyle.SmallFont.MeasureString(hint, false) * textScale;
         Vector2 mouse = PlayerInput.MousePosition;
-        var textPosition = new Vector2(
+        Vector2 textPosition = new(
             mouse.X + MenuTheme.Dip(MenuTheme.PickerHintOffsetX),
             mouse.Y + MenuTheme.Dip(MenuTheme.PickerHintOffsetY));
 
         int cx = (int)mouse.X;
         int cy = (int)mouse.Y;
-        int arm = MenuTheme.DipInt(8f);
+        int arm = MenuTheme.DipInt(MenuTheme.PickerHintArmLength);
         int thickness = MenuTheme.DipInt(MenuTheme.LineThickness);
         MenuPaint.Fill(spriteBatch, new Rectangle(cx - arm, cy, arm * 2 + 1, thickness), MenuTheme.Accent);
         MenuPaint.Fill(spriteBatch, new Rectangle(cx, cy - arm, thickness, arm * 2 + 1), MenuTheme.Accent);
 
         int pad = MenuTheme.DipInt(MenuTheme.Pad);
         int padY = MenuTheme.DipInt(MenuTheme.PickerHintPaddingY);
-        var frame = new Rectangle(
+        Rectangle frame = new(
             (int)textPosition.X - pad,
             (int)textPosition.Y - padY,
             (int)textSize.X + pad * 2,

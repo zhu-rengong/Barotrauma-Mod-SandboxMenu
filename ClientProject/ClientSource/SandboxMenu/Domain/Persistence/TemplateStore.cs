@@ -1,14 +1,14 @@
 using System.IO;
 using System.Xml.Linq;
-// The host's own saving entry point, taken by name: importing Barotrauma.IO would clash with System.IO over the
-// Path, File and Directory this file uses to keep the mod's presets together.
 using SafeXML = Barotrauma.IO.SafeXML;
 
 namespace SandboxMenu.Domain.Persistence;
 
-public static class TemplateStore
+internal static class TemplateStore
 {
     private const string Extension = ".xml";
+
+    private const int MaxNameLength = 96;
 
     public static string Folder => Path.Combine(Plugin.SettingsService.SaveFolder, "Presets");
 
@@ -42,8 +42,6 @@ public static class TemplateStore
                 string path = PathFor(name);
                 if (!File.Exists(path)) { return null; }
 
-                // The host's own loader, which reads with the same hardened settings it uses for content XML and is
-                // the one place that reports a file it cannot read.
                 return XMLExtensions.TryLoadXml(path) is { Root: { } root } ? SpawnSet.FromXml(root) : null;
             },
             $"Failed to load preset '{name}'",
@@ -61,8 +59,6 @@ public static class TemplateStore
                 string path = PathFor(set.Name);
                 DropOtherSpelling(path);
 
-                // The host's own save path, which is also what decides whether this folder may be written at all.
-                // It is asked to throw, so that a refusal reaches the status line instead of only the log.
                 SafeXML.SaveSafe(new XDocument(set.ToXml()), path, throwExceptions: true);
                 return true;
             },
@@ -93,25 +89,14 @@ public static class TemplateStore
         return false;
     }
 
-    public static bool Delete(string name)
-        => Attempt<bool>(
-            () =>
-            {
-                string path = PathFor(name);
-                if (!File.Exists(path)) { return false; }
-
-                File.Delete(path);
-                return true;
-            },
-            $"Failed to delete preset '{name}'",
-            false);
-
     private static T Attempt<T>(Func<T> body, string message, T fallback) => Guard.Try(message, body, fallback);
 
     private static string PathFor(string name) => Path.Combine(Folder, Sanitize(name) + Extension);
 
     private static void DropOtherSpelling(string path)
     {
+        if (!IsCaseInsensitive(Folder)) { return; }
+
         string name = Path.GetFileName(path);
 
         foreach (string existing in Directory.EnumerateFiles(Folder, "*" + Extension))
@@ -131,8 +116,23 @@ public static class TemplateStore
             .Trim()
             .TrimEnd('.');
 
-        if (sanitized.Length > 96) { sanitized = sanitized[..96]; }
+        if (sanitized.Length > MaxNameLength) { sanitized = sanitized[..MaxNameLength]; }
 
         return string.IsNullOrEmpty(sanitized) ? "preset" : sanitized;
+    }
+
+    private static bool IsCaseInsensitive(string folder)
+    {
+        string parent = Path.GetDirectoryName(folder) ?? folder;
+        string name = Path.GetFileName(folder);
+
+        return Flipped(name) is { } flipped && Directory.Exists(Path.Combine(parent, flipped));
+    }
+
+    private static string? Flipped(string name)
+    {
+        string flipped = new([.. name.Select(c => char.IsUpper(c) ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c))]);
+
+        return string.Equals(flipped, name, StringComparison.Ordinal) ? null : flipped;
     }
 }

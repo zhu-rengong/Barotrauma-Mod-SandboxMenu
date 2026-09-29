@@ -2,7 +2,7 @@ namespace SandboxMenu.Infrastructure;
 
 internal static class Guard
 {
-    internal static void Run(string what, Action body)
+    internal static void Run(string context, Action body)
     {
         try
         {
@@ -10,11 +10,11 @@ internal static class Guard
         }
         catch (Exception e)
         {
-            Log.Warn(what, e);
+            Log.Warn(context, e);
         }
     }
 
-    internal static T Try<T>(string what, Func<T> body, T fallback)
+    internal static T Try<T>(string context, Func<T> body, T fallback)
     {
         try
         {
@@ -22,7 +22,7 @@ internal static class Guard
         }
         catch (Exception e)
         {
-            Log.Warn(what, e);
+            Log.Warn(context, e);
             return fallback;
         }
     }

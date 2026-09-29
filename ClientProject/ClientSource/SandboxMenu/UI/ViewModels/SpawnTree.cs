@@ -15,9 +15,6 @@ internal static class SpawnTree
         return false;
     }
 
-    // The branch leading to the descendant is lifted into the slot the moved entry held, which takes the list
-    // holding the descendant out of the entry being moved: without that step, dropping an entry next to one of
-    // its own descendants would make it hold itself. False when either entry is not where the caller thinks.
     internal static bool LiftBranch(List<SpawnEntry> owner, ItemEntry moved, SpawnEntry descendant)
     {
         SpawnEntry? branch = PathChildOf(moved, descendant);

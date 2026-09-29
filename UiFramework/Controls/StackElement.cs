@@ -22,8 +22,8 @@ internal sealed class StackElement : ViewElement
             ViewMarkup.AnchorOf(context.Text("ChildAnchor"), horizontal ? Anchor.CenterLeft : Anchor.TopLeft))
         {
             Stretch = ViewMarkup.ToBool(context.Text("Stretch"), false),
-            AbsoluteSpacing = UiMetrics.DipInt(MarkupPlacement.Read(context.Node, "Spacing", 0f)),
-            RelativeSpacing = MarkupPlacement.Read(context.Node, "RelativeSpacing", 0f)
+            AbsoluteSpacing = UiMetrics.DipInt(context.Metric("Spacing", 0f)),
+            RelativeSpacing = context.Size("RelativeSpacing", 0f)
         };
     }
 }

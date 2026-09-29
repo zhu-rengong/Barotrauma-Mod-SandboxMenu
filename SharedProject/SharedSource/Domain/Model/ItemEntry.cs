@@ -2,7 +2,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-public sealed class ItemEntry : SpawnEntry
+internal sealed class ItemEntry : SpawnEntry
 {
     public string Identifier { get; set; } = string.Empty;
 
@@ -33,9 +33,9 @@ public sealed class ItemEntry : SpawnEntry
     {
         get
         {
-            LocalizedString amount = Amount is { } a ? $" ×{a}" : string.Empty;
-            LocalizedString stack = Stacks is { } s
-                ? " " + TextManager.GetWithVariable("sandboxmenu.summary.stacks", "[count]", s.ToString())
+            LocalizedString amount = Amount is { } range ? $" ×{range}" : string.Empty;
+            LocalizedString stack = Stacks is { } stacks
+                ? " " + TextManager.GetWithVariable("sandboxmenu.summary.stacks", "[count]", stacks.ToString())
                 : string.Empty;
 
             return amount + stack;
@@ -46,7 +46,6 @@ public sealed class ItemEntry : SpawnEntry
     {
         get
         {
-            // The tree shows this under the current language, so nothing here may be a literal.
             LocalizedString name = string.IsNullOrEmpty(Identifier)
                 ? TextManager.Get("sandboxmenu.summary.unset")
                 : Identifier;
@@ -58,7 +57,7 @@ public sealed class ItemEntry : SpawnEntry
 
     public override XElement ToXml()
     {
-        var element = new XElement("Item", new XAttribute("identifier", Identifier));
+        XElement element = new("Item", new XAttribute("identifier", Identifier));
         WriteCommon(element);
 
         XmlValue.WriteRange(element, "stacks", Stacks);
@@ -73,14 +72,14 @@ public sealed class ItemEntry : SpawnEntry
 
         if (Properties.Count > 0)
         {
-            var properties = new XElement("Properties");
+            XElement properties = new("Properties");
             foreach (PropertyOverride property in Properties) { properties.Add(property.ToXml()); }
             element.Add(properties);
         }
 
         if (Inventory.Count > 0)
         {
-            var inventory = new XElement("Inventory");
+            XElement inventory = new("Inventory");
             foreach (SpawnEntry entry in Inventory) { inventory.Add(entry.ToXml()); }
             element.Add(inventory);
         }
@@ -90,7 +89,7 @@ public sealed class ItemEntry : SpawnEntry
 
     internal static ItemEntry Read(XElement element)
     {
-        var entry = new ItemEntry
+        ItemEntry entry = new()
         {
             Identifier = element.GetAttributeString("identifier", string.Empty),
             FillInventory = element.GetAttributeBool("fillInventory", false),
@@ -129,7 +128,7 @@ public sealed class ItemEntry : SpawnEntry
 
     protected override SpawnEntry CloneCore()
     {
-        var clone = new ItemEntry
+        ItemEntry clone = new()
         {
             Identifier = Identifier,
             Stacks = Stacks,

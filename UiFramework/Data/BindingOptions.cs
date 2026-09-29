@@ -18,8 +18,6 @@ internal sealed class BindingOptions
 
     internal string? ElementName { get; private init; }
 
-    internal bool Self { get; private init; }
-
     internal static BindingOptions Read(MarkupNode node) => new()
     {
         Path = node.Text("Path") ?? string.Empty,
@@ -29,8 +27,7 @@ internal sealed class BindingOptions
         Format = node.Text("StringFormat"),
         Fallback = node.Text("FallbackValue"),
         NullValue = node.Text("TargetNullValue"),
-        ElementName = node.Text("ElementName"),
-        Self = string.Equals(node.Text("RelativeSource"), "Self", StringComparison.OrdinalIgnoreCase)
+        ElementName = node.Text("ElementName")
     };
 
     internal static BindingOptions Parse(string body)
@@ -50,7 +47,6 @@ internal sealed class BindingOptions
         string? fallback = null;
         string? nullValue = null;
         string? elementName = null;
-        bool self = false;
 
         foreach (string option in parts.Skip(1))
         {
@@ -65,7 +61,6 @@ internal sealed class BindingOptions
             else if (name.Equals("FallbackValue", StringComparison.OrdinalIgnoreCase)) { fallback = text; }
             else if (name.Equals("TargetNullValue", StringComparison.OrdinalIgnoreCase)) { nullValue = text; }
             else if (name.Equals("ElementName", StringComparison.OrdinalIgnoreCase)) { elementName = text; }
-            else if (name.Equals("RelativeSource", StringComparison.OrdinalIgnoreCase)) { self = text.Equals("Self", StringComparison.OrdinalIgnoreCase); }
         }
 
         return new BindingOptions
@@ -77,8 +72,7 @@ internal sealed class BindingOptions
             Format = format,
             Fallback = fallback,
             NullValue = nullValue,
-            ElementName = elementName,
-            Self = self
+            ElementName = elementName
         };
     }
 

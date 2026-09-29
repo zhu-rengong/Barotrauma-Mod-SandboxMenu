@@ -10,21 +10,19 @@ internal sealed class BindingPath
 {
     private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-    private static readonly Dictionary<(Type Type, string Name), Accessors> AccessorCache = [];
-    private static readonly Dictionary<string, Segment[]> ParseCache = new(StringComparer.Ordinal);
+    private static readonly Dictionary<(Type Type, string Name), Accessors> _accessorCache = [];
+    private static readonly Dictionary<string, Segment[]> _parseCache = new(StringComparer.Ordinal);
 
     static BindingPath() => StaticState.Register(Clear);
 
     internal static void Clear()
     {
-        AccessorCache.Clear();
-        ParseCache.Clear();
+        _accessorCache.Clear();
+        _parseCache.Clear();
     }
 
     private readonly Segment[] _segments;
 
-    // The objects this path currently subscribes to. Unhooking walks this record, not the path again: an object
-    // that left the path after it was hooked (an intermediate value that was replaced) would otherwise keep the
     private readonly List<INotifyPropertyChanged> _hooked = [];
 
     private BindingPath(string text, Segment[] segments)
@@ -35,14 +33,12 @@ internal sealed class BindingPath
 
     internal string Text { get; }
 
-    internal bool IsEmpty => _segments.Length == 0;
-
     internal static BindingPath Parse(string text)
     {
-        if (ParseCache.TryGetValue(text, out Segment[]? cached)) { return new BindingPath(text, cached); }
+        if (_parseCache.TryGetValue(text, out Segment[]? cached)) { return new BindingPath(text, cached); }
 
         Segment[] parsed = ParseSegments(text);
-        ParseCache[text] = parsed;
+        _parseCache[text] = parsed;
 
         return new BindingPath(text, parsed);
     }
@@ -183,10 +179,10 @@ internal sealed class BindingPath
 
     private static Accessors AccessorsFor(Type type, string name)
     {
-        if (AccessorCache.TryGetValue((type, name), out Accessors cached)) { return cached; }
+        if (_accessorCache.TryGetValue((type, name), out Accessors cached)) { return cached; }
 
         Accessors built = Build(type, name);
-        AccessorCache[(type, name)] = built;
+        _accessorCache[(type, name)] = built;
         return built;
     }
 
@@ -200,7 +196,7 @@ internal sealed class BindingPath
 
         ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
         ParameterExpression value = Expression.Parameter(typeof(object), "value");
-        var target = Expression.Convert(instance, type);
+        Expression target = Expression.Convert(instance, type);
 
         Func<object, object?>? reader = null;
         Action<object, object?>? writer = null;
@@ -281,9 +277,6 @@ internal sealed class BindingPath
 
             if (accessors.Write is { } writer && accessors.WriteType is { } type)
             {
-                // The compiled writer unboxes into the member's own type: a control that reports a float for an
-                // int member has to be converted here, or the write leaves the frame as an exception and the
-                // member keeps the value it had.
                 (object? converted, bool ok) = ValueReader.Convert(value, type);
                 if (!ok) { return false; }
 

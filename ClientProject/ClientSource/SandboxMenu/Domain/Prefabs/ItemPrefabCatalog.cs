@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace SandboxMenu.Domain.Prefabs;
 
-public sealed record ItemPrefabEntry(ItemDisplay Display, string Package, MapEntityCategory Category, string Tags)
+internal sealed record ItemPrefabEntry(ItemDisplay Display, string Package, MapEntityCategory Category, string Tags)
 {
     internal bool Matches(string text)
         => Display.Name.Value.Contains(text, StringComparison.OrdinalIgnoreCase)
@@ -19,7 +19,7 @@ internal sealed record ItemFilter(IReadOnlySet<string> Packages, MapEntityCatego
 
 internal static class ItemPrefabCatalog
 {
-    internal static readonly MapEntityCategory[] AllCategories =
+    internal static readonly ImmutableArray<MapEntityCategory> AllCategories =
         [.. Enum.GetValues<MapEntityCategory>().Where(category => category != MapEntityCategory.None)];
 
     private static ImmutableArray<ItemPrefabEntry> _entries = ImmutableArray<ItemPrefabEntry>.Empty;
@@ -103,8 +103,6 @@ internal static class ItemPrefabCatalog
             list.Add(Describe(prefab));
         }
 
-        // By identifier: it is the item's own name rather than the one it goes by in a language, so the list holds
-        // one order for as long as the content does — a name order could only be read in the language the catalog
         list.Sort(static (a, b) => string.Compare(a.Display.Identifier, b.Display.Identifier, StringComparison.OrdinalIgnoreCase));
 
         _entries = list.ToImmutableArray();

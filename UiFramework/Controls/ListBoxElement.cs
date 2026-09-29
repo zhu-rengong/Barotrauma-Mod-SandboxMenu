@@ -10,15 +10,12 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 {
     private const float DragThreshold = 6f;
 
-    // The entries of the filter that was just switched off, so it is a couple of turns of one filter's worth.
     private const int SpareLimit = 240;
 
     private readonly GUIListBox _listBox;
     private readonly ViewLoadContext _view;
     private readonly List<BuiltRow> _rows = [];
 
-    // Rows that are no longer listed, held for an item the list may hold again: building a row's controls is the
-    // whole cost of a list change, and a row kept here is that cost already paid.
     private readonly Dictionary<object, BuiltRow> _spare = new(ReferenceEqualityComparer.Instance);
     private readonly Queue<object> _spareOrder = new();
 
@@ -28,11 +25,20 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     private bool _rebuildQueued;
     private bool _retriedEmpty;
 
-    // The scope is per row: that is what lets a dropped row give its own bindings back while the rows that stayed
-    // keep theirs, a row that is still listed not being rebuilt at all.
-    private sealed record BuiltRow(object Item, ViewElement Element, GUIButton? Button, OwnershipScope Scope);
     private IItemDropTarget? _dropTarget;
     private IListBackground? _background;
+
+    private object? _candidate;
+    private object? _dragged;
+    private Point _grabOffset;
+    private bool _dragging;
+    private object? _highlight;
+    private DropMode _highlightMode;
+    private float _proximity;
+    private Rectangle? _dropRect;
+
+    private LabelSkin? _draggedSkin;
+    private LabelSkin? _highlightSkin;
 
     public ListBoxElement(ElementContext context)
         : base(new GUIListBox(context.Rect(context.Parent, 1f, 1f), style: null!)
@@ -43,11 +49,9 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         _listBox = (GUIListBox)Control;
         _view = context.View;
         _templateKey = context.Text("ItemTemplate");
-        _listBox.Spacing = UiMetrics.DipInt(MarkupPlacement.Read(context.Node, "Spacing", UiMetrics.Gap));
+        _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiMetrics.Gap));
 
-        // The engine keeps a list's frame at its full size and insets the scrollable content by its padding,
-        // which is how the rows get room inside the frame instead of the frame growing around them.
-        _listBox.Padding = new Vector4(UiMetrics.Dip(MarkupPlacement.Read(context.Node, "Padding", 0f)));
+        _listBox.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", 0f)));
 
         if (ViewMarkup.ToBool(context.Text("Draggable"), false))
         {
@@ -72,7 +76,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
             _observed = value as INotifyCollectionChanged;
             _observed?.CollectionChanged += OnCollectionChanged;
 
-            // The view model the rows are presented for is known by the time properties are applied.
             _dropTarget = DataContext as IItemDropTarget;
             _background = DataContext as IListBackground;
 
@@ -93,10 +96,11 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         if (_observed is not null) { _observed.CollectionChanged -= OnCollectionChanged; }
 
         _observed = null;
+        ResetDrag();
 
-        for (int i = 0; i < _rows.Count; i++) { _rows[i].Scope.Dispose(); }
+        for (int i = 0; i < _rows.Count; i++) { Drop(_rows[i]); }
 
-        foreach (BuiltRow row in _spare.Values) { row.Scope.Dispose(); }
+        foreach (BuiltRow row in _spare.Values) { Drop(row); }
 
         _rows.Clear();
         _spare.Clear();
@@ -105,8 +109,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // A collection change is often the consequence of a binding writing back: rebuilding right here would tear
-        // down the control that is mid-update, so it waits for the frame's deferred work.
         if (_rebuildQueued) { return; }
 
         _rebuildQueued = true;
@@ -121,14 +123,9 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void Rebuild()
     {
-        // A list that fills itself up is only ever handed more items than it had, and that change has to cost
-        // nothing: assigning Parent recalculates every child the parent already has, so taking the rows out and
-        // putting them back costs the length of the list on every frame it grows.
         if (Extends()) { Append(); }
         else { RebuildAll(); }
 
-        // Rows produced for items that exist mean the templates were not reachable yet (a load-time ordering miss):
-        // one deferred retry, after which a persistent miss keeps reporting through the diagnostics instead.
         if (_rows.Count == 0 && HasItems() && !_retriedEmpty)
         {
             _retriedEmpty = true;
@@ -177,8 +174,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void RebuildAll()
     {
-        // Every row is taken out of the list first: a row that is kept has to go back in the order the list now
-        // asks for, and the engine appends a transform to whichever content it is handed.
         List<BuiltRow> previous = [.. _rows];
 
         for (int i = 0; i < previous.Count; i++) { previous[i].Element.Control.RectTransform.Parent = null; }
@@ -192,9 +187,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         {
             foreach (object item in _items ?? Array.Empty<object>())
             {
-                // Narrowing a list hands the entries that stayed back in the order they were already in, so the row
-                // at the cursor is the one to show; an entry the list already built a row for and stopped showing
-                // is answered with that row, from the pool. Only a row the list never built costs anything here.
                 BuiltRow? kept = null;
 
                 while (cursor < previous.Count)
@@ -209,6 +201,7 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
                 if (kept is null && _spare.Remove(item, out BuiltRow? pooled))
                 {
                     pooled.Element.Control.Visible = true;
+                    pooled.Scope.Resume();
                     kept = pooled;
                 }
 
@@ -236,8 +229,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
             return null;
         }
 
-        // Closed even if the row could not be built, or the scope would stay open and take every element built
-        // after it as well: the bands below the list in the window.
         OwnershipScope scope = _view.BeginScope();
         ViewElement row;
 
@@ -256,8 +247,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
             _view.EndScope(scope);
         }
 
-        // The list places a row by adding an offset to its anchor, so the anchor has to stay in the corner the
-        // offsets are counted from: a row anchored elsewhere would sit off the slot it was given.
         row.Control.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
 
         row.Parent = this;
@@ -276,8 +265,8 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     {
         row.Element.Control.RectTransform.Parent = null;
         row.Element.Control.Visible = false;
+        row.Scope.Pause();
 
-        // Two rows for one item cannot both be held, or the list would lose track of the other one.
         if (_spare.ContainsKey(row.Item))
         {
             Drop(row);
@@ -316,49 +305,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         _listBox.DimensionsNeedRecalculation = true;
     }
 
-    private object? _candidate;
-    private object? _dragged;
-    private Point _grabOffset;
-    private bool _dragging;
-    private object? _highlight;
-    private DropMode _highlightMode;
-    private float _proximity;
-    private Rectangle? _dropRect;
-
-    // The colours a row is given for its own reasons (the template's, the dim of a reference row) read back whole
-    // before the drag overrides them and put back afterwards: OverrideTextColor only covers three of the six text
-    // colour states, and hover is not among the ones it derives from the others — a label dimmed for a drag kept
-    // drawing dim on hover until the list happened to rebuild the row.
-    private LabelSkin? _draggedSkin;
-    private LabelSkin? _highlightSkin;
-
-    private readonly record struct LabelSkin(
-        Color Text,
-        Color Hover,
-        Color Pressed,
-        Color Selected,
-        Color HoverSelected,
-        float Scale)
-    {
-        internal static LabelSkin Of(GUITextBlock label) => new(
-            label.TextColor,
-            label.HoverTextColor,
-            label.PressedTextColor,
-            label.SelectedTextColor,
-            label.HoverSelectedTextColor,
-            label.TextScale);
-
-        internal void ApplyTo(GUITextBlock label)
-        {
-            label.TextColor = Text;
-            label.HoverTextColor = Hover;
-            label.PressedTextColor = Pressed;
-            label.SelectedTextColor = Selected;
-            label.HoverSelectedTextColor = HoverSelected;
-            label.TextScale = Scale;
-        }
-    }
-
     private GUIButton? RowOf(object? item)
     {
         for (int i = 0; i < _rows.Count; i++)
@@ -378,8 +324,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         for (int i = _rows.Count - 1; i >= 0; i--)
         {
-            // The dragged row follows the cursor, so it would always be in the way: the row the player is
-            // pointing at is the one underneath it.
             if (ReferenceEquals(_rows[i].Item, _dragged)) { continue; }
 
             GUIComponent component = _rows[i].Element.Control;
@@ -403,7 +347,6 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void UpdateDrag()
     {
-        // A popup sits on top of the list: dragging behind it would move invisible rows.
         if (_dropTarget is null || _view.IsInputBlocked()) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
@@ -552,11 +495,9 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         _candidate = null;
         _listBox.DraggedElement = null;
 
-        // The list only repositions when asked to, so it is asked to put the row back where it belongs.
         _listBox.ChildrenNeedRecalculation = true;
     }
 
-    // Outlined the way the game's own lists outline the slot a dragged row would land in.
     private void DrawDropIndicator(SpriteBatch spriteBatch)
     {
         if (!_dragging || _dropRect is not { Width: > 0 } rect) { return; }
@@ -573,5 +514,34 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         };
 
         GUI.DrawRectangle(spriteBatch, slot, Color.White * (0.35f + 0.3f * _proximity), false, 0f, thickness);
+    }
+
+    private sealed record BuiltRow(object Item, ViewElement Element, GUIButton? Button, OwnershipScope Scope);
+
+    private readonly record struct LabelSkin(
+        Color Text,
+        Color Hover,
+        Color Pressed,
+        Color Selected,
+        Color HoverSelected,
+        float Scale)
+    {
+        internal static LabelSkin Of(GUITextBlock label) => new(
+            label.TextColor,
+            label.HoverTextColor,
+            label.PressedTextColor,
+            label.SelectedTextColor,
+            label.HoverSelectedTextColor,
+            label.TextScale);
+
+        internal void ApplyTo(GUITextBlock label)
+        {
+            label.TextColor = Text;
+            label.HoverTextColor = Hover;
+            label.PressedTextColor = Pressed;
+            label.SelectedTextColor = Selected;
+            label.HoverSelectedTextColor = HoverSelected;
+            label.TextScale = Scale;
+        }
     }
 }

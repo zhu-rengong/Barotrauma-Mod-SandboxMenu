@@ -15,11 +15,11 @@ internal sealed class MarkupNode
     private readonly Dictionary<string, MarkupAttribute> _attributes = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<MarkupNode> _children = [];
 
-    private MarkupNode(string name, string? owner, string file, int line)
+    private MarkupNode(string name, string? owner, string view, int line)
     {
         Name = name;
         Owner = owner;
-        File = file;
+        View = view;
         Line = line;
     }
 
@@ -27,7 +27,7 @@ internal sealed class MarkupNode
 
     internal string? Owner { get; }
 
-    internal string File { get; }
+    internal string View { get; }
 
     internal int Line { get; }
 
@@ -41,20 +41,17 @@ internal sealed class MarkupNode
 
     internal string? ElementName => Text("Name");
 
-    internal MarkupNode? Property(string name)
-        => _children.FirstOrDefault(child => child.IsProperty && string.Equals(child.Name, name, StringComparison.OrdinalIgnoreCase));
-
     internal MarkupAttribute? Attribute(string name) => _attributes.GetValueOrDefault(name);
 
     internal MarkupValue? Value(string name) => Attribute(name)?.Value;
 
     internal string? Text(string name) => Attribute(name)?.Value.Raw;
 
-    internal static MarkupNode Parse(string file, XElement element)
+    internal static MarkupNode Parse(string view, XElement element)
     {
         (string name, string? owner) = SplitName(element.Name.LocalName);
 
-        var node = new MarkupNode(name, owner, file, LineOf(element));
+        MarkupNode node = new(name, owner, view, LineOf(element));
 
         foreach (XAttribute attribute in element.Attributes())
         {
@@ -65,13 +62,13 @@ internal sealed class MarkupNode
 
         foreach (XElement child in element.Elements())
         {
-            node._children.Add(Parse(file, child));
+            node._children.Add(Parse(view, child));
         }
 
         return node;
     }
 
-    public override string ToString() => $"{File}:{Line} <{Name}>";
+    public override string ToString() => $"{View}:{Line} <{Name}>";
 
     private static (string Name, string? Owner) SplitName(string localName)
     {

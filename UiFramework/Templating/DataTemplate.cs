@@ -6,7 +6,7 @@ internal sealed class DataTemplate
 
     internal string? DataType { get; private init; }
 
-    internal MarkupNode Content { get; private init; } = null!;
+    internal required MarkupNode Content { get; init; }
 
     internal static DataTemplate Read(MarkupNode node)
     {

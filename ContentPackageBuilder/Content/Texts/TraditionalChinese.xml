@@ -10,7 +10,6 @@
   <sandboxmenu.addref>+ 新增模板引用</sandboxmenu.addref>
   <sandboxmenu.duplicate>複製條目</sandboxmenu.duplicate>
   <sandboxmenu.delete>刪除</sandboxmenu.delete>
-  <sandboxmenu.edit>編輯</sandboxmenu.edit>
 
   <sandboxmenu.section.spawn>生成</sandboxmenu.section.spawn>
   <sandboxmenu.section.behaviour>行為</sandboxmenu.section.behaviour>

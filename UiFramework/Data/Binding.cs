@@ -48,7 +48,7 @@ internal sealed class Binding : IDisposable
     internal static Binding Attach(BindingRequest request)
     {
         BindingPath path = BindingPath.Parse(request.Path);
-        var binding = new Binding(request, path);
+        Binding binding = new(request, path);
 
         if (request.Mode != BindingMode.OneWayToSource) { binding.Push(); }
 
@@ -68,8 +68,6 @@ internal sealed class Binding : IDisposable
 
         object? converted = _request.Converter?.ConvertBack(value, _request.TargetType, _request.ConverterParameter) ?? value;
 
-        // The model's notification for this write is the same edit coming back, not new information: without
-        // the guard it pushes the identical value into the control again, which resets a text box's caret
         _echoing = true;
         try
         {
@@ -157,14 +155,11 @@ internal sealed class Binding : IDisposable
 
     private object Format(object? value, string format)
     {
-        // A format is a pattern for a value and not text: anything the player reads comes from the language files
-        // through the game's own strings, which read themselves again. A translation key here would be resolved
         string pattern = format;
 
         return value switch
         {
             null => pattern,
-            IFormattable formattable => string.Format(CultureInfo.CurrentCulture, pattern, formattable),
             _ => string.Format(CultureInfo.CurrentCulture, pattern, value)
         };
     }

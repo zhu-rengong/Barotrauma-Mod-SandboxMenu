@@ -2,11 +2,11 @@ using Microsoft.Xna.Framework;
 
 namespace SandboxMenu.UI.Framework;
 
-public interface IDropTarget : UiFramework.Data.IItemDropTarget
+internal interface IDropTarget : UiFramework.Data.IItemDropTarget
 {
 }
 
-public interface IDialogHost
+internal interface IDialogHost
 {
     void ShowItemBrowser(Action<string> onPicked);
 
@@ -19,8 +19,8 @@ public interface IDialogHost
     void PickWorldPosition(Action<Vector2> onPicked);
 }
 
-public sealed record MenuAction(string Label, Action Invoke);
+internal sealed record MenuAction(string Label, Action Invoke);
 
-public sealed record PickerOption(LocalizedString Label, Action Picked);
+internal sealed record PickerOption(LocalizedString Label, Action Picked);
 
-public sealed record PickerToggle(LocalizedString Label, Func<bool> IsTicked, Action<bool> Toggled);
+internal sealed record PickerToggle(LocalizedString Label, Func<bool> IsTicked, Action<bool> Toggled);

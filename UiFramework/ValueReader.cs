@@ -46,8 +46,6 @@ internal static class ViewMarkup
         RichString rich => rich,
         LocalizedString localized => RichString.Rich(localized),
         null => string.Empty,
-        // A plain string is parsed as rich text: view models hand over tagged strings (a dimmed identifier, for
-        // instance), and the implicit conversion would put the tags on screen as literal text instead.
         _ => RichString.Rich(value.ToString() ?? string.Empty)
     };
 

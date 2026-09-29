@@ -3,14 +3,13 @@ using Barotrauma.Items.Components;
 
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class EntryEditorViewModel : Notifiable
+internal sealed class EntryEditorViewModel : Notifiable
 {
     private const float AmountLimit = 100000f;
 
     private readonly SpawnMenuViewModel _menu;
 
     private SpawnEntry? _entry;
-    private List<SpawnEntry>? _owner;
     private bool _rebuildQueued;
 
     internal EntryEditorViewModel(SpawnMenuViewModel menu)
@@ -22,10 +21,9 @@ public sealed class EntryEditorViewModel : Notifiable
 
     public ObservableCollection<IEditorRow> Rows { get; } = [];
 
-    internal void Show(SpawnEntry entry, List<SpawnEntry> owner)
+    internal void Show(SpawnEntry entry)
     {
         _entry = entry;
-        _owner = owner;
 
         QueueRebuild();
     }
@@ -33,7 +31,6 @@ public sealed class EntryEditorViewModel : Notifiable
     internal void Clear()
     {
         _entry = null;
-        _owner = null;
 
         QueueRebuild();
     }
@@ -83,7 +80,6 @@ public sealed class EntryEditorViewModel : Notifiable
         }
     }
 
-
     private void AddAmountRows(SpawnEntry entry)
     {
         Rows.Add(new RangeRow(
@@ -116,7 +112,6 @@ public sealed class EntryEditorViewModel : Notifiable
             AddTick("sandboxmenu.field.fillinventory", filling.FillInventory, value => filling.FillInventory = value);
         }
     }
-
 
     private void AddTargetRows(ItemEntry item)
     {
@@ -181,9 +176,8 @@ public sealed class EntryEditorViewModel : Notifiable
         Rows.Add(new SectionRow(TextManager.Get("sandboxmenu.section.properties")));
 
         int index = 0;
-        foreach (PropertyOverride over in item.Properties.ToList())
+        foreach (PropertyOverride target in item.Properties.ToList())
         {
-            PropertyOverride target = over;
             index++;
 
             PropertyRow? row = null;
@@ -211,14 +205,12 @@ public sealed class EntryEditorViewModel : Notifiable
         })));
     }
 
-
     private void AddTemplateRow(RefEntry reference)
         => Rows.Add(new TextRow(
             this,
             TextManager.Get("sandboxmenu.field.template"),
             reference.TemplateName,
             value => reference.TemplateName = value));
-
 
     private void AddTick(string labelKey, bool value, Action<bool> apply)
         => Rows.Add(new TickRow(TextManager.Get(labelKey), value, apply, NotifyEdited));

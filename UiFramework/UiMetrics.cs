@@ -2,7 +2,11 @@ namespace UiFramework;
 
 internal static class UiMetrics
 {
-    static UiMetrics() => StaticState.Register(Reset);
+    static UiMetrics()
+    {
+        Reset();
+        StaticState.Register(Reset);
+    }
 
     internal static void Reset()
     {
@@ -19,45 +23,46 @@ internal static class UiMetrics
         SelectedBarWidth = 3f;
     }
 
-    public static float UiScale => MathF.Max(0.5f, GameSettings.CurrentConfig.Graphics.HUDScale);
+    // The menu is the same size at any resolution: only the player's HUD scale moves it, so the resolution stays out of the layout.
+    internal static float UiScale => MathF.Max(0.5f, GameSettings.CurrentConfig.Graphics.HUDScale);
 
-    public static float Dip(float value) => value * UiScale;
+    internal static float Dip(float value) => value * UiScale;
 
-    public static int DipInt(float value) => (int)Math.Round(Dip(value));
+    internal static int DipInt(float value) => (int)MathF.Round(Dip(value));
 
-    public static float TextScale => UiScale;
+    internal static float TextScale => GUI.AdjustForTextScale(UiScale);
 
-    public static float FontScale(float dipSize, GUIFont font) => dipSize * UiScale / MathF.Max(1f, font.LineHeight);
+    internal static float FontScale(float dipSize, GUIFont font) => dipSize * TextScale / MathF.Max(1f, font.LineHeight);
 
-    public static float RowHeight { get; set; } = 0.075f;
+    internal static float RowHeight { get; set; }
 
-    public static float SectionHeight { get; set; } = 0.085f;
+    internal static float SectionHeight { get; set; }
 
-    public static float ControlHeight { get; set; } = 0.84f;
+    internal static float ControlHeight { get; set; }
 
-    public static float Pad { get; set; } = 6f;
+    internal static float Pad { get; set; }
 
-    public static float LabelWidth { get; set; } = 0.38f;
+    internal static float LabelWidth { get; set; }
 
-    public static float Gap { get; set; } = 4f;
+    internal static float Gap { get; set; }
 
-    public static float IconBox { get; set; } = 24f;
+    internal static float IconBox { get; set; }
 
-    public static float IconGap { get; set; } = 6f;
+    internal static float IconGap { get; set; }
 
-    public static float SubTextRatio { get; set; } = 0.5f;
+    internal static float SubTextRatio { get; set; }
 
-    public static float TreeIndentStep { get; set; } = 14f;
+    internal static float TreeIndentStep { get; set; }
 
-    public static float SelectedBarWidth { get; set; } = 3f;
+    internal static float SelectedBarWidth { get; set; }
 
-    public static Color Text { get; } = GUIStyle.TextColorBright;
+    internal static Color Text { get; } = GUIStyle.TextColorBright;
 
-    public static Color TextDim { get; } = GUIStyle.TextColorDim;
+    internal static Color TextDim { get; } = GUIStyle.TextColorDim;
 
-    public static Color Accent { get; } = GUIStyle.Green;
+    internal static Color Accent { get; } = GUIStyle.Green;
 
-    public static Color Danger { get; } = GUIStyle.Red;
+    internal static Color Danger { get; } = GUIStyle.Red;
 
-    public static Color TextDisabled { get; } = GUIStyle.TextColorDim;
+    internal static Color TextDisabled { get; } = GUIStyle.TextColorDim;
 }

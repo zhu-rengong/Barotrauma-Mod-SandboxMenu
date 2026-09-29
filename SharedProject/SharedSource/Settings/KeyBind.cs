@@ -1,9 +1,9 @@
 #if CLIENT
 using Microsoft.Xna.Framework.Input;
 
-namespace SandboxMenu;
+namespace SandboxMenu.Settings;
 
-public readonly record struct KeyBind
+internal readonly record struct KeyBind
 {
     public KeyBind(Keys key)
     {

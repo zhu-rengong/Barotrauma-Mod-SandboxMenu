@@ -14,7 +14,7 @@ internal abstract class LayoutPanel : ViewElement
 
     protected List<ViewElement> Children { get; } = [];
 
-    protected void SetGap(float dip) => _gap = dip;
+    protected void SetGap(float gapDip) => _gap = gapDip;
 
     internal override void AddContent(ViewElement child)
     {
@@ -22,11 +22,13 @@ internal abstract class LayoutPanel : ViewElement
         Invalidate();
     }
 
-    protected static Length WidthOf(ViewElement child, Length fallback)
-        => Length.Parse(child.Node?.Text("Width"), fallback);
+    protected Length WidthOf(ViewElement child, Length fallback)
+        => Length.Parse(child.Node?.Text("Width"), fallback, message => Report(message, child.Node));
 
-    protected static Length HeightOf(ViewElement child, Length fallback)
-        => Length.Parse(child.Node?.Text("Height"), fallback);
+    protected Length HeightOf(ViewElement child, Length fallback)
+        => Length.Parse(child.Node?.Text("Height"), fallback, message => Report(message, child.Node));
+
+    protected void Report(string message, MarkupNode? node) => _view.Diagnostics.Report(message, node);
 
     protected static string? Attached(ViewElement child, string property)
         => child.Node?.Text(property);
@@ -56,14 +58,11 @@ internal abstract class LayoutPanel : ViewElement
 
     protected abstract void Arrange(Rectangle area);
 
-    protected static int SizeOf(Length length, int available, int measured, float starShare)
-        => length.Resolve(available, measured, starShare);
-
     protected void Stack(Rectangle area, bool horizontal)
     {
-        int cross = horizontal ? area.Height : area.Width;
+        int extent = horizontal ? area.Width : area.Height;
 
-        List<(ViewElement Child, int Size)> measured = [];
+        List<(ViewElement Child, int Size, Length Length)> measured = [];
         float starTotal = 0f;
         int fixedTotal = 0;
 
@@ -72,26 +71,26 @@ internal abstract class LayoutPanel : ViewElement
             Length length = horizontal ? WidthOf(child, Length.Fill) : HeightOf(child, Length.Fill);
             int size = length.Kind switch
             {
-                LengthKind.Auto => (horizontal ? Layout.Measure(child).X : Layout.Measure(child).Y),
+                LengthKind.Auto => horizontal ? Layout.Measure(child).X : Layout.Measure(child).Y,
                 LengthKind.Dip => length.Resolve(0, 0),
+                LengthKind.Percent => length.Resolve(extent, 0),
                 _ => 0
             };
 
             if (length.Kind == LengthKind.Star) { starTotal += length.Value; }
             else { fixedTotal += size; }
 
-            measured.Add((child, size));
+            measured.Add((child, size, length));
         }
 
         int gap = UiMetrics.DipInt(_gap);
-        int available = Math.Max(0, (horizontal ? area.Width : area.Height) - fixedTotal - gap * Math.Max(0, Children.Count - 1));
+        int available = Math.Max(0, extent - fixedTotal - gap * Math.Max(0, Children.Count - 1));
         int cursor = horizontal ? area.X : area.Y;
 
-        foreach ((ViewElement child, int size) in measured)
+        foreach ((ViewElement child, int size, Length length) in measured)
         {
-            Length length = horizontal ? WidthOf(child, Length.Fill) : HeightOf(child, Length.Fill);
             int main = length.Kind == LengthKind.Star
-                ? SizeOf(length, available, size, starTotal is 0f ? 0f : length.Value / starTotal)
+                ? length.Resolve(available, size, starTotal is 0f ? 0f : length.Value / starTotal)
                 : size;
 
             Rectangle childArea = horizontal

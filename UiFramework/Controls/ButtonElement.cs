@@ -3,14 +3,12 @@ using System.Windows.Input;
 namespace UiFramework.Controls;
 
 [Element("Button")]
-internal sealed class ButtonElement : ViewElement, ICommandElement
+internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 {
     private readonly GUIButton _button;
     private readonly ViewLoadContext _view;
     private float _scale;
     private ICommand? _command;
-
-    private Alignment _textAlignment;
 
     public ButtonElement(ElementContext context)
         : this(context, Create(context))
@@ -23,15 +21,11 @@ internal sealed class ButtonElement : ViewElement, ICommandElement
         _button = button;
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
-        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(MarkupPlacement.Read(context.Node, "Indent", 0f)), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
+        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(context.Metric("Indent", 0f)), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
         button.TextBlock.AutoScaleHorizontal = ViewMarkup.ToBool(context.Text("Scale"), true);
         button.TextBlock.TextScale = _scale;
+        button.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center);
 
-        _textAlignment = ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center);
-        button.TextBlock.TextAlignment = _textAlignment;
-
-        // A click runs inside the game's GUI walk, so the command is dispatched through the view, which knows how
-        // a failure is reported.
         button.OnClicked = (_, _) =>
         {
             _view.Dispatch(() => _command?.Execute(null));
@@ -71,11 +65,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement
     [ElementProperty]
     public string TextAlign
     {
-        set
-        {
-            _textAlignment = ViewMarkup.AlignmentOf(value, Alignment.Center);
-            _button.TextBlock.TextAlignment = _textAlignment;
-        }
+        set => _button.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(value, Alignment.Center);
     }
 
     public void SetCommand(ICommand? command)
@@ -88,6 +78,13 @@ internal sealed class ButtonElement : ViewElement, ICommandElement
 
     internal override void AddContent(ViewElement child) => throw new NotSupportedException("Button takes no content");
 
+    public void Dispose()
+    {
+        _button.OnClicked = null;
+        _button.OnSecondaryClicked = null;
+        _command = null;
+    }
+
     private static GUIButton Create(ElementContext context)
         => new(
             context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
@@ -97,8 +94,6 @@ internal sealed class ButtonElement : ViewElement, ICommandElement
 
     private void ApplyText(RichString value)
     {
-        // The text block, not GUIButton.Text: that property is a LocalizedString, and a rich string round
-        // tripped through it is re-wrapped as plain — its colour tags would never be parsed.
         _button.TextBlock.Text = value;
         _button.TextBlock.TextScale = _scale;
     }

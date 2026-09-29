@@ -4,8 +4,6 @@ namespace SandboxMenu;
 
 internal static class PluginHooks
 {
-    // One delegate instance per hook, held here rather than passed as a method group at each call site: the game
-    // finds a hook to take back by the delegate it was given, and two conversions of the same method group are
     internal static readonly PluginGameModeAddToGUIUpdateListDelegate AddToGUIUpdateListHook = AddToGUIUpdateList;
 
     internal static readonly PluginGameModeDrawDelegate GameModeDrawHook = GameModeDraw;
@@ -16,8 +14,6 @@ internal static class PluginHooks
     {
         if (Screen.Selected != GameMain.GameScreen) { return; }
 
-        // Asked through Current rather than Instance: Instance builds the shell on demand, and a hook that runs
-        // every frame would put one back together the moment the mod was taken apart.
         if (SandboxMenuWindow.Current is not { IsOpen: true } menu) { return; }
 
         Guard.Run("Menu update registration failed", menu.AddToUpdateList);

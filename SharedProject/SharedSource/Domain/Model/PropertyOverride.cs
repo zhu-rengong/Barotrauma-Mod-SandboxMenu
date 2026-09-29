@@ -2,7 +2,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-public sealed class PropertyOverride
+internal sealed class PropertyOverride
 {
     public string ComponentName { get; set; } = string.Empty;
 

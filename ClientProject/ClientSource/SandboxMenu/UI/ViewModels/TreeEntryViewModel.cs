@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class TreeEntryViewModel : ItemRowViewModel
+internal sealed class TreeEntryViewModel : ItemRowViewModel
 {
     private bool _isSelected;
 
@@ -12,7 +12,7 @@ public sealed class TreeEntryViewModel : ItemRowViewModel
         Indent = (int)(MenuTheme.TreeIndentStart + depth * MenuTheme.TreeIndentStep);
 
         SelectCommand = new RelayCommand(() => menu.Select(this));
-        MenuCommand = new RelayCommand(() => menu.OpenMenu(this));
+        OpenMenuCommand = new RelayCommand(() => menu.OpenMenu(this));
 
         Refresh();
     }
@@ -44,7 +44,7 @@ public sealed class TreeEntryViewModel : ItemRowViewModel
 
     public RelayCommand SelectCommand { get; }
 
-    public RelayCommand MenuCommand { get; }
+    public RelayCommand OpenMenuCommand { get; }
 
     internal void Refresh()
     {

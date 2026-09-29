@@ -12,8 +12,6 @@ internal static class MenuText
         block.PressedColor = color;
         block.DisabledTextColor = MenuTheme.TextDisabled;
 
-        // The other two text states have to be set as well: they are not derived from the ones above, so a
-        // label inside a hovered, selected row would otherwise keep the native style's (much darker) colour.
         block.PressedTextColor = color;
         block.HoverSelectedTextColor = color;
     }

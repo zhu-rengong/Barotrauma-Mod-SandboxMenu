@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class RangeRow(EntryEditorViewModel editor, LocalizedString label, ValueRange? value, float fallback, float limit, Action<ValueRange?> apply)
+internal sealed class RangeRow(EntryEditorViewModel editor, LocalizedString label, ValueRange? value, float fallback, float limit, Action<ValueRange?> apply)
     : RowViewModel(label, value.HasValue)
 {
     private readonly EntryEditorViewModel _editor = editor;
@@ -47,7 +47,7 @@ public sealed class RangeRow(EntryEditorViewModel editor, LocalizedString label,
     }
 }
 
-public sealed class IntRow(EntryEditorViewModel editor, LocalizedString label, int? value, int fallback, int limit, Action<int?> apply)
+internal sealed class IntRow(EntryEditorViewModel editor, LocalizedString label, int? value, int fallback, int limit, Action<int?> apply)
     : RowViewModel(label, value.HasValue)
 {
     private readonly EntryEditorViewModel _editor = editor;
@@ -84,7 +84,7 @@ public sealed class IntRow(EntryEditorViewModel editor, LocalizedString label, i
     }
 }
 
-public sealed class TextRow(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply) : RowViewModel(label)
+internal sealed class TextRow(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply) : RowViewModel(label)
 {
     private readonly EntryEditorViewModel _editor = editor;
     private readonly Action<string> _apply = apply;
@@ -104,7 +104,7 @@ public sealed class TextRow(EntryEditorViewModel editor, LocalizedString label, 
     }
 }
 
-public sealed class BrowseRow(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply, Action browse) : RowViewModel(label)
+internal sealed class BrowseRow(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply, Action browse) : RowViewModel(label)
 {
     private readonly EntryEditorViewModel _editor = editor;
     private readonly Action<string> _apply = apply;

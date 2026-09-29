@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class SlotRow(EntryEditorViewModel editor, ItemEntry item, Action browse)
+internal sealed class SlotRow(EntryEditorViewModel editor, ItemEntry item, Action browse)
     : RowViewModel(TextManager.Get("sandboxmenu.field.equipslots"))
 {
     private readonly ItemEntry _item = item;

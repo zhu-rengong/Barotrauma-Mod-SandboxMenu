@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 
-namespace SandboxMenu.UI.Framework;
+namespace SandboxMenu.UI;
 
 internal interface IPopupWindow
 {

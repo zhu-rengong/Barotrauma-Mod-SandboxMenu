@@ -13,8 +13,8 @@ internal sealed class FieldElement : ViewElement
             HoverCursor = CursorState.Default
         })
     {
-        float labelWidth = MarkupPlacement.Read(context.Node, "LabelWidth", UiMetrics.LabelWidth);
-        float controlWidth = MarkupPlacement.Read(context.Node, "ControlWidth", 1f - labelWidth);
+        float labelWidth = context.Size("LabelWidth", UiMetrics.LabelWidth);
+        float controlWidth = context.Size("ControlWidth", 1f - labelWidth);
 
         _label = new GUITextBlock(
             new RectTransform(new Vector2(labelWidth, UiMetrics.ControlHeight), Control.RectTransform),
@@ -30,7 +30,7 @@ internal sealed class FieldElement : ViewElement
         _controls = new GUILayoutGroup(
             new RectTransform(new Vector2(controlWidth, 1f), Control.RectTransform),
             isHorizontal: true,
-            Anchor.CenterLeft)
+            childAnchor: Anchor.CenterLeft)
         {
             CanBeFocused = false
         };

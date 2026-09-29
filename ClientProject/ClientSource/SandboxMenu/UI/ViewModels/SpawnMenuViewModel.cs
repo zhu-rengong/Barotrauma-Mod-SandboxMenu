@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackground
+internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackground
 {
     private readonly IDialogHost _host;
 
@@ -63,8 +63,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
 
     public RelayCommand SpawnAtCursorCommand { get; }
 
-    // A localized string rather than text: the line stays on screen until the next action, and switching the
-    // language is not one.
     public LocalizedString Status
     {
         get => _status;
@@ -101,7 +99,7 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         }
 
         SelectedEntry = row;
-        MenuActions.Enqueue(() => Editor.Show(row.Entry, row.Owner));
+        MenuActions.Enqueue(() => Editor.Show(row.Entry));
     }
 
     internal void RefreshSummaries()
@@ -111,7 +109,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
 
     internal void NotifyEdited()
     {
-        // Typing in a field edits the model on every keystroke; one refresh per frame is plenty.
         if (_treeRefreshQueued) { return; }
 
         _treeRefreshQueued = true;
@@ -134,8 +131,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         });
     }
 
-    // Built again because a row shows a name and an icon read off a prefab: only what could be read about the
-    // entry changed, not the entry itself, and the set holds identifiers and values rather than prefabs.
     internal void ContentChanged() => MenuActions.Enqueue(Editor.Rebuild);
 
     public void ShowBackgroundMenu(Vector2 position) => OpenMenu(null);
@@ -163,8 +158,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
 
             actions.Add(new MenuAction("sandboxmenu.duplicate", () => Duplicate(row)));
 
-            // The same two commands as the buttons at the bottom of the window, only for this one entry: the one
-            // the player pointed at is the one the menu selected on opening.
             actions.Add(new MenuAction("sandboxmenu.give", () => SpawnIntoInventory([row.Entry])));
             actions.Add(new MenuAction("sandboxmenu.spawnatcursor", () => SpawnAtCursor([row.Entry])));
 
@@ -187,7 +180,7 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
     {
         if (row.Entry is not ItemEntry item) { return; }
 
-        var child = new ItemEntry();
+        ItemEntry child = new();
         item.Inventory.Add(child);
         SelectNewEntry(child, item.Inventory);
     }
@@ -290,8 +283,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
             index = owner.IndexOf(onto.Entry) + (mode == DropMode.After ? 1 : 0);
         }
 
-        // A row whose owner no longer holds its entry belongs to a shape the tree has moved on from: its entry
-        // stands somewhere else already, and inserting it again would put one entry in two lists at once.
         bool sameList = ReferenceEquals(owner, dragged.Owner);
         int from = dragged.Owner.IndexOf(dragged.Entry);
         if (from < 0) { return; }
@@ -303,9 +294,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         SelectNewEntry(dragged.Entry, owner);
     }
 
-    // An entry dropped onto one of its own descendants travels alone: the entries it holds take its place, so
-    // nothing else in the tree changes depth or position — bringing the branch along would re-nest everything
-    // under the target.
     private void DropIntoDescendant(TreeEntryViewModel dragged, TreeEntryViewModel onto, DropMode mode)
     {
         if (dragged.Entry is not ItemEntry moved || ReferenceEquals(dragged, onto)) { return; }
@@ -314,17 +302,12 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         {
             if (onto.Entry is ItemEntry container && SpawnTree.ReparentIntoDescendant(dragged.Owner, moved, container))
             {
-                // Rebuilt like after any other move: a row keeps the list and depth it was built with, and every
-                // later drop reads them.
                 SelectNewEntry(moved, container.Inventory);
             }
 
             return;
         }
 
-        // A target held by the dragged entry's own list is the branch that gets lifted, and the lift moves it into
-        // the dragged entry's slot: its row's Owner is the one list it will no longer be in. Checked before the
-        // lift because undoing one is not a thing — an index nobody can find would leave the entry in no list.
         bool liftedTarget = ReferenceEquals(onto.Owner, moved.Inventory);
         if (!liftedTarget && onto.Owner.IndexOf(onto.Entry) < 0) { return; }
 
@@ -334,7 +317,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         int index = owner.IndexOf(onto.Entry);
         if (index < 0) { return; }
 
-        // Read after the lift, which already took the dragged entry out: this index is the final one.
         owner.Insert(Math.Clamp(index + (mode == DropMode.After ? 1 : 0), 0, owner.Count), moved);
         SelectNewEntry(moved, owner);
     }
@@ -347,8 +329,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
             return;
         }
 
-        // A preset reaching back to its own name through the presets it refers to would spawn for ever: refused
-        // here, where the player can fix the references, rather than only at spawn time.
         if (TemplateStore.ReachesTemplate(Set, PresetName))
         {
             Status = TextManager.Get("sandboxmenu.status.templatecycle");
@@ -430,8 +410,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
 
         try
         {
-            // UseShellExecute hands the file to whatever the system registers for it — xdg-open, open, or the
-            // default program — instead of trying to run it as an executable.
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             Status = TextManager.GetWithVariable("sandboxmenu.status.presetopened", "[name]", name);
         }
@@ -446,8 +424,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
     {
         if (TemplateStore.TryLoad(name, out SpawnSet? set) && set is not null)
         {
-            // The name asked for is the one on the file and the one every button acts on: an older preset may
-            // carry a different name inside it, which would send the next reload or save to the wrong file.
             set.Name = name;
             ReloadSet(set);
             return true;
@@ -477,8 +453,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
 
         if (ClientSpawnDispatcher.IsMultiplayerClient)
         {
-            // Whoever is asking, the items end up in the inventory of the character the server knows this client
-            // controls, so there is nothing to say about which character or which inventory.
             Status = ReportSend(ClientSpawnDispatcher.TrySendIntoInventory(entries));
             return;
         }
@@ -514,9 +488,6 @@ public sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgroun
         });
     }
 
-    // What the server made of a request, taken by the shell on the frame after the answer arrived. The word comes
-    // from the server, so the player is told what actually happened rather than what was asked for — and told to
-    // look at the log when the server had to leave something out (problems).
     internal void ApplySpawnResult(SpawnStatus status, int queued, int problems)
     {
         LocalizedString word = status switch

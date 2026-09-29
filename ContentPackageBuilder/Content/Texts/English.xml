@@ -10,7 +10,6 @@
   <sandboxmenu.addref>+Add template reference</sandboxmenu.addref>
   <sandboxmenu.duplicate>Duplicate entry</sandboxmenu.duplicate>
   <sandboxmenu.delete>Delete</sandboxmenu.delete>
-  <sandboxmenu.edit>Edit</sandboxmenu.edit>
 
   <sandboxmenu.section.spawn>Spawn</sandboxmenu.section.spawn>
   <sandboxmenu.section.behaviour>Behaviour</sandboxmenu.section.behaviour>

@@ -10,7 +10,7 @@ internal static class ViewLoader
 
     internal static ViewLoadContext Build(MarkupNode root, string view, object? dataContext, Action<string>? diagnosticSink = null, RectTransform? parent = null)
     {
-        var context = new ViewLoadContext(view) { DataContext = dataContext, DiagnosticSink = diagnosticSink };
+        ViewLoadContext context = new(view) { DataContext = dataContext, DiagnosticSink = diagnosticSink };
         context.Root = BuildElement(context, root, parent);
         context.Resources = context.Root?.Resources;
         context.Diagnostics.Flush(context.DiagnosticSink);
@@ -46,8 +46,6 @@ internal static class ViewLoader
 
         if (element is IDisposable disposable) { view.Own(disposable); }
 
-        // The style goes on first, the element's own attributes on top of it — a local value always wins — and
-        // the triggers last, because they switch while the view is alive.
         Style? style = ResolveStyle(view, node, element);
         ApplySetters(view, node, element, style);
         ApplyAttributes(view, node, element, metadata);
@@ -200,8 +198,6 @@ internal static class ViewLoader
 
     private static void ApplyContent(ViewLoadContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
     {
-        // Property elements come first, the resources among them especially: content below this element fills
-        // while it is built (a list applies its items and builds every row right away), and those rows resolve
         foreach (MarkupNode property in node.Children.Where(child => child.IsProperty))
         {
             if (string.Equals(property.Name, "Resources", StringComparison.OrdinalIgnoreCase))

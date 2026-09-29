@@ -15,40 +15,84 @@ internal enum LengthKind
 
 internal readonly record struct Length(LengthKind Kind, float Value)
 {
-    public static Length Auto { get; } = new(LengthKind.Auto, 0f);
+    internal static Length Auto { get; } = new(LengthKind.Auto, 0f);
 
-    public static Length Fill { get; } = new(LengthKind.Percent, 1f);
+    internal static Length Fill { get; } = new(LengthKind.Percent, 1f);
 
-    public static Length Star(float weight = 1f) => new(LengthKind.Star, weight);
+    internal static Length Star(float weight = 1f) => new(LengthKind.Star, weight);
 
-    public static Length Dip(float value) => new(LengthKind.Dip, value);
+    internal static Length Dip(float value) => new(LengthKind.Dip, value);
 
-    public static Length Percent(float fraction) => new(LengthKind.Percent, fraction);
+    internal static Length Percent(float fraction) => new(LengthKind.Percent, fraction);
 
-    public static Length Parse(string? text, Length fallback)
+    internal static Length Parse(string? text, Length fallback, Action<string>? report = null)
     {
         string trimmed = text?.Trim() ?? string.Empty;
 
-        if (trimmed.Length == 0 || trimmed.Equals("Fill", StringComparison.OrdinalIgnoreCase)) { return trimmed.Length == 0 ? fallback : Fill; }
+        if (trimmed.Length == 0) { return fallback; }
+        if (trimmed.Equals("Fill", StringComparison.OrdinalIgnoreCase)) { return Fill; }
         if (trimmed.Equals("Auto", StringComparison.OrdinalIgnoreCase)) { return Auto; }
-        if (trimmed.EndsWith('*')) { return float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float weight) ? Star(weight) : fallback; }
-        if (trimmed.EndsWith('%')) { return float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float percent) ? Percent(percent / 100f) : fallback; }
+        if (trimmed.Equals("*", StringComparison.Ordinal)) { return Star(); }
 
-        return float.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out float dip) ? Dip(dip) : fallback;
+        if (trimmed.EndsWith('*'))
+        {
+            return float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float weight)
+                ? Star(weight)
+                : Reject(trimmed, fallback, report);
+        }
+
+        if (trimmed.EndsWith('%'))
+        {
+            return float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float percent)
+                ? Percent(percent / 100f)
+                : Reject(trimmed, fallback, report);
+        }
+
+        if (trimmed.EndsWith("dip", StringComparison.OrdinalIgnoreCase))
+        {
+            return float.TryParse(trimmed[..^3], NumberStyles.Float, CultureInfo.InvariantCulture, out float dip)
+                ? Dip(dip)
+                : Reject(trimmed, fallback, report);
+        }
+
+        if (Keyword(trimmed) is { } keyword) { return keyword; }
+
+        if (!float.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+        {
+            return Reject(trimmed, fallback, report);
+        }
+
+        if (value > 1f) { report?.Invoke($"'{trimmed}' is a fraction of the panel; write {trimmed}dip for DIP"); }
+
+        return Percent(value);
     }
 
-    public int Resolve(int availablePixels, int measuredPixels, float starShare = 1f) => Kind switch
+    internal int Resolve(int available, int measured, float starShare = 1f) => Kind switch
     {
-        LengthKind.Auto => measuredPixels,
-        LengthKind.Star => (int)MathF.Round(starShare * MathF.Max(0f, availablePixels)),
+        LengthKind.Auto => measured,
+        LengthKind.Star => (int)MathF.Round(starShare * MathF.Max(0f, available)),
         LengthKind.Dip => (int)MathF.Round(UiMetrics.Dip(Value)),
-        _ => (int)MathF.Round(Value * availablePixels)
+        _ => (int)MathF.Round(Value * available)
     };
+
+    private static Length? Keyword(string text) => text.ToLowerInvariant() switch
+    {
+        "row" => Percent(UiMetrics.RowHeight),
+        "section" => Percent(UiMetrics.SectionHeight),
+        "control" => Percent(UiMetrics.ControlHeight),
+        _ => null
+    };
+
+    private static Length Reject(string text, Length fallback, Action<string>? report)
+    {
+        report?.Invoke($"'{text}' is not a track size (a fraction, N%, N*, N dip, Auto or Fill)");
+        return fallback;
+    }
 }
 
 internal static class Layout
 {
-    public static Point Measure(ViewElement child)
+    internal static Point Measure(ViewElement child)
     {
         if (child.Control is GUITextBlock block && block.Font is { } font)
         {
@@ -61,7 +105,7 @@ internal static class Layout
         return child.Control.Rect.Size;
     }
 
-    public static void Place(ViewElement child, Rectangle area)
+    internal static void Place(ViewElement child, Rectangle area)
     {
         RectTransform transform = child.Control.RectTransform;
         RectTransform parent = transform.Parent ?? GUI.Canvas;

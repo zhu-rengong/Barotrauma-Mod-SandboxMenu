@@ -2,9 +2,8 @@ using System.Collections.ObjectModel;
 
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class MenuOptionViewModel(MenuAction action, Action onInvoked)
+internal sealed class MenuOptionViewModel(MenuAction action, Action onInvoked)
 {
-    // The game's own string, handed over as it is: a menu that outlives a language switch reads it again by itself.
     public LocalizedString Label => TextManager.Get(action.Label);
 
     public RelayCommand InvokeCommand { get; } = new(() =>
@@ -14,7 +13,7 @@ public sealed class MenuOptionViewModel(MenuAction action, Action onInvoked)
     });
 }
 
-public sealed class ContextMenuViewModel
+internal sealed class ContextMenuViewModel
 {
     public ContextMenuViewModel(IEnumerable<MenuAction> actions, Action onInvoked)
     {

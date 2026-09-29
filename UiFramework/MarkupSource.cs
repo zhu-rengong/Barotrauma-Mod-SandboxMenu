@@ -5,16 +5,14 @@ namespace UiFramework;
 
 internal static class MarkupSource
 {
-    private static readonly Dictionary<string, MarkupNode> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, MarkupNode> _cache = new(StringComparer.OrdinalIgnoreCase);
 
-    static MarkupSource() => StaticState.Register(Cache.Clear);
+    static MarkupSource() => StaticState.Register(_cache.Clear);
 
     internal static MarkupNode Load(string fileName)
-        => Cache.TryGetValue(fileName, out MarkupNode? cached)
+        => _cache.TryGetValue(fileName, out MarkupNode? cached)
             ? cached
-            : Cache[fileName] = Parse(fileName, ReadFile(fileName));
-
-    internal static MarkupNode ParseText(string view, string markup) => Parse(view, markup);
+            : _cache[fileName] = Parse(fileName, ReadFile(fileName));
 
     private static MarkupNode Parse(string view, string markup)
         => MarkupNode.Parse(view, XElement.Parse(markup, LoadOptions.SetLineInfo));

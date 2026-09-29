@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-public abstract class SpawnEntry
+internal abstract class SpawnEntry
 {
     private static FrozenDictionary<string, Func<XElement, SpawnEntry>>? _readers;
 

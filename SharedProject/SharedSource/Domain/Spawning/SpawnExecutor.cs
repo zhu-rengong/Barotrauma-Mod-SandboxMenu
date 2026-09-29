@@ -60,10 +60,10 @@ internal sealed class SpawnExecutor(
         }
 
         int count = SpawnPlanner.RepeatCount(reference.Amount);
-        var expanded = new SpawnExecutor(_target, _resolveTemplate, _result, [.. _templateChain, reference.TemplateName]);
+        SpawnExecutor templateExecutor = new(_target, _resolveTemplate, _result, [.. _templateChain, reference.TemplateName]);
         for (int i = 0; i < count; i++)
         {
-            expanded.Run(template.Entries);
+            templateExecutor.Run(template.Entries);
         }
     }
 
@@ -78,8 +78,6 @@ internal sealed class SpawnExecutor(
             return;
         }
 
-        // Stacks are resolved after the first item is spawned, because one stack holds a different
-        // number of items depending on where the item ends up (character, bag/wearable, container, world).
         if (entry.Stacks is { } stacksRange)
         {
             float stackCount = MathF.Max(0f, stacksRange.Roll(entry.AmountRound));
@@ -101,7 +99,7 @@ internal sealed class SpawnExecutor(
     {
         if (destination is not null)
         {
-            Entity.Spawner.AddItemToSpawnQueue(prefab, destination, condition, entry.Quality, item => AfterSpawned(item, entry));
+            Entity.Spawner.AddItemToSpawnQueue(prefab, destination, condition, entry.Quality, item => Settle(item, entry));
             _result.QueuedCount++;
             return;
         }
@@ -114,14 +112,14 @@ internal sealed class SpawnExecutor(
                 return;
             }
 
-            Entity.Spawner.AddItemToSpawnQueue(prefab, world.WorldPosition, condition, entry.Quality, item => AfterSpawned(item, entry));
+            Entity.Spawner.AddItemToSpawnQueue(prefab, world.WorldPosition, condition, entry.Quality, item => Settle(item, entry));
             _result.QueuedCount++;
             return;
         }
 
         if (_inventory is not null)
         {
-            Entity.Spawner.AddItemToSpawnQueue(prefab, _inventory, condition, entry.Quality, item => AfterSpawned(item, entry));
+            Entity.Spawner.AddItemToSpawnQueue(prefab, _inventory, condition, entry.Quality, item => Settle(item, entry));
             _result.QueuedCount++;
         }
     }
@@ -137,7 +135,7 @@ internal sealed class SpawnExecutor(
 
         Entity.Spawner.AddItemToSpawnQueue(prefab, _inventory, null, entry.Quality, item =>
         {
-            AfterSpawned(item, entry);
+            Settle(item, entry);
 
             Inventory? destination = item.ParentInventory ?? _inventory;
             if (destination is null)
@@ -169,26 +167,30 @@ internal sealed class SpawnExecutor(
 
     private bool TryInstall(ItemPrefab prefab, Vector2 worldPosition, ItemEntry entry, float? condition)
     {
-        foreach (Submarine? sub in Submarine.MainSubs)
+        foreach (Submarine? submarine in Submarine.MainSubs)
         {
-            if (sub is null) { continue; }
+            if (submarine is null) { continue; }
 
-            Rectangle borders = sub.Borders;
-            Vector2 subPosition = sub.WorldPosition;
-            var worldRect = new Rectangle(
-                (int)(subPosition.X - borders.Width / 2f),
-                (int)(subPosition.Y + borders.Height / 2f),
+            Rectangle borders = submarine.Borders;
+            Vector2 submarinePosition = submarine.WorldPosition;
+            Rectangle worldRect = new(
+                (int)(submarinePosition.X - borders.Width / 2f),
+                (int)(submarinePosition.Y + borders.Height / 2f),
                 borders.Width,
                 borders.Height);
 
             if (!Submarine.RectContains(worldRect, worldPosition, true)) { continue; }
 
-            Entity.Spawner.AddItemToSpawnQueue(prefab, worldPosition - sub.Position, sub, condition, entry.Quality, item => AfterSpawned(item, entry));
+            Entity.Spawner.AddItemToSpawnQueue(prefab, worldPosition - submarine.Position, submarine, condition, entry.Quality, item => Settle(item, entry));
             return true;
         }
 
         return false;
     }
+
+    // Finished on the host's own pass, possibly after the mod is gone: a failure of ours must not travel there.
+    private void Settle(Item item, ItemEntry entry)
+        => Guard.Run("Finishing a queued spawn failed", () => AfterSpawned(item, entry));
 
     private void AfterSpawned(Item item, ItemEntry entry)
     {
@@ -223,14 +225,11 @@ internal sealed class SpawnExecutor(
         List<AppliedOverride> applied = [];
         IReadOnlyList<string> problems = PropertyEditService.Apply(item, entry.Properties, applied);
 
-        // Handed to the host's property event so the other clients end up with the same item; whatever that event
-        // cannot carry comes back as a problem rather than as a value only this side has.
         SpawnPropertySync.Publish(item, applied, _result);
 
         if (problems.Count == 0) { return; }
 
-        _result.Record(problems[^1]);
-        Log.Warn(problems[^1]);
+        _result.Report(problems[^1]);
     }
 
     private void SpawnNestedItems(Item item, ItemEntry entry)
@@ -244,13 +243,13 @@ internal sealed class SpawnExecutor(
             return;
         }
 
-        var nested = new SpawnExecutor(_target, _resolveTemplate, _result, _templateChain)
+        SpawnExecutor nestedExecutor = new(_target, _resolveTemplate, _result, _templateChain)
         {
             _inventory = container.Inventory,
             _atItemInventory = true
         };
 
-        nested.Run(entry.Inventory);
+        nestedExecutor.Run(entry.Inventory);
     }
 
     private void PutInInventory(Item item, ItemEntry entry)
@@ -292,7 +291,7 @@ internal sealed class SpawnExecutor(
 
     private static void Equip(Character character, Item item, InvSlotType[]? allowedSlots)
     {
-        var inventory = character.Inventory;
+        Inventory? inventory = character.Inventory;
         if (inventory is null) { return; }
 
         List<InvSlotType> slots = [.. allowedSlots is { Length: > 0 } ? allowedSlots : item.AllowedSlots];

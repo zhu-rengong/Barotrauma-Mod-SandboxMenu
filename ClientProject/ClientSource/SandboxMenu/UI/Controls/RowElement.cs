@@ -42,8 +42,6 @@ internal sealed class RowElement : ViewElement, IDisposable
         MenuText.MakeRow(_row);
         _row.TextBlock.TextScale = _scale;
 
-        // Rich text (the dimmed identifier after the name) dies in the forced upper case: the up-cased string
-        // loses its colour parsing and the tags are drawn as literal text. A row shows the name as written.
         _row.TextBlock.ForceUpperCase = ForceUpperCase.No;
 
         bool itemRow = context.Text("Icon") is not null || context.Text("SubText") is not null;
@@ -55,8 +53,6 @@ internal sealed class RowElement : ViewElement, IDisposable
 
         ForceLayout();
 
-        // Rows without a command must not be selectable: a button without a click handler toggles its own
-        // Selected on every click. The styling is applied once the properties have arrived, because only then
         bool styled = false;
         context.View.Once(() =>
         {
@@ -201,8 +197,6 @@ internal sealed class RowElement : ViewElement, IDisposable
             CanBeFocused = false
         };
 
-        // The engine only keeps an image fitted when the sprite was handed to its constructor: a sprite that
-        // arrives through a binding is fitted against a rectangle that has not been laid out yet, which is a
         _icon.RectTransform.SizeChanged += RescaleIcon;
         ForceLayout();
     }
@@ -214,7 +208,6 @@ internal sealed class RowElement : ViewElement, IDisposable
         _subText = new GUITextBlock(
             new RectTransform(new Vector2(1f, UiMetrics.SubTextRatio), Control.RectTransform, Anchor.BottomLeft),
             string.Empty,
-            // textColor: UiMetrics.TextDim,
             font: GUIStyle.Font,
             textAlignment: Alignment.CenterLeft)
         {

@@ -2,7 +2,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-public sealed class RefEntry : SpawnEntry
+internal sealed class RefEntry : SpawnEntry
 {
     public string TemplateName { get; set; } = string.Empty;
 
@@ -12,14 +12,14 @@ public sealed class RefEntry : SpawnEntry
 
     public override XElement ToXml()
     {
-        var element = new XElement("Ref", new XAttribute("template", TemplateName));
+        XElement element = new("Ref", new XAttribute("template", TemplateName));
         WriteCommon(element);
         return element;
     }
 
     internal static RefEntry Read(XElement element)
     {
-        var entry = new RefEntry
+        RefEntry entry = new()
         {
             TemplateName = element.GetAttributeString("template", string.Empty)
         };
@@ -29,7 +29,7 @@ public sealed class RefEntry : SpawnEntry
 
     protected override SpawnEntry CloneCore()
     {
-        var clone = new RefEntry { TemplateName = TemplateName };
+        RefEntry clone = new() { TemplateName = TemplateName };
         CopyCommonTo(clone);
         return clone;
     }

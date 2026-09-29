@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace SandboxMenu.UI.Framework;
+namespace SandboxMenu.UI;
 
 internal static class MenuPaint
 {
@@ -15,5 +15,5 @@ internal static class MenuPaint
             color,
             false,
             0f,
-            thickness ?? MenuTheme.DipInt(MenuTheme.LineThickness));
+            Math.Max(1, thickness ?? MenuTheme.DipInt(MenuTheme.LineThickness)));
 }

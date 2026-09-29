@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class PropertyRow(
+internal sealed class PropertyRow(
     EntryEditorViewModel editor,
     int index,
     PropertyOverride target,

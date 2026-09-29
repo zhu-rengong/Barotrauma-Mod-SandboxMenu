@@ -21,11 +21,9 @@ internal sealed class TextElement : ViewElement
         _font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _font);
 
-        _block.Padding = new Vector4(UiMetrics.Dip(MarkupPlacement.Read(context.Node, "Padding", UiMetrics.Pad)), 0f, 0f, 0f);
+        _block.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", UiMetrics.Pad)), 0f, 0f, 0f);
         _block.CanBeFocused = false;
 
-        // A wrapped label can only wrap against a width, and it gets one only once the layout has run: the engine
-        // wraps when the text changes, not when the rectangle does, so the width is watched until it settles (and
         if (ViewMarkup.ToBool(context.Text("Wrap"), false))
         {
             int wrappedWidth = -1;
@@ -75,8 +73,6 @@ internal sealed class TextElement : ViewElement
             string.Empty,
             textColor: UiMetrics.Text,
             font: ViewMarkup.FontOf(context.Text("Font")),
-            // Not "Align": that one is the rectangle's anchor, and a row of a list is placed by the list adding
-            // an offset to it — an anchor other than the top left corner moves the row off the slot the list
             textAlignment: ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft));
 
     private void Apply(RichString value)

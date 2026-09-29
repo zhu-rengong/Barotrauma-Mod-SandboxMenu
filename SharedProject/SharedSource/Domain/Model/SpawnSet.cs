@@ -2,7 +2,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-public sealed class SpawnSet
+internal sealed class SpawnSet
 {
     public string Name { get; set; } = string.Empty;
 
@@ -10,7 +10,7 @@ public sealed class SpawnSet
 
     public XElement ToXml()
     {
-        var element = new XElement("SpawnSet", new XAttribute("name", Name));
+        XElement element = new("SpawnSet", new XAttribute("name", Name));
         foreach (SpawnEntry entry in Entries)
         {
             element.Add(entry.ToXml());
@@ -20,7 +20,7 @@ public sealed class SpawnSet
 
     public static SpawnSet FromXml(XElement element)
     {
-        var set = new SpawnSet
+        SpawnSet set = new()
         {
             Name = element.GetAttributeString("name", "default")
         };
@@ -38,7 +38,7 @@ public sealed class SpawnSet
 
     public SpawnSet Clone()
     {
-        var clone = new SpawnSet { Name = Name };
+        SpawnSet clone = new() { Name = Name };
         foreach (SpawnEntry entry in Entries) { clone.Entries.Add(entry.Clone()); }
         return clone;
     }

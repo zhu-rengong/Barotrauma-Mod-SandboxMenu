@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace SandboxMenu.UI.ViewModels;
 
-public sealed class ItemPickerRowViewModel : ItemRowViewModel
+internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 {
     public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked)
     {
@@ -16,7 +16,7 @@ public sealed class ItemPickerRowViewModel : ItemRowViewModel
     public RelayCommand PickCommand { get; }
 }
 
-public sealed class ItemBrowserViewModel : Notifiable
+internal sealed class ItemBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
     private readonly HashSet<string> _packages;
@@ -31,8 +31,6 @@ public sealed class ItemBrowserViewModel : Notifiable
     {
         _host = host;
 
-        // Package names are identifiers, and the catalog offers them ignoring case: the set a tick is kept in has
-        // to compare them the same way, or a tick would not stick to the spelling the catalog reports.
         _packages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         PickPackagesCommand = new RelayCommand(PickPackages);
@@ -40,8 +38,6 @@ public sealed class ItemBrowserViewModel : Notifiable
 
         _entries = ItemPrefabCatalog.All();
 
-        // The list is one row per loaded item, and what it holds never changes again: the query and the filters
-        // show and hide the rows that are already there instead of handing the list a different set of them.
         FillAll();
     }
 

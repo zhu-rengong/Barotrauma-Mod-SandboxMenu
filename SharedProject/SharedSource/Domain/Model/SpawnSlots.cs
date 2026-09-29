@@ -21,8 +21,7 @@ internal static class SpawnSlots
             .. text
                 .Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(name => Enum.TryParse(name, out InvSlotType slot) ? slot : (InvSlotType?)null)
-                .Where(slot => slot.HasValue)
-                .Select(slot => slot!.Value)
+                .OfType<InvSlotType>()
         ];
 
         return parsed.Length == 0 ? null : parsed;

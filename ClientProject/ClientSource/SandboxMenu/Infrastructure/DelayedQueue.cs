@@ -7,14 +7,20 @@ internal sealed class DelayedQueue(string failure)
     private readonly Queue<Action> _pending = [];
     private readonly List<Action> _pass = [];
 
+    private bool _aborted;
+
     internal void Enqueue(Action action) => _pending.Enqueue(action);
 
-    internal void Clear() => _pending.Clear();
+    internal void Clear()
+    {
+        _pending.Clear();
+        _aborted = true;
+    }
 
     internal void Drain()
     {
-        // Work queued while draining (a rebuild triggered by another rebuild) is settled in the same frame
-        // instead of waiting for the next one.
+        _aborted = false;
+
         for (int pass = 0; pass < MaxPasses && _pending.Count > 0; pass++)
         {
             _pass.AddRange(_pending);
@@ -22,7 +28,7 @@ internal sealed class DelayedQueue(string failure)
 
             try
             {
-                for (int i = 0; i < _pass.Count; i++)
+                for (int i = 0; i < _pass.Count && !_aborted; i++)
                 {
                     Guard.Run(failure, _pass[i]);
                 }
@@ -30,6 +36,7 @@ internal sealed class DelayedQueue(string failure)
             finally
             {
                 _pass.Clear();
+                _aborted = false;
             }
         }
     }

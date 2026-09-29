@@ -25,10 +25,8 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
     }
 
     [ElementProperty(Mode = BindingMode.TwoWay)]
-    public string Text { set => _box.Text = value ?? string.Empty; }
+    public string? Text { set => _box.Text = value ?? string.Empty; }
 
-    // Put in place by the window rather than by a click: the game's own caret would follow the mouse, so the text
-    // the box opens with (the query of the last search) is selected whole, to be typed over.
     internal void Focus()
     {
         _box.Select(ignoreSelectSound: true);
@@ -43,9 +41,6 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         _changed = changed;
 
-        // The change leaves through the view's dispatcher: the view model is updated outside the game's GUI walk.
-        // Kept in a field so the subscription can be given back — every subscription has to have its mirror, or a
-        // handler pointing into this assembly outlives the mod on a control of the game's.
         _onTextChanged = (box, text) =>
         {
             _changed?.Invoke(text);

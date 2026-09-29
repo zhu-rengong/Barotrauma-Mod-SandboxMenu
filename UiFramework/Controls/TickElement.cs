@@ -1,7 +1,7 @@
 namespace UiFramework.Controls;
 
 [Element("Tick")]
-internal sealed class TickElement : ViewElement, IPropertyObserver
+internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
 {
     private readonly GUITickBox _tick;
     private Action<object?>? _changed;
@@ -24,7 +24,14 @@ internal sealed class TickElement : ViewElement, IPropertyObserver
     }
 
     [ElementProperty(KeyText = true)]
-    public RichString Text { set => _tick.TextBlock.Text = value; }
+    public RichString Text
+    {
+        set
+        {
+            _tick.TextBlock.Text = value;
+            _tick.TextBlock.TextScale = UiMetrics.TextScale;
+        }
+    }
 
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public bool Selected { set => _tick.Selected = value; }
@@ -33,8 +40,12 @@ internal sealed class TickElement : ViewElement, IPropertyObserver
 
     void IPropertyObserver.Observe(string property, Action<object?> changed)
     {
-        // The box reports one thing only. A registration for another property must not take its place, or the
-        // tick would travel to the wrong path and be dropped there.
         if (string.Equals(property, nameof(Selected), StringComparison.OrdinalIgnoreCase)) { _changed = changed; }
+    }
+
+    public void Dispose()
+    {
+        _tick.OnSelected = null;
+        _changed = null;
     }
 }

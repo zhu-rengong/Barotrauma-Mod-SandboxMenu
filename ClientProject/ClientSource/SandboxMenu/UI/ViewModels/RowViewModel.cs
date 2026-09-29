@@ -1,10 +1,10 @@
 namespace SandboxMenu.UI.ViewModels;
 
-public interface IEditorRow
+internal interface IEditorRow
 {
 }
 
-public abstract class RowViewModel(LocalizedString label, bool labelActive = true) : Notifiable, IEditorRow
+internal abstract class RowViewModel(LocalizedString label, bool labelActive = true) : Notifiable, IEditorRow
 {
     private bool _labelActive = labelActive;
 
@@ -17,20 +17,20 @@ public abstract class RowViewModel(LocalizedString label, bool labelActive = tru
     }
 }
 
-public sealed class SectionRow(LocalizedString title) : RowViewModel(title)
+internal sealed class SectionRow(LocalizedString title) : RowViewModel(title)
 {
 }
 
-public sealed class HintRow(LocalizedString text) : RowViewModel(text)
+internal sealed class HintRow(LocalizedString text) : RowViewModel(text)
 {
 }
 
-public sealed class ButtonRow(LocalizedString label, Action invoke) : RowViewModel(label)
+internal sealed class ButtonRow(LocalizedString label, Action onInvoke) : RowViewModel(label)
 {
-    public RelayCommand Command { get; } = new RelayCommand(invoke);
+    public RelayCommand InvokeCommand { get; } = new RelayCommand(onInvoke);
 }
 
-public sealed class TickRow(LocalizedString label, bool value, Action<bool> apply, Action after) : RowViewModel(label)
+internal sealed class TickRow(LocalizedString label, bool value, Action<bool> apply, Action after) : RowViewModel(label)
 {
     private readonly Action<bool> _apply = apply;
     private readonly Action _after = after;

@@ -1,17 +1,20 @@
 namespace SandboxMenu.Domain.Model;
 
-public sealed class ItemDisplay
+internal sealed class ItemDisplay
 {
     private readonly ItemPrefab _prefab;
     private readonly LocalizedString _name;
     private readonly LocalizedString? _description;
 
-    private ItemDisplay(ItemPrefab prefab, string identifier, LocalizedString name, LocalizedString? description, Sprite? icon)
+    private ItemDisplay(ItemPrefab prefab, string identifier, LocalizedString name, LocalizedString? description, string tags, Sprite? icon)
     {
         _prefab = prefab;
         Identifier = identifier;
         _name = name;
         _description = description;
+        Tags = tags.Length == 0
+            ? RichString.Rich(string.Empty)
+            : RichString.Rich($"‖color:{MenuTheme.TagText.ToStringHex()}‖{tags}‖color:end‖");
         Icon = icon;
     }
 
@@ -19,7 +22,7 @@ public sealed class ItemDisplay
 
     public LocalizedString Name => _name;
 
-    public LocalizedString Description => _description ?? string.Empty;
+    public RichString Tags { get; }
 
     public Sprite? Icon { get; }
 
@@ -59,7 +62,11 @@ public sealed class ItemDisplay
         LocalizedString? own = prefab.Name;
         LocalizedString name = string.IsNullOrEmpty(own?.Value) ? identifier : own;
 
-        return new ItemDisplay(prefab, identifier, name, prefab.Description, prefab.InventoryIcon ?? prefab.Sprite);
+        string tags = prefab.Tags is null
+            ? string.Empty
+            : string.Join(", ", prefab.Tags.Select(tag => tag.Value).OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+
+        return new ItemDisplay(prefab, identifier, name, prefab.Description, tags, prefab.InventoryIcon ?? prefab.Sprite);
     }
 
     internal static ItemDisplay? For(string identifier)

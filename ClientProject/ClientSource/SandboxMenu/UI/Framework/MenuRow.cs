@@ -13,8 +13,6 @@ internal sealed class MenuRow(RectTransform rectT, LocalizedString text, Alignme
         base.Draw(spriteBatch);
         if (!Visible) { return; }
 
-        // This runs inside the engine's own drawing loop. What the row paints is the mod's own, so a failure in
-        // it must not travel back into the game's drawing — and a plain try/catch keeps the per frame cost at
         try
         {
             Rectangle rect = Rect;

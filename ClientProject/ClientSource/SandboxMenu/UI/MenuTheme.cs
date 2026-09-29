@@ -2,16 +2,11 @@ using Microsoft.Xna.Framework;
 
 namespace SandboxMenu.UI;
 
-public static class MenuTheme
+internal static class MenuTheme
 {
-
-    public static float UiScale => UiMetrics.UiScale;
-
     public static float Dip(float value) => UiMetrics.Dip(value);
 
     public static int DipInt(float value) => UiMetrics.DipInt(value);
-
-    public static float TextScale => UiMetrics.TextScale;
 
     public static float FontScale(float dipSize, GUIFont font) => UiMetrics.FontScale(dipSize, font);
 
@@ -21,8 +16,6 @@ public static class MenuTheme
 
     public static Color Accent => UiMetrics.Accent;
 
-    public static Color Danger => UiMetrics.Danger;
-
     public static Color TextDisabled => UiMetrics.TextDisabled;
 
     public static float SelectedBarWidth => UiMetrics.SelectedBarWidth;
@@ -31,28 +24,13 @@ public static class MenuTheme
 
     public static float Pad => UiMetrics.Pad;
 
-    public static float Gap => UiMetrics.Gap;
-
-    public static float IconBox => UiMetrics.IconBox;
-
-    public static float IconGap => UiMetrics.IconGap;
-
-    public static float RowHeight => UiMetrics.RowHeight;
-
-    public static float SectionHeight => UiMetrics.SectionHeight;
-
-    public static float ControlHeight => UiMetrics.ControlHeight;
-
-    public static float SubTextRatio => UiMetrics.SubTextRatio;
-
-    public static float LabelWidth => UiMetrics.LabelWidth;
-
-
     public static readonly Color RowHover = new(255, 255, 255, 84);
 
     public static readonly Color RowSelected = new(255, 255, 255, 60);
 
     public static readonly Color RowPressed = new(255, 255, 255, 110);
+
+    public static readonly Color TagText = new(0x61, 0xAF, 0xEF, 0xFF);
 
     public const float TreeIndentStart = 8f;
 
@@ -67,6 +45,8 @@ public static class MenuTheme
     public const float PickerHintOffsetX = 24f;
     public const float PickerHintOffsetY = 18f;
 
+    public const float PickerHintArmLength = 8f;
+
     public const float PickerHintPaddingY = 4f;
 
     public const float WindowWidth = 1008f;
@@ -75,11 +55,14 @@ public static class MenuTheme
     public const float BrowserWidth = 608f;
     public const float BrowserHeight = 528f;
 
+    public const float MultiPickerWidth = 608f;
+    public const float MultiPickerHeight = 528f;
+
     public const float OptionsWidth = 496f;
     public const float OptionsHeight = 432f;
 
     public const float ContextMenuWidth = 288f;
     public const float ContextMenuHeight = 352f;
 
-    public static Point Size(float dipWidth, float dipHeight) => new(DipInt(dipWidth), DipInt(dipHeight));
+    public static Point DipSize(float dipWidth, float dipHeight) => new(DipInt(dipWidth), DipInt(dipHeight));
 }

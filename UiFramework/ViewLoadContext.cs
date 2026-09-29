@@ -3,13 +3,29 @@ using UiFramework.Styling;
 
 namespace UiFramework;
 
-internal sealed class ViewLoadContext(string view) : IDisposable
+internal sealed class ViewLoadContext : IDisposable
 {
-    private readonly List<OwnershipScope> _scopes = [new()];
+    private readonly List<OwnershipScope> _live = [];
+    private readonly List<OwnershipScope> _open;
+    private readonly List<Action> _oneShots = [];
+    private readonly List<Action> _running = [];
+    private readonly List<Action> _focusTargets = [];
 
-    internal string View { get; } = view;
+    private Action<string>? _diagnosticSink;
 
-    internal MarkupDiagnostics Diagnostics { get; } = new(view);
+    internal ViewLoadContext(string view)
+    {
+        View = view;
+        Diagnostics = new MarkupDiagnostics(view);
+
+        OwnershipScope root = new(_live, view);
+        _live.Add(root);
+        _open = [root];
+    }
+
+    internal string View { get; }
+
+    internal MarkupDiagnostics Diagnostics { get; }
 
     internal NameScope Names { get; } = new();
 
@@ -19,18 +35,28 @@ internal sealed class ViewLoadContext(string view) : IDisposable
 
     internal ViewElement? Root { get; set; }
 
-    private readonly List<Action> _frameActions = [];
-    private readonly List<Action> _oneShots = [];
-    private readonly List<Action> _running = [];
-    private readonly List<Action> _focusTargets = [];
+    internal Action<string>? DiagnosticSink
+    {
+        get => _diagnosticSink;
+        set
+        {
+            _diagnosticSink = value;
+            Diagnostics.Sink = value;
+        }
+    }
 
-    internal void EveryFrame(Action action) => _frameActions.Add(action);
+    internal Func<bool> IsInputBlocked { get; set; } = static () => false;
+
+    internal Action<Action> Dispatch { get; set; } = static work => work();
+
+    internal List<Action<SpriteBatch>> Overlays { get; } = [];
+
+    private OwnershipScope? Current => _open.Count > 0 ? _open[^1] : null;
+
+    internal void EveryFrame(Action action) => Current?.EveryFrame(action);
 
     internal void Once(Action action) => _oneShots.Add(action);
 
-    // A control the view opens with the keyboard already in it. The focus is handed over on a frame whose click has
-    // passed: the click that opened the window takes it off a control selected while the game was still walking
-    // that frame's clicks.
     internal void FocusOnOpen(Action focus) => _focusTargets.Add(focus);
 
     internal void RequestFocus()
@@ -51,7 +77,7 @@ internal sealed class ViewLoadContext(string view) : IDisposable
 
     internal void RunFrameActions()
     {
-        for (int i = 0; i < _frameActions.Count; i++) { Run(_frameActions[i]); }
+        for (int i = 0; i < _live.Count; i++) { _live[i].RunFrameActions(); }
 
         if (_oneShots.Count == 0) { return; }
 
@@ -70,45 +96,26 @@ internal sealed class ViewLoadContext(string view) : IDisposable
 
     private void Run(Action action) => Guard.Run($"A frame action of '{View}' failed", action);
 
-    internal List<Action> AfterRegister { get; } = [];
-
-    private Action<string>? _diagnosticSink;
-
-    internal Action<string>? DiagnosticSink
-    {
-        get => _diagnosticSink;
-        set
-        {
-            _diagnosticSink = value;
-            Diagnostics.Sink = value;
-        }
-    }
-
-    internal Func<bool> IsInputBlocked { get; set; } = static () => false;
-
-    internal Action<Action> Dispatch { get; set; } = static work => work();
-
-    internal List<Action<SpriteBatch>> Overlays { get; } = [];
-
     internal void Own(IDisposable disposable)
     {
-        if (_scopes.Count == 0)
+        if (Current is not { } scope)
         {
             Guard.Run($"Releasing state registered after '{View}' went away failed", disposable.Dispose);
             return;
         }
 
-        _scopes[^1].Own(disposable);
+        scope.Own(disposable);
     }
 
     internal OwnershipScope BeginScope()
     {
-        OwnershipScope scope = new();
-        _scopes.Add(scope);
+        OwnershipScope scope = new(_live, View);
+        _live.Add(scope);
+        _open.Add(scope);
         return scope;
     }
 
-    internal void EndScope(OwnershipScope scope) => _scopes.Remove(scope);
+    internal void EndScope(OwnershipScope scope) => _open.Remove(scope);
 
     internal object? FindResource(string key, ViewElement? element)
     {
@@ -122,9 +129,6 @@ internal sealed class ViewLoadContext(string view) : IDisposable
 
     public void Dispose()
     {
-        // Built into a live parent, or into the canvas when the caller gave none: either way the tree is in the
-        // game's GUI, and a tree of this assembly hanging off a static root is what keeps the mod from being
-        // collected after unloading. Letting a view go therefore takes it out of the GUI, not just unbinds it.
         if (Root is { } root)
         {
             Guard.Run($"Removing view '{View}' from the GUI failed", () =>
@@ -134,31 +138,57 @@ internal sealed class ViewLoadContext(string view) : IDisposable
             });
         }
 
-        OwnershipScope[] scopes = [.. _scopes];
-        _scopes.Clear();
+        OwnershipScope[] scopes = [.. _live];
+        _live.Clear();
+        _open.Clear();
 
         foreach (OwnershipScope scope in scopes)
         {
             Guard.Run($"Disposing the state of '{View}' failed", scope.Dispose);
         }
 
-        _frameActions.Clear();
         _oneShots.Clear();
         _running.Clear();
         _focusTargets.Clear();
-        AfterRegister.Clear();
+        Overlays.Clear();
         Root = null;
     }
 }
 
-internal sealed class OwnershipScope : IDisposable
+internal sealed class OwnershipScope(List<OwnershipScope> live, string view) : IDisposable
 {
     private readonly List<IDisposable> _owned = [];
+    private readonly List<Action> _frameActions = [];
+
+    private bool _paused;
+    private bool _disposed;
+
+    internal void Pause() => _paused = true;
+
+    internal void Resume() => _paused = false;
+
+    internal void EveryFrame(Action action) => _frameActions.Add(action);
+
+    internal void RunFrameActions()
+    {
+        if (_paused || _disposed) { return; }
+
+        for (int i = 0; i < _frameActions.Count; i++)
+        {
+            Guard.Run($"A frame action of '{view}' failed", _frameActions[i]);
+        }
+    }
 
     internal void Own(IDisposable disposable) => _owned.Add(disposable);
 
     public void Dispose()
     {
+        if (_disposed) { return; }
+
+        _disposed = true;
+        _frameActions.Clear();
+        live.Remove(this);
+
         for (int i = 0; i < _owned.Count; i++)
         {
             Guard.Run("Letting a view's state go failed", _owned[i].Dispose);

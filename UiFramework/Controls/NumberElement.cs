@@ -1,27 +1,28 @@
 namespace UiFramework.Controls;
 
 [Element("Number")]
-internal sealed class NumberElement : ViewElement, IPropertyObserver
+internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposable
 {
     private readonly GUINumberInput _input;
     private readonly bool _integer;
     private Action<object?>? _changed;
 
     public NumberElement(ElementContext context)
+        : this(context, IsInteger(context))
+    {
+    }
+
+    private NumberElement(ElementContext context, bool integer)
         : base(new GUINumberInput(
             context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
-            IsInteger(context) ? NumberType.Int : NumberType.Float,
+            integer ? NumberType.Int : NumberType.Float,
             textAlignment: ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft)))
     {
         _input = (GUINumberInput)Control;
-        _integer = IsInteger(context);
+        _integer = integer;
 
-        // Left to itself the engine takes the step of the +/- buttons from the range — one percent of it, which
-        // for a limit of a hundred thousand is a thousand a click. What these inputs hold are counts, so one it
-        _input.ValueStep = MarkupPlacement.Read(context.Node, "Step", 1f);
+        _input.ValueStep = context.Metric("Step", 1f);
 
-        // An integer input keeps its value in a field of its own and only that field is shown and reported: read
-        // and write the one the input was built with, or the field that never moves is what travels both ways.
         _input.OnValueChanged = _ => _changed?.Invoke(_integer ? _input.IntValue : _input.FloatValue);
     }
 
@@ -63,6 +64,12 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver
     void IPropertyObserver.Observe(string property, Action<object?> changed)
     {
         if (string.Equals(property, nameof(Value), StringComparison.OrdinalIgnoreCase)) { _changed = changed; }
+    }
+
+    public void Dispose()
+    {
+        _input.OnValueChanged = null;
+        _changed = null;
     }
 
     private static bool IsInteger(ElementContext context) => ViewMarkup.ToBool(context.Text("Integer"), false);

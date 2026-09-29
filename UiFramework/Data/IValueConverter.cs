@@ -14,12 +14,12 @@ internal interface IMultiValueConverter
 
 internal static class ValueConverters
 {
-    private static readonly Dictionary<string, IValueConverter> Single = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, IValueConverter> _single = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Inverse"] = new InverseBoolConverter()
     };
 
-    private static readonly Dictionary<string, IMultiValueConverter> Multi = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, IMultiValueConverter> _multi = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Join"] = new JoinConverter()
     };
@@ -28,13 +28,13 @@ internal static class ValueConverters
 
     internal static void Clear()
     {
-        Single.Clear();
-        Multi.Clear();
+        _single.Clear();
+        _multi.Clear();
     }
 
-    internal static IValueConverter? Find(string name) => Single.GetValueOrDefault(name);
+    internal static IValueConverter? Find(string name) => _single.GetValueOrDefault(name);
 
-    internal static IMultiValueConverter? FindMulti(string name) => Multi.GetValueOrDefault(name);
+    internal static IMultiValueConverter? FindMulti(string name) => _multi.GetValueOrDefault(name);
 }
 
 internal sealed class InverseBoolConverter : IValueConverter
@@ -49,5 +49,5 @@ internal sealed class JoinConverter : IMultiValueConverter
     public object? Convert(IReadOnlyList<object?> values, Type targetType, object? parameter)
         => string.Join(
             parameter as string ?? ", ",
-            values.Where(value => value is { } text && !string.IsNullOrEmpty(text.ToString())));
+            values.Where(value => value is { } item && !string.IsNullOrEmpty(item.ToString())));
 }

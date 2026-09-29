@@ -66,12 +66,12 @@
     </DataTemplate>
 
     <DataTemplate DataType="ButtonRow">
-      <Button Text="{Binding Label}" Command="{Binding Command}" Width="1" Height="row" />
+      <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" />
     </DataTemplate>
     <DataTemplate DataType="TreeEntryViewModel">
       <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" Indent="{Binding Indent}"
            TextColor="{Binding ColorName}" Selected="{Binding IsSelected}"
-           Command="{Binding SelectCommand}" SecondaryCommand="{Binding MenuCommand}" Height="row" />
+           Command="{Binding SelectCommand}" SecondaryCommand="{Binding OpenMenuCommand}" Height="row" />
     </DataTemplate>  </Stack.Resources>
   <!-- Title band. A plain panel rather than a stack: only outside a layout group does the close button's
        Align anchor put it on the right edge. The drag area is its own panel so that the (invisible, but

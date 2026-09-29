@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace SandboxMenu.UI.ViewModels;
 
-public abstract class PickerRow : Notifiable
+internal abstract class PickerRow : Notifiable
 {
     private bool _visible = true;
 
@@ -13,14 +13,14 @@ public abstract class PickerRow : Notifiable
     }
 }
 
-public sealed class PickerRowViewModel(LocalizedString text, Action onPicked) : PickerRow
+internal sealed class PickerRowViewModel(LocalizedString text, Action onPicked) : PickerRow
 {
     public LocalizedString Text { get; } = text;
 
     public RelayCommand PickCommand { get; } = new(onPicked);
 }
 
-public sealed class ToggleRowViewModel(PickerToggle option) : PickerRow
+internal sealed class ToggleRowViewModel(PickerToggle option) : PickerRow
 {
     public LocalizedString Label { get; } = option.Label;
 
@@ -31,7 +31,7 @@ public sealed class ToggleRowViewModel(PickerToggle option) : PickerRow
     }
 }
 
-public sealed class MultiPickerViewModel : Notifiable
+internal sealed class MultiPickerViewModel : Notifiable
 {
     private LocalizedString _title = LocalizedString.EmptyString;
     private string _query = string.Empty;
@@ -78,7 +78,7 @@ public sealed class MultiPickerViewModel : Notifiable
     }
 }
 
-public sealed class OptionsPickerViewModel : Notifiable
+internal sealed class OptionsPickerViewModel : Notifiable
 {
     private readonly Action<PickerOption> _onPicked;
 

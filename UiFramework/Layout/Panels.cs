@@ -12,7 +12,7 @@ internal sealed class FlowElement : LayoutPanel
         : base(context, new GUIFrame(context.Rect(context.Parent, 1f, 1f), context.Skin) { HoverCursor = CursorState.Default })
     {
         _horizontal = string.Equals(context.Text("Orientation") ?? "Vertical", "Horizontal", StringComparison.OrdinalIgnoreCase);
-        SetGap(MarkupPlacement.Read(context.Node, "Gap", 0f));
+        SetGap(context.Metric("Gap", 0f));
     }
 
     [ElementProperty]
@@ -41,14 +41,14 @@ internal sealed class FlowElement : LayoutPanel
 [Element("Grid")]
 internal sealed class GridElement : LayoutPanel
 {
-    private Length[] _rows = [Length.Fill];
-    private Length[] _columns = [Length.Fill];
+    private Length[] _rows;
+    private Length[] _columns;
 
     public GridElement(ElementContext context)
         : base(context, new GUIFrame(context.Rect(context.Parent, 1f, 1f), context.Skin) { HoverCursor = CursorState.Default })
     {
-        _rows = ParseSequence(context.Text("Rows"), [Length.Fill]);
-        _columns = ParseSequence(context.Text("Columns"), [Length.Fill]);
+        _rows = ParseSequence(context.Text("Rows"), [Length.Fill], context.Node);
+        _columns = ParseSequence(context.Text("Columns"), [Length.Fill], context.Node);
     }
 
     [ElementProperty]
@@ -56,7 +56,7 @@ internal sealed class GridElement : LayoutPanel
     {
         set
         {
-            _rows = ParseSequence(value, _rows);
+            _rows = ParseSequence(value, _rows, Node);
             Invalidate();
         }
     }
@@ -66,7 +66,7 @@ internal sealed class GridElement : LayoutPanel
     {
         set
         {
-            _columns = ParseSequence(value, _columns);
+            _columns = ParseSequence(value, _columns, Node);
             Invalidate();
         }
     }
@@ -111,8 +111,8 @@ internal sealed class GridElement : LayoutPanel
 
         row = int.TryParse(rowText, CultureInfo.InvariantCulture, out int parsedRow) ? Math.Max(0, parsedRow) : 0;
         column = int.TryParse(columnText, CultureInfo.InvariantCulture, out int parsedColumn) ? Math.Max(0, parsedColumn) : 0;
-        rowSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.RowSpan"), out int r) ? r : 1);
-        columnSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.ColumnSpan"), out int c) ? c : 1);
+        rowSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.RowSpan"), CultureInfo.InvariantCulture, out int parsedRowSpan) ? parsedRowSpan : 1);
+        columnSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.ColumnSpan"), CultureInfo.InvariantCulture, out int parsedColumnSpan) ? parsedColumnSpan : 1);
 
         return rowText is not null || columnText is not null;
     }
@@ -180,16 +180,16 @@ internal sealed class GridElement : LayoutPanel
     }
 
     private static int TrackOf(ViewElement child, bool rows)
-        => int.TryParse(rows ? child.Node?.Text("Grid.Row") : child.Node?.Text("Grid.Column"), out int index) ? index : 0;
+        => int.TryParse(rows ? child.Node?.Text("Grid.Row") : child.Node?.Text("Grid.Column"), CultureInfo.InvariantCulture, out int index) ? index : 0;
 
-    private static Length[] ParseSequence(string? text, Length[] fallback)
+    private Length[] ParseSequence(string? text, Length[] fallback, MarkupNode? node)
     {
         if (string.IsNullOrWhiteSpace(text)) { return fallback; }
 
         Length[] lengths =
         [
             .. text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(part => Length.Parse(part, Length.Fill))
+                .Select(part => Length.Parse(part, Length.Fill, message => Report(message, node)))
         ];
 
         return lengths.Length == 0 ? fallback : lengths;
