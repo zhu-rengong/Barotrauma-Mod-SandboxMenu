@@ -5,7 +5,7 @@ namespace SandboxMenu;
 
 public sealed partial class Plugin
 {
-    private static readonly KeyBind _defaultToggleKey = new(Keys.F5);
+    private static readonly KeyBind _defaultToggleKey = new(Keys.F2);
 
     private static KeySetting? _toggleKeySetting;
 
