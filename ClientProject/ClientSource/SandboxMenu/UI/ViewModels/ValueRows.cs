@@ -124,4 +124,15 @@ internal sealed class BrowseRow(EntryEditorViewModel editor, LocalizedString lab
     }
 
     public RelayCommand BrowseCommand { get; } = new RelayCommand(browse);
+
+    private bool _takeFocus;
+
+    // Set on the row the editor puts up for a fresh selection: the text box takes the keyboard once, then writes the
+    // flag back so a re-pointed binding does not grab it (and the caret) again. Raising it again is how the "type the
+    // identifier" command asks for the keyboard a second time.
+    public bool TakeFocus
+    {
+        get => _takeFocus;
+        set => Set(ref _takeFocus, value);
+    }
 }

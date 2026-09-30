@@ -8,6 +8,8 @@ internal sealed class RowElement : ViewElement, IDisposable
 {
     private readonly MenuRow _row;
     private readonly ViewLoadContext _view;
+    private RichString _text = string.Empty;
+    private RichString? _shortcut;
     private float _scale;
 
     [ElementProperty]
@@ -75,8 +77,8 @@ internal sealed class RowElement : ViewElement, IDisposable
     {
         set
         {
-            _row.TextBlock.Text = value;
-            _row.TextBlock.TextScale = _scale;
+            _text = value;
+            ApplyText();
         }
     }
 
@@ -85,9 +87,26 @@ internal sealed class RowElement : ViewElement, IDisposable
     {
         set
         {
-            _row.TextBlock.Text = value;
-            _row.TextBlock.TextScale = _scale;
+            _text = value;
+            ApplyText();
         }
+    }
+
+    [ElementProperty(KeyText = true)]
+    public RichString? Shortcut
+    {
+        set
+        {
+            _shortcut = value;
+            ApplyText();
+        }
+    }
+
+    private void ApplyText()
+    {
+        // A row draws its own dark fill, so the hint keeps the light dim colour.
+        _row.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, "sandboxmenu.shortcut.hint");
+        _row.TextBlock.TextScale = _scale;
     }
 
     [ElementProperty]

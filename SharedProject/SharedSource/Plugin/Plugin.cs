@@ -22,40 +22,22 @@ public sealed partial class Plugin : IBarotraumaPlugin
         _hookService = null;
         _toggleKeySetting?.Detach();
         _toggleKeySetting = null;
+        _giveKeySetting?.Detach();
+        _giveKeySetting = null;
 #endif
     });
 
-    // GetService recognises the plugin through Assembly.GetCallingAssembly(): the call has to stay in this assembly and must not be inlined.
-    internal static IDebugConsole DebugConsoleService
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        get => _debugConsole ??= PluginServiceProvider.GetService<IDebugConsole>();
-    }
+    // GetService recognises the plugin through Assembly.GetCallingAssembly(): keep the call in this assembly.
+    internal static IDebugConsole DebugConsoleService => _debugConsole ??= PluginServiceProvider.GetService<IDebugConsole>();
 
-    internal static ISettingsService SettingsService
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        get => _settingsService ??= PluginServiceProvider.GetService<ISettingsService>();
-    }
+    internal static ISettingsService SettingsService => _settingsService ??= PluginServiceProvider.GetService<ISettingsService>();
 
-    internal static IGameNetwork NetworkService
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        get => _network ??= PluginServiceProvider.GetService<IGameNetwork>();
-    }
+    internal static IGameNetwork NetworkService => _network ??= PluginServiceProvider.GetService<IGameNetwork>();
 
 #if CLIENT
-    private static IGameScreen GameScreenService
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        get => _gameScreen ??= PluginServiceProvider.GetService<IGameScreen>();
-    }
+    private static IGameScreen GameScreenService => _gameScreen ??= PluginServiceProvider.GetService<IGameScreen>();
 
-    private static ISimpleHookService HookService
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        get => _hookService ??= PluginServiceProvider.GetService<ISimpleHookService>();
-    }
+    private static ISimpleHookService HookService => _hookService ??= PluginServiceProvider.GetService<ISimpleHookService>();
 #endif
 
     public void Init()

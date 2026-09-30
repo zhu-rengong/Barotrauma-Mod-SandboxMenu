@@ -37,16 +37,39 @@
   <sandboxmenu.summary.stacks>[count] stack(s)</sandboxmenu.summary.stacks>
   <sandboxmenu.addproperty>+Add property override</sandboxmenu.addproperty>
   <sandboxmenu.addchild>+Add item inside</sandboxmenu.addchild>
+  <sandboxmenu.moveup>Move up</sandboxmenu.moveup>
+  <sandboxmenu.movedown>Move down</sandboxmenu.movedown>
+  <sandboxmenu.previous>Previous item</sandboxmenu.previous>
+  <sandboxmenu.next>Next item</sandboxmenu.next>
+  <sandboxmenu.focusidentifier>Type the identifier</sandboxmenu.focusidentifier>
 
   <sandboxmenu.togglekey.displayname>Key that opens and closes the menu</sandboxmenu.togglekey.displayname>
   <sandboxmenu.togglekey.tooltip>Key used to open or close the sandbox menu in-game.</sandboxmenu.togglekey.tooltip>
   <sandboxmenu.togglekey.press>Press a key... (Esc to cancel)</sandboxmenu.togglekey.press>
+
+  <sandboxmenu.givekey.displayname>Key that spawns the set into the inventory</sandboxmenu.givekey.displayname>
+  <sandboxmenu.givekey.tooltip>Key used to spawn the whole set into the inventory of your character.</sandboxmenu.givekey.tooltip>
+
+  <sandboxmenu.shortcut.close>Esc</sandboxmenu.shortcut.close>
+  <sandboxmenu.shortcut.add>+</sandboxmenu.shortcut.add>
+  <sandboxmenu.shortcut.addchild>Shift +</sandboxmenu.shortcut.addchild>
+  <sandboxmenu.shortcut.delete>Del</sandboxmenu.shortcut.delete>
+  <sandboxmenu.shortcut.up>Up</sandboxmenu.shortcut.up>
+  <sandboxmenu.shortcut.down>Down</sandboxmenu.shortcut.down>
+  <sandboxmenu.shortcut.moveup>Alt + Up</sandboxmenu.shortcut.moveup>
+  <sandboxmenu.shortcut.movedown>Alt + Down</sandboxmenu.shortcut.movedown>
+  <sandboxmenu.shortcut.enter>Enter</sandboxmenu.shortcut.enter>
+  <sandboxmenu.shortcut.hint>[name]  ‖color:#99999999‖[key]‖color:end‖</sandboxmenu.shortcut.hint>
+  <sandboxmenu.shortcut.hint.dark>[name]  ‖color:#333333CC‖[key]‖color:end‖</sandboxmenu.shortcut.hint.dark>
 
   <sandboxmenu.browser.title>Select item</sandboxmenu.browser.title>
   <sandboxmenu.filter.packages>Content package</sandboxmenu.filter.packages>
   <sandboxmenu.filter.categories>Item category</sandboxmenu.filter.categories>
   <sandboxmenu.filter.summary.all>[name]: all</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]: [count] picked</sandboxmenu.filter.summary.some>
+  <sandboxmenu.filter.container.only>Fitting only</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.editable>Editable only</sandboxmenu.filter.editable>
+  <sandboxmenu.filter.saveable>Saveable only</sandboxmenu.filter.saveable>
   <sandboxmenu.browse>Select item</sandboxmenu.browse>
   <sandboxmenu.browse.component>Select component</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>Select property</sandboxmenu.browse.property>
@@ -64,6 +87,9 @@
   <sandboxmenu.preset.open>Open preset file</sandboxmenu.preset.open>
   <sandboxmenu.status.presetsaved>Preset saved.</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>Spawn set cleared.</sandboxmenu.status.cleared>
+  <sandboxmenu.status.screenshot>Screenshot saved as "[name]".</sandboxmenu.status.screenshot>
+  <sandboxmenu.status.screenshotfailed>The screenshot could not be saved. See the log for details.</sandboxmenu.status.screenshotfailed>
+  <sandboxmenu.status.screenshotclosed>The menu has to be open to be captured.</sandboxmenu.status.screenshotclosed>
   <sandboxmenu.status.presetloaded>Preset "[name]" loaded.</sandboxmenu.status.presetloaded>
   <sandboxmenu.status.presetreloaded>Preset "[name]" reloaded from disk.</sandboxmenu.status.presetreloaded>
   <sandboxmenu.status.presetloadfailed>Could not load the preset "[name]". See the log for details.</sandboxmenu.status.presetloadfailed>

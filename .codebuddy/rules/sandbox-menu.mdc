@@ -15,13 +15,20 @@ provider:
 5. 只构建、只验证：改完跑构建到 0 警告 0 错误并报告，**到此为止**——不部署、不启停宿主程序、不改构建与部署配置（`*.csproj`、`*.props`、打包脚本等）。
 6. 不影响宿主：不写宿主全局状态（样式表、全局 UI 单例、输入状态、全局菜单），不改宿主 UI 与行为，卸载后不留残留。
 7. UI 分辨率无关：尺寸走 DIP 换算，文字走文本缩放或字号标记，不依赖具体分辨率数值。
+   - 会填满容器的槽位用 `<Stack>` 份额（`Width="1*"`、`Height="16*"`）：同一轴上的份额按比例分掉固定子项剩下的空间，子项隐藏时份额自动重算——隐藏子项由框架标 `IgnoreLayoutGroups` 移出布局，宿主的布局组自己不会跳过不可见子项。
+   - 控件里的标签写短：宿主 `GUITickBox` 一类控件的文本不裁剪，宽度不够会画到控件外面。
 8. 宿主程序集的反编译源码在本机固定目录（`d:\Code Repository\FakeFish\Decompile\`，按程序集名找子目录）：查 API 签名、字段与行为去那里检索，不凭记忆猜。
 9. **卸载必须可回收**：宿主在可回收的加载上下文中加载插件，任何遗留强引用都会触发"未能完整卸载"警告并滞留内存。
    - 挂到**宿主对象**上的东西必须有对称拆解：引用插件代码的宿主组件（窗口、拖拽句柄、覆盖层、输入订阅者）关闭时脱离宿主：`Parent = null` 并移出 GUI 更新列表；销毁视图时同步释放其绑定与作用域。
    - **注册进插件服务的项不要手工注销**（控制台命令、hook、网络 handler、各类注册器）：服务记着本插件注册了什么，宿主卸载插件时随服务释放一并清掉——清掉即注销。手工 `Deregister*` 是多余动作，还容易踩时序坑——服务释放之后再调用或再 `Register`，后者直接抛 `ObjectDisposedException`。
    - 不起线程、定时器或异步循环，帧内工作走宿主的帧队列；不把插件对象（委托、视图模型、组件）放进宿主类型或单例的静态字段/集合。
    - 新增静态可变状态（缓存表、注册表、单例列表）同步登记清理，清理集中在统一入口、随关闭流程执行，不抛异常且不依赖其它类型的初始化顺序。
-   - 验证：卸载后无"未能完整卸载"警告；出现即按上述清单排查，优先查订阅与被塞进宿主侧集合的对象。
+   - **外部派生数据不跨失效源存活**：本程序集之外的任何东西（宿主的对象与样式、别的内容包/插件的类型与实例）只要被缓存或挂进界面，来源一变就必须一并释放——不等下次使用、不等下次打开菜单。
+     - 来源与信号：内容包与文本（`TextManager.LanguageVersion`，由 `ContentWatch` 统一冒泡）；分辨率与 HUD 缩放（窗口重建已覆盖）；宿主服务与设置（随本插件卸载由 `StaticState` 清理）。
+     - 缓存：静态构造里 `ContentWatch.Register(清理)`（写法对照 `StaticState.Register`）；宿主派生但随时可变的值（如 `GUIStyle` 的颜色选择器）不缓存，每次直接读取。
+     - 界面数据：`SandboxMenuWindow.ReleaseContent()` 是唯一入口（丢窗口 + 行的 `ItemDisplay` 置空）；界面重建交给菜单按 Flag 做。
+     - 判据：引用链另一端是可回收 ALC（对方插件自定义的类型/实例）会挡对方卸载；只是宿主对象则占内存；若是"我们建好、宿主仍挂着的组件/委托/事件订阅"则挡我们自己卸载。
+   - 验证：卸载后无"未能完整卸载"警告；出现即按上述清单排查，优先查订阅与被塞进宿主侧集合的对象；再挂一个带自定义组件/物品的包，反复装卸内容包，确认该包也不报"未能完整卸载"。
 10. **跨平台（Linux / macOS / Windows）**：不依赖单一操作系统。
     - 禁用：WPF/WinForms（`System.Windows.*` 表现层、`System.Drawing`）、`Microsoft.Win32.Registry`、P/Invoke（`DllImport`）、`Clipboard`、`Environment.OSVersion` 分支。
     - `System.Windows.Input`（`ICommand` 等）**允许使用**：它在 .NET 基础库 `System.ObjectModel.dll` 里，与 WPF 无关，不要当 WPF 清理。
@@ -29,7 +36,7 @@ provider:
     - 打开文件/目录用 `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`，必须有失败兜底。
     - 验证：Release 构建 0 警告 0 错误 + grep 上述禁用清单。
 11. **优先宿主原生接口，不自造轮子**：宿主已有的服务与扩展接口先用。
-    - 服务经 `GetService<T>()` 一类入口获取；间接调用点必须是本程序集的方法并标 `[MethodImpl(MethodImplOptions.NoInlining)]`（该入口用 `Assembly.GetCallingAssembly()` 识别插件，被内联进 `Lazy` 会报 "Failed to find plugin data for the calling assembly"）。
+    - 服务经 `GetService<T>()` 一类入口获取，统一走 `Plugin` 上的惰性属性（`??=` 缓存、卸载时清掉）：宿主靠 `Assembly.GetCallingAssembly()` 识别插件，前提只是「调用帧属于本程序集」——不需要 `NoInlining`，但调用点不能挪到别的程序集（会报 "Failed to find plugin data for the calling assembly"）。
     - UI、文本本地化、数据访问同样优先既有类型与机制：本地化字符串自更新不落快照、列表显隐用宿主子项机制、过滤刷新"隐藏而非重建"、能用宿主 hook/回调表达就不打补丁。
     - 判定顺序：先到反编译源码确认宿主有无现成能力 → 有就直接用 → 确实没有才自研，并注明原生缺什么。宿主提供的成对 API 本身也是第 9 条的卸载保证。
 

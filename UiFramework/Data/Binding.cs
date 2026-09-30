@@ -5,7 +5,7 @@ namespace UiFramework.Data;
 
 internal sealed class BindingRequest
 {
-    internal required object? Source { get; init; }
+    internal required object? Source { get; set; }
 
     internal required string Path { get; init; }
 
@@ -58,6 +58,25 @@ internal sealed class Binding : IDisposable
         }
 
         return binding;
+    }
+
+    internal void Retarget(object? source)
+    {
+        if (_disposed || ReferenceEquals(_request.Source, source)) { return; }
+
+        if (_request.Mode is BindingMode.OneWay or BindingMode.TwoWay)
+        {
+            _path.Unhook(_request.Source, _handler);
+        }
+
+        _request.Source = source;
+
+        if (_request.Mode is BindingMode.OneWay or BindingMode.TwoWay)
+        {
+            _path.Hook(source, _handler);
+        }
+
+        if (_request.Mode != BindingMode.OneWayToSource) { Push(); }
     }
 
     internal void PushFromTarget(object? value)

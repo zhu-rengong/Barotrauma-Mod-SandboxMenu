@@ -4,11 +4,12 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
 {
     private bool _isSelected;
 
-    internal TreeEntryViewModel(SpawnMenuViewModel menu, SpawnEntry entry, List<SpawnEntry> owner, int depth)
+    internal TreeEntryViewModel(SpawnMenuViewModel menu, SpawnEntry entry, List<SpawnEntry> owner, int depth, ItemEntry? container)
     {
         Menu = menu;
         Entry = entry;
         Owner = owner;
+        Container = container;
         Indent = (int)(MenuTheme.TreeIndentStart + depth * MenuTheme.TreeIndentStep);
 
         SelectCommand = new RelayCommand(() => menu.Select(this));
@@ -22,6 +23,9 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
     public SpawnEntry Entry { get; }
 
     public List<SpawnEntry> Owner { get; }
+
+    // The item this entry is stored inside, when it is nested in one: it decides what the entry may be.
+    internal ItemEntry? Container { get; }
 
     public int Indent { get; }
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Xna.Framework;
+using UiFramework.Layout;
 
 namespace UiFramework;
 
@@ -14,12 +15,17 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
     internal RectTransform ToRectTransform(RectTransform parent) => new(new Vector2(Width, Height), parent, Anchor);
 
     internal static float Size(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
-        => node.Text(attribute)?.Trim().ToLowerInvariant() switch
+    {
+        // A share is handed out by the stack the element sits in; until it does, the element fills.
+        if (Length.TryWeight(node.Text(attribute), out _)) { return 1f; }
+
+        return node.Text(attribute)?.Trim().ToLowerInvariant() switch
         {
             "fill" or "*" => 1f,
             null or "" => fallback,
             _ => Read(node, attribute, fallback, diagnostics, ratio: true)
         };
+    }
 
     internal static float Metric(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
         => Read(node, attribute, fallback, diagnostics, ratio: false);

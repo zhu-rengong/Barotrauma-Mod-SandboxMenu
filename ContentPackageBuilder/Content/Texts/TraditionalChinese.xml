@@ -31,16 +31,39 @@
   <sandboxmenu.field.template>模板名稱</sandboxmenu.field.template>
   <sandboxmenu.addproperty>+ 新增屬性覆蓋</sandboxmenu.addproperty>
   <sandboxmenu.addchild>+ 新增容器內物品</sandboxmenu.addchild>
+  <sandboxmenu.moveup>上移</sandboxmenu.moveup>
+  <sandboxmenu.movedown>下移</sandboxmenu.movedown>
+  <sandboxmenu.previous>上一個物品</sandboxmenu.previous>
+  <sandboxmenu.next>下一個物品</sandboxmenu.next>
+  <sandboxmenu.focusidentifier>輸入識別碼</sandboxmenu.focusidentifier>
 
   <sandboxmenu.togglekey.displayname>開啟或關閉選單的快捷鍵</sandboxmenu.togglekey.displayname>
   <sandboxmenu.togglekey.tooltip>用於在遊戲中開啟或關閉沙盒選單的按鍵。</sandboxmenu.togglekey.tooltip>
   <sandboxmenu.togglekey.press>請按下按鍵…（Esc 取消）</sandboxmenu.togglekey.press>
+
+  <sandboxmenu.givekey.displayname>把生成集合放進背包的快捷鍵</sandboxmenu.givekey.displayname>
+  <sandboxmenu.givekey.tooltip>不必開啟選單，直接把整個生成集合放進角色背包的按鍵。</sandboxmenu.givekey.tooltip>
+
+  <sandboxmenu.shortcut.close>Esc</sandboxmenu.shortcut.close>
+  <sandboxmenu.shortcut.add>+</sandboxmenu.shortcut.add>
+  <sandboxmenu.shortcut.addchild>Shift +</sandboxmenu.shortcut.addchild>
+  <sandboxmenu.shortcut.delete>Del</sandboxmenu.shortcut.delete>
+  <sandboxmenu.shortcut.up>Up</sandboxmenu.shortcut.up>
+  <sandboxmenu.shortcut.down>Down</sandboxmenu.shortcut.down>
+  <sandboxmenu.shortcut.moveup>Alt + Up</sandboxmenu.shortcut.moveup>
+  <sandboxmenu.shortcut.movedown>Alt + Down</sandboxmenu.shortcut.movedown>
+  <sandboxmenu.shortcut.enter>Enter</sandboxmenu.shortcut.enter>
+  <sandboxmenu.shortcut.hint>[name]  ‖color:#99999999‖[key]‖color:end‖</sandboxmenu.shortcut.hint>
+  <sandboxmenu.shortcut.hint.dark>[name]  ‖color:#333333CC‖[key]‖color:end‖</sandboxmenu.shortcut.hint.dark>
 
   <sandboxmenu.browser.title>選擇物品</sandboxmenu.browser.title>
   <sandboxmenu.filter.packages>內容包</sandboxmenu.filter.packages>
   <sandboxmenu.filter.categories>物品類別</sandboxmenu.filter.categories>
   <sandboxmenu.filter.summary.all>[name]：全部</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]：已選 [count] 項</sandboxmenu.filter.summary.some>
+  <sandboxmenu.filter.container.only>只顯示可放入</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.editable>僅可編輯</sandboxmenu.filter.editable>
+  <sandboxmenu.filter.saveable>僅可保存</sandboxmenu.filter.saveable>
   <sandboxmenu.browse>選擇物品</sandboxmenu.browse>
   <sandboxmenu.browse.component>選擇組件</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>選擇屬性</sandboxmenu.browse.property>
@@ -63,6 +86,9 @@
   <sandboxmenu.preset.open>開啟預設檔案</sandboxmenu.preset.open>
   <sandboxmenu.status.presetsaved>預設已儲存。</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>已清空生成集合。</sandboxmenu.status.cleared>
+  <sandboxmenu.status.screenshot>截圖已儲存為「[name]」。</sandboxmenu.status.screenshot>
+  <sandboxmenu.status.screenshotfailed>截圖儲存失敗，詳見日誌。</sandboxmenu.status.screenshotfailed>
+  <sandboxmenu.status.screenshotclosed>需要先開啟選單才能截圖。</sandboxmenu.status.screenshotclosed>
   <sandboxmenu.status.presetloaded>已載入預設「[name]」。</sandboxmenu.status.presetloaded>
   <sandboxmenu.status.presetreloaded>已從磁碟重新載入預設「[name]」。</sandboxmenu.status.presetreloaded>
   <sandboxmenu.status.presetloadfailed>載入預設「[name]」失敗，詳見日誌。</sandboxmenu.status.presetloadfailed>

@@ -9,8 +9,6 @@ internal sealed class KeySetting : BaseSetting<KeyBind>
 {
     private static readonly MouseButton[] _allMouseButtons = Enum.GetValues<MouseButton>();
 
-    private static readonly Color _labelColor = UiMetrics.Text;
-
     private GUIButton? _button;
     private GUICustomComponent? _capture;
     private bool _capturing;
@@ -54,12 +52,15 @@ internal sealed class KeySetting : BaseSetting<KeyBind>
         new GUITextBlock(
             new RectTransform(new Vector2(0.6f, 1f), layout.RectTransform),
             Label,
-            textColor: _labelColor,
+            textColor: UiMetrics.Text,
             textAlignment: Alignment.CenterLeft);
 
+        // The key box looks like the one the game's own controls tab puts next to a binding.
         _button = new GUIButton(
             new RectTransform(new Vector2(0.4f, 0.8f), layout.RectTransform),
-            PendingValue.ToString())
+            PendingValue.ToString(),
+            Alignment.Center,
+            "GUITextBoxNoIcon")
         {
             ToolTip = ToolTip ?? LocalizedString.EmptyString,
             OnClicked = (_, _) =>

@@ -10,6 +10,7 @@ internal sealed class EntryEditorViewModel : Notifiable
     private readonly SpawnMenuViewModel _menu;
 
     private SpawnEntry? _entry;
+    private ItemEntry? _container;
     private bool _rebuildQueued;
 
     internal EntryEditorViewModel(SpawnMenuViewModel menu)
@@ -21,9 +22,10 @@ internal sealed class EntryEditorViewModel : Notifiable
 
     public ObservableCollection<IEditorRow> Rows { get; } = [];
 
-    internal void Show(SpawnEntry entry)
+    internal void Show(SpawnEntry entry, ItemEntry? container = null)
     {
         _entry = entry;
+        _container = container;
 
         QueueRebuild();
     }
@@ -31,11 +33,30 @@ internal sealed class EntryEditorViewModel : Notifiable
     internal void Clear()
     {
         _entry = null;
+        _container = null;
 
         QueueRebuild();
     }
 
     internal void NotifyEdited() => _menu.RefreshSummaries();
+
+    // The identifier is the first row the editor puts up for an item: asking it for the keyboard again is what the
+    // "type the identifier" command does (no rebuild, so nothing being typed is disturbed).
+    internal void FocusIdentifier()
+    {
+        if (Rows.OfType<BrowseRow>().FirstOrDefault() is not { } row) { return; }
+
+        row.TakeFocus = false;
+        row.TakeFocus = true;
+    }
+
+    internal void ReleaseContent()
+    {
+        foreach (IEditorRow row in Rows)
+        {
+            if (row is ItemRowViewModel item) { item.Release(); }
+        }
+    }
 
     private void QueueRebuild()
     {
@@ -131,7 +152,7 @@ internal sealed class EntryEditorViewModel : Notifiable
                 item.Identifier = identifier;
                 Rebuild();
                 NotifyEdited();
-            }))));
+            }), _container)));
 
         Rows.Add(preview);
     }
@@ -252,6 +273,7 @@ internal sealed class EntryEditorViewModel : Notifiable
 
         _menu.Host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.property"),
-            options.Select(option => new PickerOption(option.Label, () => row.SetProperty(option))));
+            options.Select(option => new PickerOption(option.Label, () => row.SetProperty(option), option.Editable, option.Saveable)),
+            filterable: true);
     }
 }

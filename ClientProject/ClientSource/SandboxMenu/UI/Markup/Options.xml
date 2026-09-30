@@ -9,14 +9,22 @@
     </DataTemplate>
   </Stack.Resources>
 
-  <Panel Skin="None" Height="0.16">
+  <Panel Skin="None" Height="16*">
     <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Width="0.2" Height="0.6" Align="CenterRight" />
+    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+            Align="CenterRight" />
   </Panel>
 
   <!-- A filter, like the item browser: a component of a large prefab has a long list of properties. -->
-  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="0.12" Clear="True" Focus="True" />
+  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="10*" Clear="True" Focus="True" />
 
-  <List Items="{Binding Options}" Height="0.72" Spacing="3" />
+  <!-- The property picker narrows by what the host's editors would let a player change or save; option lists that
+       have nothing to go by leave the row out, and the list takes the height it gives back. -->
+  <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Visible="{Binding ShowFilters}">
+    <Tick Text="{Binding EditableFilterLabel}" Selected="{Binding OnlyEditable, Mode=TwoWay}" Width="1*" />
+    <Tick Text="{Binding SaveableFilterLabel}" Selected="{Binding OnlySaveable, Mode=TwoWay}" Width="1*" />
+  </Stack>
+
+  <List Items="{Binding Options}" Height="64*" Spacing="3" />
 
 </Stack>

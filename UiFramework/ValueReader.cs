@@ -49,6 +49,19 @@ internal static class ViewMarkup
         _ => RichString.Rich(value.ToString() ?? string.Empty)
     };
 
+    // A key hint behind a label ("Spawn  F1"): the host draws rich text, so the hint is a colour run (the template in
+    // the texts carries it) rather than a second block. The host's own Replace joins the parts and stays live, so
+    // nothing here is a snapshot and a language change refreshes both sides. The caller names the template — the
+    // colour of a hint depends on what it is drawn on, never on a default nobody picked.
+    internal static RichString WithShortcut(RichString text, RichString? shortcut, string hintKey)
+    {
+        if (shortcut is null || shortcut.Length == 0) { return text; }
+
+        return RichString.Rich(TextManager.Get(hintKey)
+            .Replace("[name]", text.NestedStr, StringComparison.Ordinal)
+            .Replace("[key]", shortcut.NestedStr, StringComparison.Ordinal));
+    }
+
     internal static bool ToBool(object? value, bool fallback) => value switch
     {
         bool flag => flag,

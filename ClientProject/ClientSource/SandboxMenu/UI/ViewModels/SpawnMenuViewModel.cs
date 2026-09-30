@@ -63,6 +63,9 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public RelayCommand SpawnAtCursorCommand { get; }
 
+    // What the give button shows behind its label: the key the player bound to it.
+    public LocalizedString GiveShortcut => Plugin.GiveKey.ToString();
+
     public LocalizedString Status
     {
         get => _status;
@@ -70,6 +73,24 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
     }
 
     internal void Report(LocalizedString message) => Status = message;
+
+    internal void RefreshShortcuts() => Raise(nameof(GiveShortcut));
+
+    // The keyboard works on the selected entry: "+" adds next to it, "Shift +" nests inside it, "Del" removes it.
+    internal void AddItem(bool asChild)
+    {
+        TreeEntryViewModel? selected = SelectedEntry;
+
+        if (asChild && selected is not null) { AddChild(selected); return; }
+        if (asChild) { return; }
+
+        AddEntry(new ItemEntry(), selected);
+    }
+
+    internal void DeleteSelected()
+    {
+        if (SelectedEntry is { } selected) { Delete(selected); }
+    }
 
     public TreeEntryViewModel? SelectedEntry
     {
@@ -87,7 +108,10 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         MenuActions.Enqueue(() =>
         {
             RebuildTree();
-            Editor.Clear();
+
+            // A preset that was just loaded opens on its first entry, with the editor showing it.
+            if (Entries.Count > 0) { Select(Entries[0]); }
+            else { Editor.Clear(); }
         });
     }
 
@@ -99,7 +123,7 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         }
 
         SelectedEntry = row;
-        MenuActions.Enqueue(() => Editor.Show(row.Entry));
+        MenuActions.Enqueue(() => Editor.Show(row.Entry, row.Container));
     }
 
     internal void RefreshSummaries()
@@ -133,6 +157,13 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     internal void ContentChanged() => MenuActions.Enqueue(Editor.Rebuild);
 
+    internal void ReleaseContent()
+    {
+        foreach (TreeEntryViewModel entry in Entries) { entry.Release(); }
+
+        Editor.ReleaseContent();
+    }
+
     public void ShowBackgroundMenu(Vector2 position) => OpenMenu(null);
 
     internal void OpenMenu(TreeEntryViewModel? row)
@@ -143,25 +174,33 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
         if (row is null)
         {
-            actions.Add(new MenuAction("sandboxmenu.additem", () => AddEntry(new ItemEntry(), null)));
+            actions.Add(new MenuAction("sandboxmenu.additem", () => AddEntry(new ItemEntry(), null), TextManager.Get("sandboxmenu.shortcut.add")));
             actions.Add(new MenuAction("sandboxmenu.addref", () => AddEntry(new RefEntry(), null)));
         }
         else
         {
-            actions.Add(new MenuAction("sandboxmenu.additem", () => AddEntry(new ItemEntry(), row)));
+            actions.Add(new MenuAction("sandboxmenu.additem", () => AddEntry(new ItemEntry(), row), TextManager.Get("sandboxmenu.shortcut.add")));
             actions.Add(new MenuAction("sandboxmenu.addref", () => AddEntry(new RefEntry(), row)));
 
             if (row.Entry is ItemEntry)
             {
-                actions.Add(new MenuAction("sandboxmenu.addchild", () => AddChild(row)));
+                actions.Add(new MenuAction("sandboxmenu.addchild", () => AddChild(row), TextManager.Get("sandboxmenu.shortcut.addchild")));
             }
 
             actions.Add(new MenuAction("sandboxmenu.duplicate", () => Duplicate(row)));
+            
+            actions.Add(new MenuAction("sandboxmenu.focusidentifier", FocusIdentifier, TextManager.Get("sandboxmenu.shortcut.enter")));
 
             actions.Add(new MenuAction("sandboxmenu.give", () => SpawnIntoInventory([row.Entry])));
             actions.Add(new MenuAction("sandboxmenu.spawnatcursor", () => SpawnAtCursor([row.Entry])));
 
-            actions.Add(new MenuAction("sandboxmenu.delete", () => Delete(row)));
+            actions.Add(new MenuAction("sandboxmenu.delete", () => Delete(row), TextManager.Get("sandboxmenu.shortcut.delete")));
+
+            actions.Add(new MenuAction("sandboxmenu.previous", () => Step(row, -1), TextManager.Get("sandboxmenu.shortcut.up")));
+            actions.Add(new MenuAction("sandboxmenu.next", () => Step(row, 1), TextManager.Get("sandboxmenu.shortcut.down")));
+
+            actions.Add(new MenuAction("sandboxmenu.moveup", () => Move(row, -1), TextManager.Get("sandboxmenu.shortcut.moveup")));
+            actions.Add(new MenuAction("sandboxmenu.movedown", () => Move(row, 1), TextManager.Get("sandboxmenu.shortcut.movedown")));
         }
 
         _host.ShowContextMenu(actions, PlayerInput.MousePosition);
@@ -200,7 +239,11 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         if (index < 0) { return; }
 
         row.Owner.RemoveAt(index);
-        SpawnEntry? next = row.Owner.Count == 0 ? null : row.Owner[Math.Min(index, row.Owner.Count - 1)];
+
+        // The entry that took its place, or the item it was stored in once it was the last one of its kind.
+        SpawnEntry? next = row.Owner.Count > 0
+            ? row.Owner[Math.Min(index, row.Owner.Count - 1)]
+            : row.Container;
 
         MenuActions.Enqueue(() =>
         {
@@ -228,23 +271,61 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         });
     }
 
+    // Moves the entry one place within the list it is stored in: the order is the spawn order, so this is how an entry
+    // is put before or after its neighbours.
+    private void Move(TreeEntryViewModel row, int direction)
+    {
+        List<SpawnEntry> owner = row.Owner;
+        int index = owner.IndexOf(row.Entry);
+        int target = index + direction;
+
+        if (index < 0 || target < 0 || target >= owner.Count) { return; }
+
+        (owner[index], owner[target]) = (owner[target], owner[index]);
+
+        SelectNewEntry(row.Entry, owner);
+    }
+
+    internal void MoveSelection(int direction)
+    {
+        if (SelectedEntry is { } selected) { Move(selected, direction); }
+    }
+
+    // Previous and next walk the list as it is shown, so they cross levels; moving stays inside one list.
+    private void Step(TreeEntryViewModel row, int direction)
+    {
+        int index = Entries.IndexOf(row);
+        int target = index + direction;
+
+        if (index < 0 || target < 0 || target >= Entries.Count) { return; }
+
+        Select(Entries[target]);
+    }
+
+    internal void StepSelection(int direction)
+    {
+        if (SelectedEntry is { } selected) { Step(selected, direction); }
+    }
+
+    internal void FocusIdentifier() => Editor.FocusIdentifier();
+
     private void RefreshTree() => RebuildTree();
 
     private void RebuildTree()
     {
         Entries.Clear();
-        Flatten(Set.Entries, 0);
+        Flatten(Set.Entries, 0, null);
     }
 
-    private void Flatten(List<SpawnEntry> entries, int depth)
+    private void Flatten(List<SpawnEntry> entries, int depth, ItemEntry? container)
     {
         foreach (SpawnEntry entry in entries)
         {
-            Entries.Add(new TreeEntryViewModel(this, entry, entries, depth));
+            Entries.Add(new TreeEntryViewModel(this, entry, entries, depth, container));
 
             if (entry is ItemEntry { Inventory.Count: > 0 } item)
             {
-                Flatten(item.Inventory, depth + 1);
+                Flatten(item.Inventory, depth + 1, item);
             }
         }
     }

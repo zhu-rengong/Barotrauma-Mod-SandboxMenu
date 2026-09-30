@@ -25,6 +25,25 @@ internal readonly record struct Length(LengthKind Kind, float Value)
 
     internal static Length Percent(float fraction) => new(LengthKind.Percent, fraction);
 
+    // A share is written "N*": the element gets N parts of what the other children leave, weighted by the shares
+    // next to it. "*" is the same as "1*".
+    internal static bool TryWeight(string? text, out float weight)
+    {
+        string trimmed = text?.Trim() ?? string.Empty;
+
+        if (trimmed.Equals("*", StringComparison.Ordinal)) { weight = 1f; return true; }
+
+        if (trimmed.EndsWith('*')
+            && float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out weight)
+            && weight > 0f)
+        {
+            return true;
+        }
+
+        weight = 0f;
+        return false;
+    }
+
     internal static Length Parse(string? text, Length fallback, Action<string>? report = null)
     {
         string trimmed = text?.Trim() ?? string.Empty;
@@ -32,11 +51,10 @@ internal readonly record struct Length(LengthKind Kind, float Value)
         if (trimmed.Length == 0) { return fallback; }
         if (trimmed.Equals("Fill", StringComparison.OrdinalIgnoreCase)) { return Fill; }
         if (trimmed.Equals("Auto", StringComparison.OrdinalIgnoreCase)) { return Auto; }
-        if (trimmed.Equals("*", StringComparison.Ordinal)) { return Star(); }
 
         if (trimmed.EndsWith('*'))
         {
-            return float.TryParse(trimmed[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float weight)
+            return TryWeight(trimmed, out float weight)
                 ? Star(weight)
                 : Reject(trimmed, fallback, report);
         }

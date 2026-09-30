@@ -12,18 +12,32 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private const int SpareLimit = 240;
 
+    private const int WindowOverscan = 4;
+
     private readonly GUIListBox _listBox;
     private readonly ViewLoadContext _view;
     private readonly List<BuiltRow> _rows = [];
 
     private readonly Dictionary<object, BuiltRow> _spare = new(ReferenceEqualityComparer.Instance);
     private readonly Queue<object> _spareOrder = new();
+    private readonly List<object> _index = [];
+    private readonly Dictionary<Type, Templating.DataTemplate> _templates = [];
+    private readonly List<BuiltRow> _recycled = [];
 
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
     private string? _templateKey;
     private bool _rebuildQueued;
     private bool _retriedEmpty;
+    private bool _virtual;
+    private bool _probed;
+    private int _rowHeight;
+    private int _windowFirst = -1;
+    private int _windowHeight;
+    private int _windowSpacing = -1;
+    private float _lastScrolled;
+    private GUIFrame? _spacerTop;
+    private GUIFrame? _spacerBottom;
 
     private IItemDropTarget? _dropTarget;
     private IListBackground? _background;
@@ -53,6 +67,10 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         _listBox.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", 0f)));
 
+        _virtual = ViewMarkup.ToBool(context.Text("Virtual"), false);
+
+        if (_virtual) { _view.EveryFrame(UpdateWindow); }
+
         if (ViewMarkup.ToBool(context.Text("Draggable"), false))
         {
             _view.EveryFrame(UpdateDrag);
@@ -70,6 +88,8 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     {
         set
         {
+            if (_virtual && _items is not null && ReferenceEquals(value, _items)) { return; }
+
             if (_observed is not null) { _observed.CollectionChanged -= OnCollectionChanged; }
 
             _items = value;
@@ -84,7 +104,14 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     }
 
     [ElementProperty]
-    public string? ItemTemplate { set => _templateKey = value; }
+    public string? ItemTemplate
+    {
+        set
+        {
+            _templateKey = value;
+            _templates.Clear();
+        }
+    }
 
     [ElementProperty]
     public float Spacing { set => _listBox.Spacing = UiMetrics.DipInt(value); }
@@ -102,9 +129,14 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         foreach (BuiltRow row in _spare.Values) { Drop(row); }
 
+        for (int i = 0; i < _recycled.Count; i++) { Drop(_recycled[i]); }
+
         _rows.Clear();
         _spare.Clear();
         _spareOrder.Clear();
+        _recycled.Clear();
+
+        ReleaseSpacers();
     }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -123,7 +155,8 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void Rebuild()
     {
-        if (Extends()) { Append(); }
+        if (_virtual) { RebuildWindow(); }
+        else if (Extends()) { Append(); }
         else { RebuildAll(); }
 
         if (_rows.Count == 0 && HasItems() && !_retriedEmpty)
@@ -137,6 +170,10 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         }
 
         InvalidateLayout();
+
+        // The host list puts its children in place on its next update; asking for it here means the rebuilt rows are
+        // already where they belong when the frame is drawn.
+        _listBox.RecalculateChildren();
     }
 
     private bool Extends()
@@ -221,14 +258,234 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         }
     }
 
-    private BuiltRow? Build(object item)
+    // A windowed list keeps only the rows around the viewport and stands in for the rest with two spacers, so the
+    // host list box lays out tens of children instead of thousands. The spacer heights are picked so the host's own
+    // total size, and with it the scrollbar range, matches the unwindowed list exactly.
+    private void RebuildWindow()
     {
-        if (Templating.DataTemplate.Select(item, _templateKey, _view, this) is not { } template)
+        if (_rows.Count > 0) { _rowHeight = _rows[0].Element.Control.Rect.Height; }
+
+        ReleaseWindow();
+        RefreshIndex();
+
+        _probed = false;
+
+        if (_index.Count == 0) { return; }
+
+        ApplyWindow(force: true);
+    }
+
+    private void RefreshIndex()
+    {
+        _index.Clear();
+
+        if (_items is null) { return; }
+
+        foreach (object item in _items) { _index.Add(item); }
+    }
+
+    private void UpdateWindow()
+    {
+        if (_dragging || _rebuildQueued) { return; }
+
+        ApplyWindow(force: false);
+    }
+
+    private void ApplyWindow(bool force)
+    {
+        int count = _index.Count;
+
+        if (count == 0)
         {
-            _view.Diagnostics.Report($"no template for an item of type '{item.GetType().Name}'", Node);
-            return null;
+            ReleaseWindow();
+            return;
         }
 
+        if (_rowHeight <= 0 && _rows.Count == 0 && !Probe()) { return; }
+
+        int height = _rows.Count > 0 ? _rows[0].Element.Control.Rect.Height : _rowHeight;
+        int viewport = _listBox.Content.Rect.Height;
+        int spacing = _listBox.Spacing;
+
+        if (height <= 0 || viewport <= 0) { return; }
+
+        _rowHeight = height;
+
+        int stride = height + spacing;
+        float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - viewport) * _listBox.BarScroll : 0f;
+
+        // While the wheel is spinning the list is scrolled faster than rows could be shown, so the margin only has
+        // to cover the viewport: a smaller window means fewer rows to shuffle and reprocess on each frame.
+        int margin = Math.Abs(scrolled - _lastScrolled) > WindowOverscan * stride ? 1 : WindowOverscan;
+
+        _lastScrolled = scrolled;
+
+        int first = Math.Clamp((int)(scrolled / stride), 0, count - 1);
+        int last = Math.Clamp((int)((scrolled + viewport) / stride) + 1, first, count - 1);
+        int targetFirst = Math.Max(0, first - margin);
+        int targetLast = Math.Min(count - 1, last + margin);
+
+        if (!force && height == _windowHeight && spacing == _windowSpacing
+            && _windowFirst >= 0 && _windowFirst <= targetFirst && _windowFirst + _rows.Count - 1 >= targetLast)
+        {
+            return;
+        }
+
+        BuildWindow(targetFirst, targetLast, height, spacing);
+    }
+
+    private bool Probe()
+    {
+        if (_probed || _index.Count == 0) { return false; }
+
+        _probed = true;
+
+        if (Build(_index[0]) is not { } row) { return false; }
+
+        _rows.Add(row);
+        _windowFirst = 0;
+        _rowHeight = row.Element.Control.Rect.Height;
+
+        return true;
+    }
+
+    private void BuildWindow(int first, int last, int height, int spacing)
+    {
+        List<BuiltRow?> previous = [.. _rows];
+        List<BuiltRow> next = new(last - first + 1);
+        int failed = 0;
+
+        for (int index = first; index <= last; index++)
+        {
+            object item = _index[index];
+            BuiltRow? row = null;
+            int position = index - _windowFirst;
+
+            if (_windowFirst >= 0 && position >= 0 && position < previous.Count
+                && previous[position] is { } candidate && ReferenceEquals(candidate.Item, item))
+            {
+                previous[position] = null;
+                row = candidate;
+            }
+
+            row ??= Take(item);
+
+            if (row is null) { failed++; continue; }
+
+            next.Add(row);
+        }
+
+        if (failed > 0)
+        {
+            Release(next);
+            Release(previous);
+            ReleaseSpacers();
+
+            _rows.Clear();
+            _windowFirst = -1;
+
+            if (next.Count == 0) { return; }
+
+            _virtual = false;
+
+            for (int i = 0; i < _recycled.Count; i++) { Drop(_recycled[i]); }
+
+            _recycled.Clear();
+
+            _view.Diagnostics.Report("the list cannot be windowed: not every row could be built", Node);
+            RebuildAll();
+            return;
+        }
+
+        Release(previous);
+
+        _rows.Clear();
+        _rows.AddRange(next);
+        _windowFirst = first;
+        _windowHeight = height;
+        _windowSpacing = spacing;
+        _rowHeight = height;
+
+        ArrangeChildren();
+    }
+
+    private void ArrangeChildren()
+    {
+        ReleaseSpacers();
+
+        for (int i = 0; i < _rows.Count; i++) { _rows[i].Element.Control.RectTransform.Parent = null; }
+
+        int spacing = _listBox.Spacing;
+        int stride = _rowHeight + spacing;
+        int width = Math.Max(1, _listBox.Content.Rect.Width);
+
+        if (_windowFirst > 0) { _spacerTop = CreateSpacer(width, _windowFirst * stride - spacing); }
+
+        for (int i = 0; i < _rows.Count; i++) { _rows[i].Element.Control.RectTransform.Parent = _listBox.Content.RectTransform; }
+
+        int after = _index.Count - _windowFirst - _rows.Count;
+
+        if (after > 0) { _spacerBottom = CreateSpacer(width, after * stride - spacing); }
+    }
+
+    private GUIFrame CreateSpacer(int width, int height)
+    {
+        GUIFrame spacer = new(
+            new RectTransform(new Point(width, height), _listBox.Content.RectTransform, Anchor.TopLeft, Pivot.TopLeft, ScaleBasis.Normal, isFixedSize: true),
+            style: null)
+        {
+            CanBeFocused = false
+        };
+
+        spacer.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
+
+        return spacer;
+    }
+
+    private void ReleaseSpacers()
+    {
+        if (_spacerTop is { } top)
+        {
+            top.RectTransform.Parent = null;
+            _spacerTop = null;
+        }
+
+        if (_spacerBottom is { } bottom)
+        {
+            bottom.RectTransform.Parent = null;
+            _spacerBottom = null;
+        }
+    }
+
+    private void ReleaseWindow()
+    {
+        Release(_rows);
+
+        _rows.Clear();
+        _windowFirst = -1;
+
+        ReleaseSpacers();
+    }
+
+    private void Release(IEnumerable<BuiltRow?> rows)
+    {
+        foreach (BuiltRow? row in rows)
+        {
+            if (row is { } value) { Keep(value); }
+        }
+    }
+
+    private BuiltRow? Build(object item)
+        => Template(item) is { } template ? Build(item, template) : ReportMissingTemplate(item);
+
+    private BuiltRow? ReportMissingTemplate(object item)
+    {
+        _view.Diagnostics.Report($"no template for an item of type '{item.GetType().Name}'", Node);
+        return null;
+    }
+
+    private BuiltRow? Build(object item, Templating.DataTemplate template)
+    {
         OwnershipScope scope = _view.BeginScope();
         ViewElement row;
 
@@ -249,10 +506,69 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         row.Control.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
 
+        // A fresh row is laid out on the spot: waiting for its first update would show it for a frame with its
+        // labels and controls still sitting at their default places.
+        row.Control.ForceLayoutRecalculation();
+
         row.Parent = this;
         row.Control.UserData = item;
 
-        return new BuiltRow(item, row, row.Control as GUIButton, scope);
+        return new BuiltRow(item, row, row.Control as GUIButton, scope, template);
+    }
+
+    private Templating.DataTemplate? Template(object item)
+    {
+        Type type = item.GetType();
+
+        if (_templates.TryGetValue(type, out Templating.DataTemplate? cached)) { return cached; }
+
+        Templating.DataTemplate? template = Templating.DataTemplate.Select(item, _templateKey, _view, this);
+        if (template is not null) { _templates[type] = template; }
+
+        return template;
+    }
+
+    private BuiltRow? Take(object item)
+        => Template(item) is { } template
+            ? TakeRecycled(template, item) ?? Build(item, template)
+            : ReportMissingTemplate(item);
+
+    private BuiltRow? TakeRecycled(Templating.DataTemplate template, object item)
+    {
+        for (int i = _recycled.Count - 1; i >= 0; i--)
+        {
+            BuiltRow row = _recycled[i];
+            if (!ReferenceEquals(row.Template, template)) { continue; }
+
+            _recycled.RemoveAt(i);
+            return Reuse(row, item);
+        }
+
+        return null;
+    }
+
+    // A recycled row keeps its components and only gets the new item: re-pointing the bindings is what makes the
+    // list cheap to scroll, as building a row for every item the wheel rolls past is the expensive part.
+    private static BuiltRow Reuse(BuiltRow row, object item)
+    {
+        row.Element.DataContext = item;
+        row.Scope.Retarget(item);
+        row.Element.Control.UserData = item;
+        row.Element.Control.Visible = true;
+        row.Scope.Resume();
+
+        return row with { Item = item };
+    }
+
+    private void Pool(BuiltRow row)
+    {
+        _recycled.Add(row);
+
+        while (_recycled.Count > SpareLimit)
+        {
+            Drop(_recycled[0]);
+            _recycled.RemoveAt(0);
+        }
     }
 
     private static void Drop(BuiltRow row)
@@ -266,6 +582,12 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         row.Element.Control.RectTransform.Parent = null;
         row.Element.Control.Visible = false;
         row.Scope.Pause();
+
+        if (_virtual)
+        {
+            Pool(row);
+            return;
+        }
 
         if (_spare.ContainsKey(row.Item))
         {
@@ -340,6 +662,10 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         if (_view.IsInputBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
+
+        // The menu belongs to the list: without this the click would be read anywhere on the screen, as "not on an
+        // item" is also true for every point outside the list.
+        if (!_listBox.Rect.Contains(mouse.ToPoint())) { return; }
         if (ItemAt(mouse) is not null) { return; }
 
         _background?.ShowBackgroundMenu(mouse);
@@ -516,7 +842,7 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         GUI.DrawRectangle(spriteBatch, slot, Color.White * (0.35f + 0.3f * _proximity), false, 0f, thickness);
     }
 
-    private sealed record BuiltRow(object Item, ViewElement Element, GUIButton? Button, OwnershipScope Scope);
+    private sealed record BuiltRow(object Item, ViewElement Element, GUIButton? Button, OwnershipScope Scope, Templating.DataTemplate Template);
 
     private readonly record struct LabelSkin(
         Color Text,

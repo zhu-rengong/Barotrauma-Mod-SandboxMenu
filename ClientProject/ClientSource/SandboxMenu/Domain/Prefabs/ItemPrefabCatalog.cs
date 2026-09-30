@@ -1,8 +1,9 @@
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 
 namespace SandboxMenu.Domain.Prefabs;
 
-internal sealed record ItemPrefabEntry(ItemDisplay Display, string Package, MapEntityCategory Category, string Tags)
+internal sealed record ItemPrefabEntry(ItemDisplay Display, ContentPackage? Package, MapEntityCategory Category, string Tags)
 {
     internal bool Matches(string text)
         => Display.Name.Value.Contains(text, StringComparison.OrdinalIgnoreCase)
@@ -10,12 +11,17 @@ internal sealed record ItemPrefabEntry(ItemDisplay Display, string Package, MapE
             || Tags.Contains(text, StringComparison.OrdinalIgnoreCase);
 }
 
-internal sealed record ItemFilter(IReadOnlySet<string> Packages, MapEntityCategory Categories)
+internal sealed record ItemFilter(IReadOnlySet<ContentPackage> Packages, MapEntityCategory Categories)
 {
     internal bool Allows(ItemPrefabEntry entry)
-        => (Packages.Count == 0 || Packages.Contains(entry.Package))
+        => (Packages.Count == 0 || (entry.Package is { } package && Packages.Contains(package)))
             && (Categories == MapEntityCategory.None || (entry.Category & Categories) != 0);
 }
+
+// A package is told apart by its instance: names are not unique, and the content hash is both costly to compute
+// (it walks every file) and still not unique (two copies of the same content hash alike). The label is the name,
+// with the folder added only when the name alone would be ambiguous.
+internal sealed record ItemPackage(ContentPackage Package, string Label);
 
 internal static class ItemPrefabCatalog
 {
@@ -23,16 +29,22 @@ internal static class ItemPrefabCatalog
         [.. Enum.GetValues<MapEntityCategory>().Where(category => category != MapEntityCategory.None)];
 
     private static ImmutableArray<ItemPrefabEntry> _entries = ImmutableArray<ItemPrefabEntry>.Empty;
-    private static IReadOnlyList<string>? _packages;
-    private static IReadOnlyList<MapEntityCategory>? _categories;
+    private static IReadOnlyList<ItemPackage> _packages = [];
+    private static MapEntityCategory _categoryMask = MapEntityCategory.None;
+    private static FrozenDictionary<ContentPackage, MapEntityCategory> _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
 
-    static ItemPrefabCatalog() => StaticState.Register(Invalidate);
+    static ItemPrefabCatalog()
+    {
+        StaticState.Register(Invalidate);
+        ContentWatch.Register(Invalidate);
+    }
 
     internal static void Invalidate()
     {
         _entries = ImmutableArray<ItemPrefabEntry>.Empty;
-        _packages = null;
-        _categories = null;
+        _packages = [];
+        _categoryMask = MapEntityCategory.None;
+        _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
     }
 
     internal static IReadOnlyList<ItemPrefabEntry> All()
@@ -42,44 +54,33 @@ internal static class ItemPrefabCatalog
         return _entries;
     }
 
-    internal static IReadOnlyList<string> Packages()
+    internal static IReadOnlyList<ItemPackage> Packages()
     {
         EnsureBuilt();
 
-        if (_entries.IsDefaultOrEmpty) { return []; }
-
-        return _packages ??= BuildPackages();
+        return _packages;
     }
 
-    private static IReadOnlyList<string> BuildPackages()
-        =>
-        [
-            .. _entries.Select(entry => entry.Package)
-                .Where(name => name.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-        ];
-
-    internal static IReadOnlyList<MapEntityCategory> Categories()
+    // Which categories the chosen packages actually carry; choosing none means the whole catalog. The masks are
+    // collected in the same pass that lists the packages, so answering this never walks the items.
+    internal static MapEntityCategory CategoryMaskIn(IReadOnlySet<ContentPackage> packages)
     {
         EnsureBuilt();
 
-        if (_entries.IsDefaultOrEmpty) { return []; }
+        if (packages.Count == 0) { return _categoryMask; }
 
-        return _categories ??= BuildCategories();
-    }
+        MapEntityCategory available = MapEntityCategory.None;
 
-    private static IReadOnlyList<MapEntityCategory> BuildCategories()
-    {
-        List<MapEntityCategory> categories = [];
-
-        foreach (MapEntityCategory category in AllCategories)
+        foreach (ContentPackage package in packages)
         {
-            if (_entries.Any(entry => (entry.Category & category) != 0)) { categories.Add(category); }
+            if (_categoryMasksByPackage.TryGetValue(package, out MapEntityCategory mask)) { available |= mask; }
         }
 
-        return categories;
+        return available;
     }
+
+    internal static IReadOnlyList<MapEntityCategory> CategoriesIn(IReadOnlySet<ContentPackage> packages)
+        => [.. AllCategories.Where(category => (CategoryMaskIn(packages) & category) != 0)];
 
     private static ItemPrefabEntry Describe(ItemPrefab prefab)
     {
@@ -87,7 +88,7 @@ internal static class ItemPrefabCatalog
 
         string tags = prefab.Tags is null ? string.Empty : string.Join(' ', prefab.Tags.Select(tag => tag.Value));
 
-        return new ItemPrefabEntry(display, prefab.ContentPackage?.Name ?? string.Empty, prefab.Category, tags);
+        return new ItemPrefabEntry(display, prefab.ContentPackage, prefab.Category, tags);
     }
 
     private static void EnsureBuilt()
@@ -95,16 +96,63 @@ internal static class ItemPrefabCatalog
         if (!_entries.IsDefaultOrEmpty) { return; }
 
         List<ItemPrefabEntry> list = [];
+        List<(ContentPackage Package, string Name)> found = [];
+        HashSet<ContentPackage> seen = new(ReferenceEqualityComparer.Instance);
+        Dictionary<ContentPackage, MapEntityCategory> masks = new(ReferenceEqualityComparer.Instance);
+        MapEntityCategory categoryMask = MapEntityCategory.None;
 
         foreach (ItemPrefab prefab in ItemPrefab.Prefabs)
         {
             if (prefab is null || string.IsNullOrEmpty(prefab.Identifier.Value)) { continue; }
 
-            list.Add(Describe(prefab));
+            ItemPrefabEntry entry = Describe(prefab);
+            list.Add(entry);
+
+            categoryMask |= entry.Category;
+
+            if (entry.Package is not { } package) { continue; }
+
+            if (package.Path.Length > 0 && seen.Add(package)) { found.Add((package, package.Name)); }
+
+            masks[package] = masks.TryGetValue(package, out MapEntityCategory mask) ? mask | entry.Category : entry.Category;
         }
 
         list.Sort(static (a, b) => string.Compare(a.Display.Identifier, b.Display.Identifier, StringComparison.OrdinalIgnoreCase));
 
         _entries = list.ToImmutableArray();
+        _packages = BuildPackages(found);
+        _categoryMask = categoryMask;
+        _categoryMasksByPackage = masks.ToFrozenDictionary(ReferenceEqualityComparer.Instance);
+    }
+
+    private static IReadOnlyList<ItemPackage> BuildPackages(List<(ContentPackage Package, string Name)> found)
+    {
+        Dictionary<string, int> counts = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((ContentPackage _, string name) in found) { counts[name] = counts.GetValueOrDefault(name) + 1; }
+
+        List<ItemPackage> packages = new(found.Count);
+
+        foreach ((ContentPackage package, string name) in found)
+        {
+            string folder = FolderOf(package.Path);
+
+            string label = name.Length == 0
+                ? folder
+                : counts[name] > 1 ? $"{name} ({folder})" : name;
+
+            packages.Add(new ItemPackage(package, label));
+        }
+
+        packages.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
+
+        return packages;
+    }
+
+    private static string FolderOf(string path)
+    {
+        string folder = Path.GetFileName(Path.GetDirectoryName(path) ?? string.Empty);
+
+        return folder.Length == 0 ? path : folder;
     }
 }

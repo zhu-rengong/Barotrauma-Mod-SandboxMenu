@@ -8,14 +8,15 @@
     </DataTemplate>
   </Stack.Resources>
 
-  <Panel Skin="None" Height="0.16">
+  <Panel Skin="None" Height="16*">
     <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Width="0.2" Height="0.6" Align="CenterRight" />
+    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+            Align="CenterRight" />
   </Panel>
 
   <!-- A filter, like the item browser: a package or a category can be looked up by typing. -->
-  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="0.12" Clear="True" />
+  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="12*" Clear="True" />
 
-  <List Items="{Binding Options}" Height="0.72" Spacing="3" />
+  <List Items="{Binding Options}" Height="72*" Spacing="3" />
 
 </Stack>

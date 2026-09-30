@@ -16,9 +16,22 @@ internal abstract class ViewElement(GUIComponent control)
     internal ViewElement? Parent { get; set; }
 
     [ElementProperty]
-    public bool Visible { set => Control.Visible = value; }
+    public bool Visible
+    {
+        set
+        {
+            if (Control.Visible == value) { return; }
+
+            Control.Visible = value;
+            Parent?.ChildVisibilityChanged(this);
+        }
+    }
 
     internal virtual void AddContent(ViewElement child) => throw new NotSupportedException($"{GetType().Name} takes no content");
+
+    internal virtual void ChildVisibilityChanged(ViewElement child)
+    {
+    }
 
     internal virtual RectTransform ContentParent => Control.RectTransform;
 

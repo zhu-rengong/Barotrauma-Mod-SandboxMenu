@@ -1,30 +1,35 @@
 <Stack Orientation="Vertical">
 
   <!-- The browser's rows are item rows: icon, name with the identifier after it, and the start of the
-       description. The template is found by the row view model's type. The list holds a row for every loaded
-       item and the search text and the filters hide the ones that do not match, so the row follows the view
-       model's visibility rather than being built and thrown away. -->
+       description. The template is found by the row view model's type, and the list builds only the rows on
+       screen, so the search text and the filters hand it the matching rows instead of hiding rows one by one. -->
   <Stack.Resources>
     <DataTemplate DataType="ItemRowViewModel">
       <Row Text="{Binding Title}" Icon="{Binding Icon}" SubText="{Binding SubText}" ToolTip="{Binding ToolTip}"
-           Command="{Binding PickCommand}" Visible="{Binding Visible}" Height="0.12" />
+        Command="{Binding PickCommand}" Height="0.12" />
     </DataTemplate>
   </Stack.Resources>
 
-  <Panel Skin="None" Height="0.16">
+  <Panel Skin="None" Height="16*">
     <Text Text="sandboxmenu.browser.title" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Width="0.2" Height="0.6" Align="CenterRight" />
+    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+            Align="CenterRight" />
   </Panel>
 
-  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="0.1" Clear="True" Focus="True" />
+  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="10*" Clear="True" Focus="True" />
 
-  <!-- What the list is limited to: the content packages and the item categories. Several of either can be
-       chosen at once — each button opens a list of tick boxes on top of this window and says what is ticked. -->
-  <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft">
-    <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="0.5" Height="0.8" />
-    <Button Text="{Binding CategoryFilter}" Command="{Binding PickCategoriesCommand}" Width="0.5" Height="0.8" />
+  <!-- What the list is limited to: the content packages and the item categories (several of either can be chosen
+       at once — each button opens a list of tick boxes on top of this window and says what is ticked), and the
+       rules of the parent container, which is a single tick box because there is only one of it. It only shows up
+       when the browser was opened from an entry that is stored inside another item, and the two buttons then take
+       the width it gives back. -->
+  <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
+    <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="2*" Height="0.8" Skin="GUITextBoxNoIcon" />
+    <Button Text="{Binding CategoryFilter}" Command="{Binding PickCategoriesCommand}" Width="2*" Height="0.8" Skin="GUITextBoxNoIcon" />
+    <Tick Text="{Binding ContainerFilterLabel}" Selected="{Binding ContainerOnly, Mode=TwoWay}" Width="1*"
+      Visible="{Binding ContainerFilterVisible}" />
   </Stack>
 
-  <List Name="Results" Items="{Binding Rows}" Height="0.64" Spacing="3" />
+  <List Name="Results" Items="{Binding Rows}" Height="64*" Spacing="3" Virtual="True" />
 
 </Stack>

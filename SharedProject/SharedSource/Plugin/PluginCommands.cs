@@ -10,6 +10,16 @@ public sealed partial class Plugin
             helpMessage: "Toggles the sandbox spawn menu.",
             flags: CommandFlags.DoNotRelayToServer,
             onCommandExecuted: (string[] _) => SandboxMenuWindow.Instance.Toggle());
+
+        DebugConsoleService.RegisterCommand(
+            command: "sandboxmenu_screenshot",
+            helpMessage: "Saves a PNG of the sandbox spawn menu, the dialogs over it included.",
+            flags: CommandFlags.DoNotRelayToServer,
+            onCommandExecuted: (string[] _) =>
+            {
+                if (SandboxMenuWindow.Current is { } menu) { menu.CaptureScreenshot(); }
+                else { Log.Info("There is no menu window to capture."); }
+            });
     }
 }
 #endif

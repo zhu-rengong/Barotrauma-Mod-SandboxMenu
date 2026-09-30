@@ -18,6 +18,8 @@ internal sealed class ItemDisplay
         Icon = icon;
     }
 
+    internal ItemPrefab Prefab => _prefab;
+
     public string Identifier { get; }
 
     public LocalizedString Name => _name;

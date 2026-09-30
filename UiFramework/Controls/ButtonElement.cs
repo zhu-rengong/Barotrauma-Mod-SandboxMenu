@@ -7,6 +7,9 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 {
     private readonly GUIButton _button;
     private readonly ViewLoadContext _view;
+    private readonly string _hintKey;
+    private RichString _text = string.Empty;
+    private RichString? _shortcut;
     private float _scale;
     private ICommand? _command;
 
@@ -19,6 +22,9 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     {
         _view = context.View;
         _button = button;
+
+        // No skin means the host's plain button, which is drawn light: its key hint has to be darker to be read.
+        _hintKey = context.Skin is "" ? "sandboxmenu.shortcut.hint.dark" : "sandboxmenu.shortcut.hint";
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
         button.TextBlock.Padding = new Vector4(UiMetrics.Dip(context.Metric("Indent", 0f)), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
@@ -34,10 +40,34 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     }
 
     [ElementProperty(KeyText = true)]
-    public RichString Text { set => ApplyText(value); }
+    public RichString Text
+    {
+        set
+        {
+            _text = value;
+            ApplyText();
+        }
+    }
 
     [ElementProperty]
-    public RichString Literal { set => ApplyText(value); }
+    public RichString Literal
+    {
+        set
+        {
+            _text = value;
+            ApplyText();
+        }
+    }
+
+    [ElementProperty(KeyText = true)]
+    public RichString? Shortcut
+    {
+        set
+        {
+            _shortcut = value;
+            ApplyText();
+        }
+    }
 
     [ElementProperty]
     public ICommand? Command { set => SetCommand(value); }
@@ -92,9 +122,9 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
             ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center),
             context.Skin);
 
-    private void ApplyText(RichString value)
+    private void ApplyText()
     {
-        _button.TextBlock.Text = value;
+        _button.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, _hintKey);
         _button.TextBlock.TextScale = _scale;
     }
 }

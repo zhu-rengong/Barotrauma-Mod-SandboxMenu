@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Compression;
 using System.Text;
 using System.Xml;
@@ -48,15 +49,31 @@ internal static class SpawnPayloadCodec
 
     internal static bool TryDecode(byte[]? compressed, out SpawnPayload payload)
     {
-        payload = new SpawnPayload();
+        if (compressed is not { Length: > 0 } || compressed.Length > MaxCompressedBytes)
+        {
+            payload = new SpawnPayload();
+            return false;
+        }
 
-        if (compressed is not { Length: > 0 } || compressed.Length > MaxCompressedBytes) { return false; }
-
-        int length;
-        byte[] buffer = new byte[MaxPayloadBytes];
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(MaxPayloadBytes);
         try
         {
-            length = Decompress(compressed, buffer);
+            return TryParse(compressed, buffer, MaxPayloadBytes, out payload);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static bool TryParse(byte[] compressed, byte[] buffer, int limit, out SpawnPayload payload)
+    {
+        payload = new SpawnPayload();
+
+        int length;
+        try
+        {
+            length = Decompress(compressed, buffer, limit);
         }
         catch (Exception e)
         {
@@ -115,15 +132,15 @@ internal static class SpawnPayloadCodec
                 problem.Length > MaxProblemLength ? problem[..MaxProblemLength] : problem)
         ];
 
-    private static int Decompress(byte[] compressed, byte[] buffer)
+    private static int Decompress(byte[] compressed, byte[] buffer, int limit)
     {
         using MemoryStream input = new(compressed, writable: false);
         using BrotliStream decompressor = new(input, CompressionMode.Decompress);
 
         int total = 0;
-        while (total < buffer.Length)
+        while (total < limit)
         {
-            int read = decompressor.Read(buffer, total, buffer.Length - total);
+            int read = decompressor.Read(buffer, total, limit - total);
             if (read <= 0) { return total; }
 
             total += read;

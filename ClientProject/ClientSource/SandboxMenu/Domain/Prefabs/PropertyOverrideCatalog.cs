@@ -7,7 +7,7 @@ namespace SandboxMenu.Domain.Prefabs;
 
 internal readonly record struct OverrideTarget(string ComponentName, int ComponentIndex, LocalizedString Label);
 
-internal sealed record PropertyOption(string Name, string TypeName, string DefaultValue)
+internal sealed record PropertyOption(string Name, string TypeName, string DefaultValue, bool Editable, bool Saveable)
 {
     public string Label => $"{Name} ({TypeName}) = {DefaultValue}";
 }
@@ -18,7 +18,11 @@ internal static class PropertyOverrideCatalog
 
     private static FrozenDictionary<string, Type>? _componentTypes;
 
-    static PropertyOverrideCatalog() => StaticState.Register(Clear);
+    static PropertyOverrideCatalog()
+    {
+        StaticState.Register(Clear);
+        ContentWatch.Register(Clear);
+    }
 
     internal static void Clear()
     {
@@ -89,7 +93,12 @@ internal static class PropertyOverrideCatalog
 
             string kind = string.Equals(typeName, "Enum", StringComparison.Ordinal) ? property.PropertyType.Name : typeName;
 
-            options.Add(new PropertyOption(property.Name, kind, FormatDefault(serialize.DefaultValue)));
+            // What the host's own editors go by: [Editable] (or [ConditionallyEditable]) marks a property they will
+            // offer, and IsPropertySaveable says whether SerializeProperties writes it into the saved XML.
+            bool editable = property.Attributes.OfType<Editable>().Any();
+            bool saveable = serialize.IsSaveable == IsPropertySaveable.Yes;
+
+            options.Add(new PropertyOption(property.Name, kind, FormatDefault(serialize.DefaultValue), editable, saveable));
         }
 
         options.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));

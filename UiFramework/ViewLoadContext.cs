@@ -59,6 +59,11 @@ internal sealed class ViewLoadContext : IDisposable
 
     internal void FocusOnOpen(Action focus) => _focusTargets.Add(focus);
 
+    // The same deferral the view's own focus targets get, for a focus asked for while the view is already up: a click
+    // that is still being handled would take the keyboard right back (a text box clears itself when the click lands
+    // somewhere else).
+    internal void FocusAfterClick(Action focus) => FocusOnClickEnd(focus);
+
     internal void RequestFocus()
     {
         for (int i = 0; i < _focusTargets.Count; i++) { FocusOnClickEnd(_focusTargets[i]); }
@@ -158,6 +163,7 @@ internal sealed class ViewLoadContext : IDisposable
 internal sealed class OwnershipScope(List<OwnershipScope> live, string view) : IDisposable
 {
     private readonly List<IDisposable> _owned = [];
+    private readonly List<Data.Binding> _bindings = [];
     private readonly List<Action> _frameActions = [];
 
     private bool _paused;
@@ -179,7 +185,18 @@ internal sealed class OwnershipScope(List<OwnershipScope> live, string view) : I
         }
     }
 
-    internal void Own(IDisposable disposable) => _owned.Add(disposable);
+    internal void Own(IDisposable disposable)
+    {
+        _owned.Add(disposable);
+
+        if (disposable is Data.Binding binding) { _bindings.Add(binding); }
+    }
+
+    // Rows are recycled between items of the same template: re-pointing the bindings is what makes that cheap.
+    internal void Retarget(object? source)
+    {
+        for (int i = 0; i < _bindings.Count; i++) { _bindings[i].Retarget(source); }
+    }
 
     public void Dispose()
     {
@@ -187,6 +204,7 @@ internal sealed class OwnershipScope(List<OwnershipScope> live, string view) : I
 
         _disposed = true;
         _frameActions.Clear();
+        _bindings.Clear();
         live.Remove(this);
 
         for (int i = 0; i < _owned.Count; i++)

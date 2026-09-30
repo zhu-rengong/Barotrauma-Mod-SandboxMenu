@@ -56,13 +56,15 @@ internal static class UiMetrics
 
     internal static float SelectedBarWidth { get; set; }
 
-    internal static Color Text { get; } = GUIStyle.TextColorBright;
+    // Read through to the host every time: a GUI colour is a selector over content-defined prefabs, so a value held
+    // in a field would keep the colours of content packages that are no longer loaded.
+    internal static Color Text => GUIStyle.TextColorBright;
 
-    internal static Color TextDim { get; } = GUIStyle.TextColorDim;
+    internal static Color TextDim => GUIStyle.TextColorDim;
 
-    internal static Color Accent { get; } = GUIStyle.Green;
+    internal static Color Accent => GUIStyle.Green;
 
-    internal static Color Danger { get; } = GUIStyle.Red;
+    internal static Color Danger => GUIStyle.Red;
 
-    internal static Color TextDisabled { get; } = GUIStyle.TextColorDim;
+    internal static Color TextDisabled => GUIStyle.TextColorDim;
 }

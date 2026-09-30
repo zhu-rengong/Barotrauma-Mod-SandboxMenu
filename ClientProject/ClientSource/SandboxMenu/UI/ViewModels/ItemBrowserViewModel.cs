@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class ItemPickerRowViewModel : ItemRowViewModel
@@ -19,26 +17,32 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 internal sealed class ItemBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
-    private readonly HashSet<string> _packages;
-    private readonly IReadOnlyList<ItemPrefabEntry> _entries;
+    private readonly HashSet<ContentPackage> _packages;
+    private readonly List<ItemPickerRowViewModel> _rows;
 
+    private IReadOnlyList<ItemPickerRowViewModel> _visible = [];
     private Action<string> _onPicked = static _ => { };
     private string _query = string.Empty;
     private MapEntityCategory _categories;
     private GUIListBox? _results;
 
+    private ContainerRules? _container;
+    private string? _parent;
+    private bool _containerOnly;
+    private HashSet<ItemPrefab> _fits = new(ReferenceEqualityComparer.Instance);
+
     public ItemBrowserViewModel(IDialogHost host)
     {
         _host = host;
 
-        _packages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _packages = new HashSet<ContentPackage>(ReferenceEqualityComparer.Instance);
 
         PickPackagesCommand = new RelayCommand(PickPackages);
         PickCategoriesCommand = new RelayCommand(PickCategories);
 
-        _entries = ItemPrefabCatalog.All();
+        _rows = [.. ItemPrefabCatalog.All().Select(entry => new ItemPickerRowViewModel(entry, Picked))];
 
-        FillAll();
+        ApplyFilter();
     }
 
     internal void Attach(GUIListBox? results) => _results = results;
@@ -58,31 +62,73 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     public LocalizedString CategoryFilter => FilterLabel("sandboxmenu.filter.categories", CategoryCount);
 
+    public bool ContainerFilterVisible => _container is not null;
+
+    public LocalizedString ContainerFilterLabel => TextManager.Get("sandboxmenu.filter.container.only");
+
+    // Ticked by the tick box in the filter row: only the items the parent container takes.
+    public bool ContainerOnly
+    {
+        get => _containerOnly;
+        set
+        {
+            if (_containerOnly == value) { return; }
+
+            _containerOnly = value;
+
+            RefreshFits();
+            ApplyFilter();
+        }
+    }
+
     public RelayCommand PickPackagesCommand { get; }
 
     public RelayCommand PickCategoriesCommand { get; }
 
-    public ObservableCollection<ItemPickerRowViewModel> Rows { get; } = [];
+    public IReadOnlyList<ItemPickerRowViewModel> Rows => _visible;
 
-    private void FillAll()
+    // The browser also picks the item of an entry that sits inside another item: what the parent's container accepts
+    // (its containable rules) then decides the list, and the tick box starts out ticked. Opening it again for the
+    // parent it was last opened for hands back the same rows and keeps the place the list was left at; another
+    // parent is another list and starts at the top.
+    internal void UseParent(ItemEntry? parent)
     {
-        ItemFilter filter = new(_packages, _categories);
-        string query = _query.Trim();
+        bool sameList = string.Equals(_parent, parent?.Identifier, StringComparison.OrdinalIgnoreCase);
 
-        foreach (ItemPrefabEntry entry in _entries)
-        {
-            ItemPickerRowViewModel row = new(entry, Picked);
+        _parent = parent?.Identifier;
+        _container = ContainerRules.For(parent?.Identifier);
+        _containerOnly = _container is not null;
 
-            row.Visible = Shows(row.Entry, filter, query);
+        RefreshFits();
 
-            Rows.Add(row);
-        }
+        Raise(nameof(ContainerFilterVisible));
+        Raise(nameof(ContainerOnly));
+
+        ApplyFilter(keepScroll: sameList);
     }
 
     private void Picked(string identifier) => _onPicked(identifier);
 
-    private static bool Shows(ItemPrefabEntry entry, ItemFilter filter, string query)
-        => (query.Length == 0 || entry.Matches(query)) && filter.Allows(entry);
+    private bool Shows(ItemPrefabEntry entry, ItemFilter filter, string query)
+        => (!_containerOnly || _fits.Contains(entry.Display.Prefab))
+            && (query.Length == 0 || entry.Matches(query))
+            && filter.Allows(entry);
+
+    private void RefreshFits()
+    {
+        HashSet<ItemPrefab> fits = new(ReferenceEqualityComparer.Instance);
+
+        if (_containerOnly && _container is { } container)
+        {
+            foreach (ItemPrefabEntry entry in ItemPrefabCatalog.All())
+            {
+                if (container.Allows(entry.Display.Prefab)) { fits.Add(entry.Display.Prefab); }
+            }
+        }
+
+        _fits = fits;
+    }
+
 
     private int CategoryCount
     {
@@ -112,15 +158,15 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private void PickPackages()
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
-            ItemPrefabCatalog.Packages().Select(name => new PickerToggle(
-                name,
-                () => _packages.Contains(name),
-                selected => SetPackage(name, selected))));
+            ItemPrefabCatalog.Packages().Select(package => new PickerToggle(
+                package.Label,
+                () => _packages.Contains(package.Package),
+                selected => SetPackage(package.Package, selected))));
 
     private void PickCategories()
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.categories"),
-            ItemPrefabCatalog.Categories().Select(category => new PickerToggle(
+            ItemPrefabCatalog.CategoriesIn(_packages).Select(category => new PickerToggle(
                 CategoryName(category),
                 () => _categories.HasFlag(category),
                 selected => SetCategory(category, selected))));
@@ -132,10 +178,12 @@ internal sealed class ItemBrowserViewModel : Notifiable
         return string.IsNullOrEmpty(name.Value) ? category.ToString() : name;
     }
 
-    private void SetPackage(string name, bool selected)
+    private void SetPackage(ContentPackage package, bool selected)
     {
-        if (selected) { _packages.Add(name); }
-        else { _packages.Remove(name); }
+        if (selected) { _packages.Add(package); }
+        else { _packages.Remove(package); }
+
+        _categories &= ItemPrefabCatalog.CategoryMaskIn(_packages);
 
         ApplyFilter();
     }
@@ -147,19 +195,18 @@ internal sealed class ItemBrowserViewModel : Notifiable
         ApplyFilter();
     }
 
-    private void ApplyFilter()
+    // A filter the player has just changed starts the list at the top; reopening the browser is handed the same
+    // rows again and leaves the place the list was left at, so it must not reset the scroll.
+    private void ApplyFilter(bool keepScroll = false)
     {
         ItemFilter filter = new(_packages, _categories);
         string query = _query.Trim();
 
-        for (int i = 0; i < Rows.Count; i++)
-        {
-            ItemPickerRowViewModel row = Rows[i];
+        _visible = [.. _rows.Where(row => Shows(row.Entry, filter, query))];
 
-            row.Visible = Shows(row.Entry, filter, query);
-        }
+        if (!keepScroll && _results is { } list) { list.BarScroll = 0f; }
 
-        if (_results is { } list) { list.BarScroll = 0f; }
+        Raise(nameof(Rows));
 
         Raise(nameof(PackageFilter));
         Raise(nameof(CategoryFilter));

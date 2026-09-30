@@ -84,6 +84,33 @@ internal sealed class UiWindow : IPopupWindow
 
     public Rectangle Rect => _frame.Rect;
 
+    public void DrawInto(SpriteBatch spriteBatch, Point shift)
+    {
+        RectTransform transform = _frame.RectTransform;
+        Point original = transform.ScreenSpaceOffset;
+
+        try
+        {
+            transform.ScreenSpaceOffset = original + shift;
+            _frame.DrawManually(spriteBatch, alsoChildren: true, recursive: true);
+        }
+        finally
+        {
+            transform.ScreenSpaceOffset = original;
+
+            // DrawManually takes a component off the automatic draw pass so that it is not drawn twice; this draw is
+            // only a copy, so the window has to go back on it.
+            RestoreAutoDraw(_frame);
+        }
+    }
+
+    private static void RestoreAutoDraw(GUIComponent component)
+    {
+        component.AutoDraw = true;
+
+        foreach (RectTransform child in component.RectTransform.Children) { RestoreAutoDraw(child.GUIComponent); }
+    }
+
     internal void PositionAt(Vector2 position)
     {
         Rectangle current = _frame.Rect;

@@ -37,16 +37,39 @@
   <sandboxmenu.summary.stacks>[count] 堆</sandboxmenu.summary.stacks>
   <sandboxmenu.addproperty>+ 添加属性覆盖</sandboxmenu.addproperty>
   <sandboxmenu.addchild>+ 添加容器内物品</sandboxmenu.addchild>
+  <sandboxmenu.moveup>上移</sandboxmenu.moveup>
+  <sandboxmenu.movedown>下移</sandboxmenu.movedown>
+  <sandboxmenu.previous>上一个物品</sandboxmenu.previous>
+  <sandboxmenu.next>下一个物品</sandboxmenu.next>
+  <sandboxmenu.focusidentifier>输入标识符</sandboxmenu.focusidentifier>
 
   <sandboxmenu.togglekey.displayname>打开或关闭菜单的快捷键</sandboxmenu.togglekey.displayname>
   <sandboxmenu.togglekey.tooltip>用于在游戏中打开或关闭沙盒菜单的按键。</sandboxmenu.togglekey.tooltip>
   <sandboxmenu.togglekey.press>请按下按键…（Esc 取消）</sandboxmenu.togglekey.press>
+
+  <sandboxmenu.givekey.displayname>把生成集合放进背包的快捷键</sandboxmenu.givekey.displayname>
+  <sandboxmenu.givekey.tooltip>不必打开菜单，直接把整个生成集合放进角色背包的按键。</sandboxmenu.givekey.tooltip>
+
+  <sandboxmenu.shortcut.close>Esc</sandboxmenu.shortcut.close>
+  <sandboxmenu.shortcut.add>+</sandboxmenu.shortcut.add>
+  <sandboxmenu.shortcut.addchild>Shift +</sandboxmenu.shortcut.addchild>
+  <sandboxmenu.shortcut.delete>Del</sandboxmenu.shortcut.delete>
+  <sandboxmenu.shortcut.up>Up</sandboxmenu.shortcut.up>
+  <sandboxmenu.shortcut.down>Down</sandboxmenu.shortcut.down>
+  <sandboxmenu.shortcut.moveup>Alt + Up</sandboxmenu.shortcut.moveup>
+  <sandboxmenu.shortcut.movedown>Alt + Down</sandboxmenu.shortcut.movedown>
+  <sandboxmenu.shortcut.enter>Enter</sandboxmenu.shortcut.enter>
+  <sandboxmenu.shortcut.hint>[name]  ‖color:#99999999‖[key]‖color:end‖</sandboxmenu.shortcut.hint>
+  <sandboxmenu.shortcut.hint.dark>[name]  ‖color:#333333CC‖[key]‖color:end‖</sandboxmenu.shortcut.hint.dark>
 
   <sandboxmenu.browser.title>选择物品</sandboxmenu.browser.title>
   <sandboxmenu.filter.packages>内容包</sandboxmenu.filter.packages>
   <sandboxmenu.filter.categories>物品类别</sandboxmenu.filter.categories>
   <sandboxmenu.filter.summary.all>[name]：全部</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]：已选 [count] 项</sandboxmenu.filter.summary.some>
+  <sandboxmenu.filter.container.only>只显示可放入</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.editable>仅可编辑</sandboxmenu.filter.editable>
+  <sandboxmenu.filter.saveable>仅可保存</sandboxmenu.filter.saveable>
   <sandboxmenu.browse>选择物品</sandboxmenu.browse>
   <sandboxmenu.browse.component>选择组件</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>选择属性</sandboxmenu.browse.property>
@@ -64,6 +87,9 @@
   <sandboxmenu.preset.open>打开预设文件</sandboxmenu.preset.open>
   <sandboxmenu.status.presetsaved>预设已保存。</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>已清空生成集合。</sandboxmenu.status.cleared>
+  <sandboxmenu.status.screenshot>截图已保存为“[name]”。</sandboxmenu.status.screenshot>
+  <sandboxmenu.status.screenshotfailed>截图保存失败，详见日志。</sandboxmenu.status.screenshotfailed>
+  <sandboxmenu.status.screenshotclosed>需要先打开菜单才能截图。</sandboxmenu.status.screenshotclosed>
   <sandboxmenu.status.presetloaded>已载入预设“[name]”。</sandboxmenu.status.presetloaded>
   <sandboxmenu.status.presetreloaded>已从磁盘重新载入预设“[name]”。</sandboxmenu.status.presetreloaded>
   <sandboxmenu.status.presetloadfailed>载入预设“[name]”失败，详见日志。</sandboxmenu.status.presetloadfailed>

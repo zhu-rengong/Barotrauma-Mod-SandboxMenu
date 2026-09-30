@@ -3,13 +3,9 @@ namespace SandboxMenu.UI.ViewModels;
 internal abstract class ItemRowViewModel : Notifiable, IEditorRow
 {
     private ItemDisplay? _display;
-    private bool _visible = true;
 
-    public bool Visible
-    {
-        get => _visible;
-        set => Set(ref _visible, value);
-    }
+    // A display holds the prefab it was made for; rows let go of them when the content packages change.
+    internal void Release() => Display = null;
 
     public ItemDisplay? Display
     {

@@ -14,6 +14,7 @@ public sealed partial class Plugin
         HookService.RegisterHook(PluginHooks.AddToGUIUpdateListHook);
         HookService.RegisterHook(PluginHooks.GameModeDrawHook);
         HookService.RegisterHook(PluginHooks.PostUpdateHook);
+        HookService.RegisterHook(PluginHooks.EscapeKeyHook);
     }
 
     internal partial void DisposeProjectSpecific() => SandboxMenuWindow.Shutdown();
