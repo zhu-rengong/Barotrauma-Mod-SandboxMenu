@@ -2,8 +2,15 @@
 
   <!-- The browser's rows are item rows: icon, name with the identifier after it, and the start of the
        description. The template is found by the row view model's type, and the list builds only the rows on
-       screen, so the search text and the filters hand it the matching rows instead of hiding rows one by one. -->
+       screen, so the search text and the filters hand it the matching rows instead of hiding rows one by one.
+       The tiles are the same view models as icons only: they fill the grid bands the list puts above and below
+       its four detail rows, so the entries outside the scroll view stay in the same sequence and next to the
+       rows they precede and follow. -->
   <Stack.Resources>
+    <DataTemplate Key="ItemTile">
+      <Tile Icon="{Binding Icon}" ToolTip="{Binding TileToolTip}" Command="{Binding PickCommand}" />
+    </DataTemplate>
+
     <DataTemplate DataType="ItemRowViewModel">
       <Row Text="{Binding Title}" Icon="{Binding Icon}" SubText="{Binding SubText}" ToolTip="{Binding ToolTip}"
         Command="{Binding PickCommand}" Height="0.12" />
@@ -30,6 +37,7 @@
       Visible="{Binding ContainerFilterVisible}" />
   </Stack>
 
-  <List Name="Results" Items="{Binding Rows}" Height="64*" Spacing="3" Virtual="True" />
+  <List Name="Results" Items="{Binding Rows}" Height="64*" Spacing="3" Virtual="True"
+        Rows="4" TileTemplate="ItemTile" />
 
 </Stack>

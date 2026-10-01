@@ -49,6 +49,11 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     internal void PickInto(Action<string> onPicked) => _onPicked = onPicked;
 
+    internal void RefreshHints()
+    {
+        foreach (ItemPickerRowViewModel row in _visible) { row.RefreshHints(); }
+    }
+
     public string Query
     {
         get => _query;

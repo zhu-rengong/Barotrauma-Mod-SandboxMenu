@@ -47,6 +47,14 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public EntryEditorViewModel Editor { get; }
 
+    // The entry tree is the one flat list of rows the left column shows, so its rows are the same walk as the editor's.
+    internal void RefreshHints()
+    {
+        Editor.RefreshHints();
+
+        foreach (TreeEntryViewModel entry in Entries) { entry.RefreshHints(); }
+    }
+
     public ObservableCollection<TreeEntryViewModel> Entries { get; } = [];
 
     public RelayCommand SavePresetCommand { get; }

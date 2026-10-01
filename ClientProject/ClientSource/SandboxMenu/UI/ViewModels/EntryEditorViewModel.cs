@@ -58,6 +58,14 @@ internal sealed class EntryEditorViewModel : Notifiable
         }
     }
 
+    internal void RefreshHints()
+    {
+        foreach (IEditorRow row in Rows)
+        {
+            if (row is ItemRowViewModel item) { item.RefreshHints(); }
+        }
+    }
+
     private void QueueRebuild()
     {
         if (_rebuildQueued) { return; }

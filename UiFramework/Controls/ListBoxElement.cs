@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
+using System.Globalization;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -39,6 +40,37 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     private GUIFrame? _spacerTop;
     private GUIFrame? _spacerBottom;
 
+    private readonly int _bands;
+    private readonly string? _tileKey;
+    private readonly List<BuiltRow?> _slots = [];
+    private readonly List<BuiltRow> _topTiles = [];
+    private readonly List<BuiltRow> _bottomTiles = [];
+    private readonly Dictionary<Type, Templating.DataTemplate> _tileTemplates = [];
+
+    private GUIFrame? _bandPad;
+    private GUIFrame? _bandTop;
+    private GUIFrame? _bandBottom;
+    private GUIFrame? _bandTail;
+
+    // The bands are placed by spacer heights the host lays out in order, so the whole content has to keep the length
+    // the scroll bar maps onto the items: every band calculation below counts the same children every frame.
+    private int _bandSignature;
+    private int _geometryWidth = -1;
+    private int _geometryViewport = -1;
+    private int _geometryRowHeight = -1;
+    private int _geometrySpacing = -1;
+    private int _geometryCount = -1;
+
+    private int _columns = 1;
+    private int _cellWidth;
+    private int _nominal = 1;
+    private int _minCell;
+    private int _maxRows;
+    private int _rowsOne;
+    private bool _usable;
+    private int _above;
+    private int _below;
+
     private IItemDropTarget? _dropTarget;
     private IListBackground? _background;
 
@@ -63,11 +95,24 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         _listBox = (GUIListBox)Control;
         _view = context.View;
         _templateKey = context.Text("ItemTemplate");
+        _tileKey = context.Text("TileTemplate");
+        _bands = int.TryParse(context.Text("Rows"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows)
+            ? Math.Max(0, rows)
+            : 0;
+
+        // Without a tile template the bands would fall back to the row template by type and the two would share
+        // their recycled rows: the list shows the detail rows alone instead.
+        if (_bands > 0 && string.IsNullOrWhiteSpace(_tileKey))
+        {
+            _bands = 0;
+            context.View.Diagnostics.Report($"'{context.Node.Name}' asks for {rows} rows without a TileTemplate", context.Node);
+        }
+
+        _virtual = ViewMarkup.ToBool(context.Text("Virtual"), false) || _bands > 0;
+
         _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiMetrics.Gap));
 
         _listBox.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", 0f)));
-
-        _virtual = ViewMarkup.ToBool(context.Text("Virtual"), false);
 
         if (_virtual) { _view.EveryFrame(UpdateWindow); }
 
@@ -131,12 +176,25 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         for (int i = 0; i < _recycled.Count; i++) { Drop(_recycled[i]); }
 
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            if (_slots[i] is { } slot) { Drop(slot); }
+        }
+
+        for (int i = 0; i < _topTiles.Count; i++) { Drop(_topTiles[i]); }
+
+        for (int i = 0; i < _bottomTiles.Count; i++) { Drop(_bottomTiles[i]); }
+
         _rows.Clear();
+        _slots.Clear();
+        _topTiles.Clear();
+        _bottomTiles.Clear();
         _spare.Clear();
         _spareOrder.Clear();
         _recycled.Clear();
 
         ReleaseSpacers();
+        ReleaseBands();
     }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -155,16 +213,19 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private void Rebuild()
     {
-        if (_virtual) { RebuildWindow(); }
+        if (_bands > 0) { RebuildBands(); }
+        else if (_virtual) { RebuildWindow(); }
         else if (Extends()) { Append(); }
         else { RebuildAll(); }
 
-        if (_rows.Count == 0 && HasItems() && !_retriedEmpty)
+        bool empty = _bands > 0 ? _slots.Count == 0 || _slots[0] is null : _rows.Count == 0;
+
+        if (empty && HasItems() && !_retriedEmpty)
         {
             _retriedEmpty = true;
             _view.Once(Rebuild);
         }
-        else if (_rows.Count > 0)
+        else if (!empty)
         {
             _retriedEmpty = false;
         }
@@ -287,6 +348,8 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     private void UpdateWindow()
     {
         if (_dragging || _rebuildQueued) { return; }
+
+        if (_bands > 0) { ApplyBands(force: false); return; }
 
         ApplyWindow(force: false);
     }
@@ -457,6 +520,495 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         }
     }
 
+    // A banded list splits its viewport into three pinned parts: a grid of tiles above, the detail rows in the middle
+    // and a grid below, each showing the items right outside the detail window. All three live in the same host list,
+    // so the wheel, the scroll bar, the clipping and the input clamping stay the host's own; spacer heights are what
+    // puts the parts where they belong. The tail spacer keeps the content as long as the scroll bar expects for every
+    // scroll position, so one stride of the bar is one item of the list.
+    private void RebuildBands()
+    {
+        if (_slots.Count > 0 && _slots[0] is { } probe) { _rowHeight = probe.Element.Control.Rect.Height; }
+
+        Release(_slots);
+        Release(_topTiles);
+        Release(_bottomTiles);
+
+        _rows.Clear();
+        _slots.Clear();
+        _topTiles.Clear();
+        _bottomTiles.Clear();
+
+        ReleaseSpacers();
+        RefreshIndex();
+
+        _probed = false;
+
+        if (_index.Count == 0) { return; }
+
+        ApplyBands(force: true);
+    }
+
+    private void ApplyBands(bool force)
+    {
+        int count = _index.Count;
+
+        if (count == 0)
+        {
+            ReleaseSpacers();
+            ReleaseBands();
+
+            _bandSignature = 0;
+            return;
+        }
+
+        int spacing = _listBox.Spacing;
+        int viewport = _listBox.Content.Rect.Height;
+        int width = _listBox.Content.Rect.Width;
+
+        if (width <= 0 || viewport <= 0)
+        {
+            _bandSignature = 0;
+            return;
+        }
+
+        if (_slots.Count == 0 || _slots[0] is null)
+        {
+            if (!ProbeSlot())
+            {
+                _bandSignature = 0;
+                return;
+            }
+        }
+
+        int height = _slots[0] is { } first ? first.Element.Control.Rect.Height : _rowHeight;
+
+        if (height <= 0)
+        {
+            _bandSignature = 0;
+            return;
+        }
+
+        _rowHeight = height;
+
+        bool tiles = UpdateGeometry(width, viewport, spacing, height, count);
+        int rows = tiles ? _rowsOne : _bands;
+        int stride = Math.Max(1, height + spacing);
+        int steps = Math.Max(0, count - rows);
+        float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - viewport) * _listBox.BarScroll : 0f;
+        int scroll = (int)scrolled;
+        int window = steps == 0 ? 0 : Math.Clamp(scroll / stride, 0, steps);
+
+        // A side without items hands its grid space to the detail rows, and which sides have items is what the window
+        // position alone decides: one position is one layout, so the rows never flap between two counts in place.
+        bool topOn = window > 0;
+        bool bottomOn = count - window > rows;
+        bool topTiles = tiles && topOn;
+        bool bottomTiles = tiles && bottomOn;
+
+        // Each side keeps only the tile rows it really fills: the top band sees at most min(the tiles it holds, the
+        // items above the window), the bottom band is credited with the fewest items it can be left with. The rows
+        // neither side can use go to the detail rows, so a grid that shows one row gives away one row, no more.
+        int cells = _columns * _nominal;
+        int aboveItems = Math.Min(cells, window);
+        int belowItems = Math.Max(0, count - window - _maxRows);
+        int usedTop = topTiles ? Math.Clamp((aboveItems + _columns - 1) / _columns, 1, _nominal) : 0;
+        int usedBottom = bottomTiles ? Math.Clamp((belowItems + _columns - 1) / _columns, 1, _nominal) : 0;
+        int pitch = _cellWidth + spacing;
+        int wantTop = usedTop > 0 ? usedTop * pitch - spacing : 0;
+        int wantBottom = usedBottom > 0 ? usedBottom * pitch - spacing : 0;
+        int minTop = usedTop > 0 ? usedTop * _minCell + (usedTop - 1) * spacing : 0;
+        int minBottom = usedBottom > 0 ? usedBottom * _minCell + (usedBottom - 1) * spacing : 0;
+        int bands = (topTiles ? 1 : 0) + (bottomTiles ? 1 : 0);
+        int gaps = bands == 2 ? 2 * spacing : spacing;
+
+        // The detail rows take what is left once each band has the height its own items call for, rounded off: a band
+        // that fills one row hands over one row, and a band that fills two keeps two, so the grids stay as full as
+        // they were and only the rounding half row is made up out of the bands.
+        int shown = bands == 0
+            ? Math.Min(count - window, _maxRows)
+            : Math.Clamp((int)MathF.Round((viewport - gaps - wantTop - wantBottom + spacing) / (float)stride), _bands, _maxRows);
+
+        shown = Math.Min(shown, count - window);
+
+        int leftover = viewport - gaps - (shown * stride - spacing);
+        int weight = Math.Max(1, usedTop + usedBottom);
+        int topHeight = topTiles ? Math.Max(minTop, leftover * usedTop / weight) : 0;
+        int bottomHeight = bottomTiles ? leftover - topHeight : 0;
+
+        if (bottomTiles && bottomHeight < minBottom)
+        {
+            bottomHeight = minBottom;
+            topHeight = leftover - bottomHeight;
+        }
+
+        if (topTiles && topHeight < minTop)
+        {
+            topHeight = minTop;
+            bottomHeight = bottomTiles ? leftover - topHeight : 0;
+        }
+
+        BandShape topShape = topTiles ? GridOf(topHeight, usedTop) : BandShape.None;
+        BandShape bottomShape = bottomTiles ? GridOf(bottomHeight, usedBottom) : BandShape.None;
+        int children = 2 + shown + bands;
+        int pad;
+        int tail = 0;
+
+        // A list the viewport can hold whole needs no pinning: its rows start at the top of the list, like any other
+        // list, and the tail takes the rest of the viewport so the bar stays where it is.
+        pad = steps == 0 ? 0 : Math.Max(0, scroll - spacing);
+
+        // One stride of the content is one item of the list. The tail is what keeps the content as long as the scroll
+        // bar expects, and the pad is held to what the tail can take: a pad that asks for more would push the host's
+        // own length up, and the scroll position is read back from that length. Where it is held back, the pinned
+        // parts move along with the scroll for the last few pixels of the range instead.
+        int content = viewport + steps * stride;
+        int budget = Math.Max(0, content - spacing * children - topShape.Height - bottomShape.Height - shown * height);
+
+        pad = Math.Min(pad, budget);
+        tail = budget - pad;
+
+        int signature = HashCode.Combine(
+            HashCode.Combine(window, count, viewport, width, spacing),
+            HashCode.Combine(height, pad, tail, shown, topTiles ? 1 : 0),
+            HashCode.Combine(bottomTiles ? 1 : 0, topShape.GetHashCode(), bottomShape.GetHashCode()));
+
+        if (!force && signature == _bandSignature) { return; }
+
+        _bandSignature = signature;
+
+        RefreshSlots(shown, window);
+        if (tiles) { RefreshTiles(count, window, shown, topTiles, bottomTiles, topShape, bottomShape); }
+
+        ArrangeBands(pad, tail, shown, width, topTiles, bottomTiles, topShape, bottomShape);
+
+        _listBox.ScrollBarNeedsRecalculation = true;
+    }
+
+    // The layout is worked out per frame, so this only keeps what a size, a row height and a list length fix for good:
+    // the columns a grid has, the rows a band is meant to hold, and the bounds the viewport puts on the detail rows.
+    private bool UpdateGeometry(int width, int viewport, int spacing, int height, int count)
+    {
+        if (_geometryWidth == width && _geometryViewport == viewport && _geometrySpacing == spacing
+            && _geometryRowHeight == height && _geometryCount == count)
+        {
+            return _usable;
+        }
+
+        _geometryWidth = width;
+        _geometryViewport = viewport;
+        _geometrySpacing = spacing;
+        _geometryRowHeight = height;
+        _geometryCount = count;
+
+        int tile = UiMetrics.DipInt(UiMetrics.TileSize);
+        int stride = Math.Max(1, height + spacing);
+
+        _columns = Math.Max(1, (int)MathF.Round((width + spacing) / (float)Math.Max(1, tile + spacing)));
+        _cellWidth = Math.Max(1, (width - (_columns - 1) * spacing) / _columns);
+        _minCell = Math.Max(12, tile * 3 / 5);
+        _nominal = GridRows((viewport - _bands * height - (_bands + 1) * spacing) / 2, spacing, _cellWidth, int.MaxValue);
+        _maxRows = Math.Max(_bands, (viewport - spacing - _minCell) / stride);
+        _usable = viewport >= 3 * _minCell;
+
+        // The rows one band alone leaves for the detail rows: it sets the scroll range and with it which sides have
+        // items at all. What the rows are laid out as is worked out per frame from what each band really shows.
+        int items = Math.Max(0, count - _bands);
+        int used = Math.Max(1, Math.Min(_nominal, (items + _columns - 1) / _columns));
+
+        _rowsOne = Math.Clamp(_bands + _nominal + (_nominal - used), _bands, _maxRows);
+
+        return _usable;
+    }
+
+    // The rows a band of this height holds at the cell width the grid has, capped by the rows the items actually fill:
+    // fewer rows means taller cells, which is what keeps a band with little to show filling its own space.
+    private static int GridRows(int band, int spacing, int cellWidth, int cap)
+        => Math.Clamp((int)MathF.Round((band + spacing) / (float)Math.Max(1, cellWidth + spacing)), 1, Math.Max(1, cap));
+
+    private BandShape GridOf(int height, int used)
+    {
+        int rows = GridRows(height, _geometrySpacing, _cellWidth, used);
+
+        return new BandShape(height, rows, Math.Max(1, (height - (rows - 1) * _geometrySpacing) / rows), _usable ? _columns * rows : 0);
+    }
+
+    private void RefreshSlots(int shown, int window)
+    {
+        EnsureSlots(shown);
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            object item = _index[window + i];
+
+            if (_slots[i] is not { } row || !ReferenceEquals(row.Item, item))
+            {
+                if (_slots[i] is { } stale) { Keep(stale); }
+
+                _slots[i] = Take(item);
+                continue;
+            }
+
+            row.Element.Control.Visible = true;
+        }
+    }
+
+    private void RefreshTiles(int count, int window, int shown, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
+    {
+        if (topTiles)
+        {
+            _bandTop ??= CreateFrame();
+            _above = Math.Min(topShape.Capacity, window);
+            FillBand(_topTiles, _bandTop, _above, window - _above, topShape.Capacity);
+        }
+        else
+        {
+            _above = 0;
+        }
+
+        if (bottomTiles)
+        {
+            _bandBottom ??= CreateFrame();
+            _below = Math.Clamp(count - window - shown, 0, bottomShape.Capacity);
+            FillBand(_bottomTiles, _bandBottom, _below, window + shown, bottomShape.Capacity);
+        }
+        else
+        {
+            _below = 0;
+        }
+    }
+
+    private void FillBand(List<BuiltRow> tiles, GUIFrame band, int shown, int start, int capacity)
+    {
+        // A band whose side has nothing left to show keeps its tiles hidden: the items run out exactly there now that
+        // the detail rows take as much of the list as they can.
+        if (shown <= 0 || start >= _index.Count)
+        {
+            for (int i = 0; i < tiles.Count; i++) { tiles[i].Element.Control.Visible = false; }
+
+            return;
+        }
+
+        EnsureTiles(tiles, band, _index[start], capacity);
+
+        int count = Math.Min(shown, Math.Min(capacity, tiles.Count));
+
+        for (int i = 0; i < count; i++)
+        {
+            object item = _index[start + i];
+            BuiltRow tile = tiles[i];
+
+            if (ReferenceEquals(tile.Item, item))
+            {
+                tile.Element.Control.Visible = true;
+                continue;
+            }
+
+            Templating.DataTemplate? template = TileTemplate(item);
+
+            if (template is not null && !ReferenceEquals(tile.Template, template))
+            {
+                Keep(tile);
+
+                if (TakeTile(band, item) is { } swapped) { tiles[i] = swapped; continue; }
+
+                tiles.RemoveAt(i);
+                count = i;
+                break;
+            }
+
+            tiles[i] = Reuse(tile, item);
+        }
+
+        for (int i = count; i < tiles.Count; i++) { tiles[i].Element.Control.Visible = false; }
+    }
+
+    private void EnsureSlots(int shown)
+    {
+        while (_slots.Count < shown) { _slots.Add(null); }
+
+        while (_slots.Count > shown)
+        {
+            if (_slots[^1] is { } extra) { Keep(extra); }
+
+            _slots.RemoveAt(_slots.Count - 1);
+        }
+    }
+
+    private void EnsureTiles(List<BuiltRow> tiles, GUIFrame band, object seed, int capacity)
+    {
+        while (tiles.Count > capacity)
+        {
+            Drop(tiles[^1]);
+            tiles.RemoveAt(tiles.Count - 1);
+        }
+
+        while (tiles.Count < capacity && TakeTile(band, seed) is { } tile) { tiles.Add(tile); }
+    }
+
+    // The banded parts are the only children of the content and they keep their slots, so nothing is created or
+    // detached while scrolling: rows and tiles that were pooled elsewhere are the only parts that come and go, and
+    // every part is moved to its slot in the order the host lays children out in before it positions them.
+    private void ArrangeBands(int pad, int tail, int shown, int width, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
+    {
+        GUIFrame padFrame = _bandPad ??= CreateFrame();
+        GUIFrame tailFrame = _bandTail ??= CreateFrame();
+
+        SizeFrame(padFrame, width, pad);
+        SizeFrame(tailFrame, width, tail);
+
+        padFrame.Visible = true;
+        tailFrame.Visible = true;
+
+        if (_bandTop is { } top)
+        {
+            SizeFrame(top, width, topShape.Height);
+            top.Visible = topTiles;
+        }
+
+        if (_bandBottom is { } bottom)
+        {
+            SizeFrame(bottom, width, bottomShape.Height);
+            bottom.Visible = bottomTiles;
+        }
+
+        int slot = 0;
+
+        PlacePart(padFrame.RectTransform, slot++);
+
+        if (topTiles && _bandTop is { } firstBand) { PlacePart(firstBand.RectTransform, slot++); }
+
+        for (int i = 0; i < shown; i++)
+        {
+            if (_slots[i] is not { } row || !row.Element.Control.Visible) { continue; }
+
+            PlacePart(row.Element.Control.RectTransform, slot++);
+        }
+
+        if (bottomTiles && _bandBottom is { } secondBand) { PlacePart(secondBand.RectTransform, slot++); }
+
+        PlacePart(tailFrame.RectTransform, slot);
+
+        if (topTiles) { PlaceTiles(_topTiles, _bandTop, _above, seamAtBottom: true, topShape.Rows, topShape.CellHeight); }
+        if (bottomTiles) { PlaceTiles(_bottomTiles, _bandBottom, _below, seamAtBottom: false, bottomShape.Rows, bottomShape.CellHeight); }
+
+        _listBox.RecalculateChildren();
+    }
+
+    private void PlacePart(RectTransform transform, int slot)
+    {
+        RectTransform content = _listBox.Content.RectTransform;
+
+        transform.Parent = content;
+
+        // Moving a part re-scales its whole subtree, so it is only moved when it is not already in its slot.
+        if (content.GetChildIndex(transform) != slot) { transform.RepositionChildInHierarchy(slot); }
+    }
+
+    // The tiles run from the seam outwards: the item next to the detail window sits at the left end of the seam row
+    // and the flow carries on rightwards, then from the right end of the row beyond it and back, so the items of a
+    // band stay in sequence and next to each other on screen.
+    private void PlaceTiles(List<BuiltRow> tiles, GUIFrame? band, int shown, bool seamAtBottom, int tileRows, int cellHeight)
+    {
+        if (band is null || shown <= 0 || tiles.Count == 0) { return; }
+
+        int bandWidth = Math.Max(1, band.RectTransform.NonScaledSize.X);
+        int bandHeight = Math.Max(1, band.RectTransform.NonScaledSize.Y);
+        int columns = Math.Max(1, _columns);
+        int count = Math.Min(shown, tiles.Count);
+
+        for (int i = 0; i < count; i++)
+        {
+            // The top band fills from the seam outwards too, and the tiles it holds run oldest first, so the item
+            // next to the detail window is the last one of the list and takes the first place of the flow.
+            BuiltRow tile = seamAtBottom ? tiles[count - 1 - i] : tiles[i];
+            int flowRow = i / columns;
+            int within = i % columns;
+            int column = (flowRow & 1) == 0 ? within : columns - 1 - within;
+            int row = seamAtBottom ? tileRows - 1 - flowRow : flowRow;
+            RectTransform transform = tile.Element.Control.RectTransform;
+
+            transform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
+            transform.RelativeSize = new Vector2(_cellWidth / (float)bandWidth, cellHeight / (float)bandHeight);
+            transform.AbsoluteOffset = new Point(column * (_cellWidth + _geometrySpacing), row * (cellHeight + _geometrySpacing));
+        }
+    }
+
+    private GUIFrame CreateFrame()
+        => new(
+            new RectTransform(new Point(1, 1), _listBox.Content.RectTransform, Anchor.TopLeft, Pivot.TopLeft, ScaleBasis.Normal, isFixedSize: true),
+            style: null)
+        {
+            CanBeFocused = false
+        };
+
+    private static void SizeFrame(GUIFrame frame, int width, int height)
+    {
+        Point size = new(Math.Max(1, width), Math.Max(0, height));
+
+        if (frame.RectTransform.NonScaledSize != size) { frame.RectTransform.Resize(size, true); }
+    }
+
+    private void ReleaseBands()
+    {
+        Detach(_bandPad);
+        Detach(_bandTop);
+        Detach(_bandBottom);
+        Detach(_bandTail);
+    }
+
+    // A detached control that is still visible stays in the host's update list, so hiding is what takes it out.
+    private static void Detach(GUIFrame? frame)
+    {
+        if (frame is not { } value) { return; }
+
+        value.Visible = false;
+        value.RectTransform.Parent = null;
+    }
+
+    private bool ProbeSlot()
+    {
+        if (_probed || _index.Count == 0) { return false; }
+
+        _probed = true;
+
+        if (Build(_index[0]) is not { } row) { return false; }
+
+        EnsureSlots(_bands);
+
+        _slots[0] = row;
+        _rowHeight = row.Element.Control.Rect.Height;
+
+        return true;
+    }
+
+    private Templating.DataTemplate? TileTemplate(object item)
+    {
+        Type type = item.GetType();
+
+        if (_tileTemplates.TryGetValue(type, out Templating.DataTemplate? cached)) { return cached; }
+
+        Templating.DataTemplate? template = Templating.DataTemplate.Select(item, _tileKey, _view, this);
+        if (template is not null) { _tileTemplates[type] = template; }
+
+        return template;
+    }
+
+    // A pooled tile comes back detached, so it has to be hung on its band again before it is placed: a detached
+    // control would stay in the host's update list (it is visible) and keep drawing itself at its old place.
+    private BuiltRow? TakeTile(GUIFrame band, object item)
+    {
+        if (TileTemplate(item) is not { } template)
+        {
+            _view.Diagnostics.Report($"no tile template for an item of type '{item.GetType().Name}'", Node);
+            return null;
+        }
+
+        BuiltRow? tile = TakeRecycled(template, item) ?? Build(item, template, band.RectTransform);
+        if (tile is not null) { tile.Element.Control.RectTransform.Parent = band.RectTransform; }
+
+        return tile;
+    }
+
     private void ReleaseWindow()
     {
         Release(_rows);
@@ -484,14 +1036,14 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         return null;
     }
 
-    private BuiltRow? Build(object item, Templating.DataTemplate template)
+    private BuiltRow? Build(object item, Templating.DataTemplate template, RectTransform? parent = null)
     {
         OwnershipScope scope = _view.BeginScope();
         ViewElement row;
 
         try
         {
-            row = template.Build(_view, item, _listBox.Content.RectTransform, this);
+            row = template.Build(_view, item, parent ?? _listBox.Content.RectTransform, this);
         }
         catch (Exception e)
         {
@@ -573,6 +1125,7 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
     private static void Drop(BuiltRow row)
     {
+        row.Element.Control.Visible = false;
         row.Element.Control.RectTransform.Parent = null;
         row.Scope.Dispose();
     }
@@ -840,6 +1393,14 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         };
 
         GUI.DrawRectangle(spriteBatch, slot, Color.White * (0.35f + 0.3f * _proximity), false, 0f, thickness);
+    }
+
+    // What one grid band is this frame: how tall it is, how many tile rows it shows, how tall a cell is and how many
+    // tiles it holds. The detail rows get as many whole rows as the viewport has left over, and each band gets its
+    // share of the rest by how many rows it actually fills, so a band with little to show never keeps empty rows.
+    private readonly record struct BandShape(int Height, int Rows, int CellHeight, int Capacity)
+    {
+        internal static BandShape None { get; } = new(0, 1, 1, 0);
     }
 
     private sealed record BuiltRow(object Item, ViewElement Element, GUIButton? Button, OwnershipScope Scope, Templating.DataTemplate Template);

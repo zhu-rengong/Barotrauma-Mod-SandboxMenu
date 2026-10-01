@@ -283,7 +283,7 @@ internal static class ViewLoader
     }
 
     private static bool IsStructural(string name)
-        => name is "Name" or "Skin" or "Align" or "Width" or "Height" or "LabelWidth" or "Orientation" or "ChildAnchor" or "Spacing" or "RelativeSpacing" or "Stretch" or "Draggable" or "BackgroundMenu" or "Virtual" or "Clear" or "Integer" or "ItemTemplate" or "Rows" or "Columns" or "Gap" or "Padding" or "Font";
+        => name is "Name" or "Skin" or "Align" or "Width" or "Height" or "LabelWidth" or "Orientation" or "ChildAnchor" or "Spacing" or "RelativeSpacing" or "Stretch" or "Draggable" or "BackgroundMenu" or "Virtual" or "Clear" or "Integer" or "ItemTemplate" or "TileTemplate" or "Rows" or "Columns" or "Gap" or "Padding" or "Font";
 
     private sealed class PlaceholderElement : ViewElement
     {

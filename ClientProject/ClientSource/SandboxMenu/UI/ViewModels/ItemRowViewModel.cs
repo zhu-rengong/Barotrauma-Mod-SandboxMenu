@@ -18,7 +18,17 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
             Raise(nameof(SubText));
             Raise(nameof(Icon));
             Raise(nameof(ToolTip));
+            Raise(nameof(TileToolTip));
         }
+    }
+
+    // A hint can be built from state the game changes without telling anyone — who is being played, above all — and a
+    // bound control only takes its value again when the row says it has changed, so the browser calls this the moment
+    // that state moves on; without it the hint keeps saying what it said when the row was last built.
+    internal void RefreshHints()
+    {
+        Raise(nameof(ToolTip));
+        Raise(nameof(TileToolTip));
     }
 
     public virtual RichString Title => Display?.Title ?? string.Empty;
@@ -28,4 +38,8 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
     public virtual Sprite? Icon => Display?.Icon;
 
     public virtual RichString ToolTip => Display?.ToolTip ?? string.Empty;
+
+    // Tiles show the icon alone, so they take the hint that spells out what a row shows: name with the identifier
+    // and the tags, then the notes of the item hint.
+    public virtual RichString TileToolTip => Display?.TileToolTip ?? string.Empty;
 }

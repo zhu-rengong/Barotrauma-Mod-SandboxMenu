@@ -28,6 +28,7 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
     private int _popupGrace;
     private bool _screenshotQueued;
+    private Character? _hintedFor;
 
     private SandboxMenuWindow() => _viewModel = new SpawnMenuViewModel(this);
 
@@ -303,11 +304,25 @@ internal sealed class SandboxMenuWindow : IDialogHost
     private void UpdateViews()
     {
         _window?.Update();
+        RefreshHints();
 
         for (int i = 0; i < _popups.Count; i++)
         {
             if (_popups[i].IsOpen) { _popups[i].Update(); }
         }
+    }
+
+    // The item hints weigh what an item asks for against the skills of whoever is being played, and the game reports
+    // nothing when that changes; compared once a frame here, the rows and tiles on screen take their hints again the
+    // moment the character is switched or lost, instead of holding on to what they said when they were built.
+    private void RefreshHints()
+    {
+        if (ReferenceEquals(_hintedFor, Character.Controlled)) { return; }
+
+        _hintedFor = Character.Controlled;
+
+        _viewModel.RefreshHints();
+        _browserModel?.RefreshHints();
     }
 
     private void RegisterViews()

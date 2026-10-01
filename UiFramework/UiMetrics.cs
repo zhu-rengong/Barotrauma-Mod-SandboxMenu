@@ -18,6 +18,7 @@ internal static class UiMetrics
         Gap = 4f;
         IconBox = 24f;
         IconGap = 6f;
+        TileSize = 36f;
         SubTextRatio = 0.5f;
         TreeIndentStep = 14f;
         SelectedBarWidth = 3f;
@@ -49,6 +50,8 @@ internal static class UiMetrics
     internal static float IconBox { get; set; }
 
     internal static float IconGap { get; set; }
+
+    internal static float TileSize { get; set; }
 
     internal static float SubTextRatio { get; set; }
 
