@@ -29,6 +29,18 @@ internal sealed class ToggleRowViewModel(PickerToggle option) : PickerRow
         get => option.IsTicked();
         set => option.Toggled(value);
     }
+
+    // Ticking a row from the picker's own buttons still has to say the row changed: this one asks the option for its
+    // tick rather than holding it, and a bound tick box only takes its value again when it is told.
+    internal void Tick(bool ticked)
+    {
+        // A row that already reads as asked for is left alone: behind the picker, every write runs the whole filter
+        // again, and taking everything of a list that is half taken should not pay for the half that is already there.
+        if (option.IsTicked() == ticked) { return; }
+
+        option.Toggled(ticked);
+        Raise(nameof(Selected));
+    }
 }
 
 internal sealed class MultiPickerViewModel : Notifiable
@@ -39,6 +51,9 @@ internal sealed class MultiPickerViewModel : Notifiable
     public MultiPickerViewModel(LocalizedString title, IEnumerable<PickerToggle> options)
     {
         Title = title;
+
+        SelectAllCommand = new RelayCommand(() => TickVisible(true));
+        DeselectAllCommand = new RelayCommand(() => TickVisible(false));
 
         FillAll(options);
     }
@@ -58,11 +73,27 @@ internal sealed class MultiPickerViewModel : Notifiable
         }
     }
 
+    public RelayCommand SelectAllCommand { get; }
+
+    public RelayCommand DeselectAllCommand { get; }
+
     public ObservableCollection<ToggleRowViewModel> Options { get; } = [];
 
     private void FillAll(IEnumerable<PickerToggle> options)
     {
         foreach (PickerToggle option in options) { Options.Add(new ToggleRowViewModel(option)); }
+    }
+
+    // Both buttons work on what the search box is leaving in sight: a word can be searched and all of it taken in one
+    // click, and the rows the filter hides keep the ticks they have. Which rows show is what ApplyFilter last said.
+    private void TickVisible(bool ticked)
+    {
+        for (int i = 0; i < Options.Count; i++)
+        {
+            ToggleRowViewModel row = Options[i];
+
+            if (row.Visible) { row.Tick(ticked); }
+        }
     }
 
     private void ApplyFilter()
