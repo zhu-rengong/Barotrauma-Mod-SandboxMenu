@@ -4,7 +4,7 @@ namespace UiFramework.Controls;
 internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposable
 {
     private readonly GUITextBox _box;
-    private readonly ViewLoadContext _view;
+    private readonly ViewContext _view;
     private Action<object?>? _changed;
     private Action<object?>? _focusChanged;
     private GUITextBox.OnTextChangedHandler? _onTextChanged;
@@ -30,10 +30,9 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public string? Text { set => _box.Text = value ?? string.Empty; }
 
-    // Setting this asks for the keyboard: the editor binds it to put the caret in the identifier box as soon as the
-    // left list picks an entry. The keyboard is taken once the click that asked for it is over, or the box would lose
-    // it again in the same frame; the request is then answered (with false) so a re-pointed binding cannot take the
-    // caret away from someone who is typing.
+    // Setting this asks for the keyboard, taken once the click that asked for it is over (or the box would lose it
+    // again in the same frame); the request is then answered with false so a re-pointed binding cannot take the caret
+    // away from someone who is typing.
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public bool Focus
     {

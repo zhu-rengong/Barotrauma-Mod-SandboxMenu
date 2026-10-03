@@ -4,33 +4,37 @@ using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu.UI;
 
-internal sealed class SandboxMenuWindow : IDialogHost
+internal sealed class MenuHost : IDialogHost
 {
     private const int WindowOrder = 10;
     private const int DialogOrder = 30;
     private const int PopupOrder = 60;
 
-    private static SandboxMenuWindow? _instance;
+    private static MenuHost? _instance;
 
-    static SandboxMenuWindow() => StaticState.Register(() => _instance = null);
+    static MenuHost()
+    {
+        ModLifetime.Unloading += () => _instance = null;
+        ContentReload.Invalidated += ReleaseContent;
+    }
 
-    public static SandboxMenuWindow Instance => _instance ??= new SandboxMenuWindow();
+    public static MenuHost Instance => _instance ??= new MenuHost();
 
-    public static SandboxMenuWindow? Current => _instance;
+    public static MenuHost? Current => _instance;
 
     private readonly SpawnMenuViewModel _viewModel;
-    private readonly List<IPopupWindow> _popups = [];
+    private readonly List<IDialogWindow> _popups = [];
 
-    private UiWindow? _window;
+    private MarkupWindow? _window;
 
-    private UiWindow? _browser;
+    private MarkupWindow? _browser;
     private ItemBrowserViewModel? _browserModel;
 
     private int _popupGrace;
     private bool _screenshotQueued;
     private Character? _hintedFor;
 
-    private SandboxMenuWindow() => _viewModel = new SpawnMenuViewModel(this);
+    private MenuHost() => _viewModel = new SpawnMenuViewModel(this);
 
     public bool IsOpen => _window?.IsOpen == true;
 
@@ -44,9 +48,9 @@ internal sealed class SandboxMenuWindow : IDialogHost
     {
         HandleNotices();
 
-        _window ??= new UiWindow(
+        _window ??= new MarkupWindow(
             "MainWindow.xml",
-            MenuTheme.DipSize(MenuTheme.WindowWidth, MenuTheme.WindowHeight),
+            UiMetrics.DipSize(Theme.WindowWidth, Theme.WindowHeight),
             WindowOrder,
             _viewModel);
 
@@ -118,8 +122,7 @@ internal sealed class SandboxMenuWindow : IDialogHost
     internal void SpawnIntoInventory() => _viewModel.SpawnIntoInventoryCommand.Execute(null);
 
     // The capture is queued, not taken where the console runs it: the host lays its layout groups and lists out in
-    // their own update, so a draw taken before that pass is done shows rows and columns at their earlier places. It is
-    // served at the end of the frame instead, once the GUI update has run through.
+    // their own update, so a capture taken before that pass is served at the end of the frame instead.
     internal void CaptureScreenshot() => _screenshotQueued = true;
 
     internal void ServePendingScreenshot()
@@ -127,20 +130,12 @@ internal sealed class SandboxMenuWindow : IDialogHost
         if (!_screenshotQueued) { return; }
 
         _screenshotQueued = false;
-        WriteScreenshot();
-    }
 
-    // Renders what the menu is showing right now — the window and any dialog over it — onto an offscreen target and
-    // writes it out as a PNG. The host draws its GUI from screen coordinates, so the batch is shifted by the captured
-    // area to put it at the origin; the host's own offscreen image code is the model for the target and the state it
-    // has to put back.
-    private void WriteScreenshot()
-    {
-        List<IPopupWindow> drawn = [];
+        List<IDialogWindow> drawn = [];
 
         if (_window is { IsOpen: true } window) { drawn.Add(window); }
 
-        foreach (IPopupWindow popup in _popups)
+        foreach (IDialogWindow popup in _popups)
         {
             if (popup.IsOpen) { drawn.Add(popup); }
         }
@@ -151,84 +146,14 @@ internal sealed class SandboxMenuWindow : IDialogHost
             return;
         }
 
-        Rectangle area = drawn[0].Rect;
-        foreach (IPopupWindow popup in drawn) { area = Rectangle.Union(area, popup.Rect); }
-
-        if (area.Width <= 0 || area.Height <= 0) { return; }
-
-        string folder = Path.Combine(Plugin.SettingsService.SaveFolder, "Screenshots");
-        string name = $"sandboxmenu {DateTime.Now:yyyy-MM-dd HH-mm-ss}.png";
-        string path = Path.Combine(folder, name);
-
-        GraphicsDevice device = GameMain.Instance.GraphicsDevice;
-
-        // The host renders at its own virtual resolution and keeps the device's viewport on that, so a render target of
-        // the captured area has to be given a viewport of its own: without it the window — which sits in the middle of
-        // the canvas — is squeezed into a corner of the image.
-        Viewport previousViewport = device.Viewport;
-        Rectangle previousScissor = device.ScissorRectangle;
-
-        try
-        {
-            Directory.CreateDirectory(folder);
-
-            using RenderTarget2D target = new(device, area.Width, area.Height, false, SurfaceFormat.Color, DepthFormat.None);
-            using SpriteBatch batch = new(device);
-
-            try
-            {
-                device.SetRenderTarget(target);
-                device.Viewport = new Viewport(0, 0, target.Width, target.Height);
-                device.ScissorRectangle = new Rectangle(0, 0, target.Width, target.Height);
-                device.Clear(Color.Transparent);
-
-                // Deferred with the sampler the host draws its GUI with: BackToFront would sort the menu's components by
-                // depth and texture instead of leaving them in the order they are drawn in. The windows are shifted into
-                // place themselves (see DrawInto) rather than by the batch, because parts of the host's GUI restart the
-                // batch for their own draw and would ignore a transform.
-                batch.Begin(SpriteSortMode.Deferred, BlendState.NonPremultiplied, GUI.SamplerState, null, null, null);
-
-                try
-                {
-                    Point shift = new(-area.X, -area.Y);
-
-                    foreach (IPopupWindow popup in drawn) { popup.DrawInto(batch, shift); }
-
-                    DrawCursor(batch, shift);
-                }
-                finally
-                {
-                    batch.End();
-                }
-
-                device.SetRenderTarget(null);
-
-                using FileStream stream = File.Create(path);
-                target.SaveAsPng(stream, target.Width, target.Height);
-            }
-            finally
-            {
-                device.SetRenderTarget(null);
-                device.Viewport = previousViewport;
-                device.ScissorRectangle = previousScissor;
-                GameMain.Instance.ResetViewPort();
-            }
-
-            _viewModel.Report(TextManager.GetWithVariable("sandboxmenu.status.screenshot", "[name]", name));
-            Log.Info($"Saved a screenshot of the menu to '{path}'");
-        }
-        catch (Exception e)
-        {
-            Log.Warn("Saving a screenshot of the menu failed", e);
-            _viewModel.Report(TextManager.Get("sandboxmenu.status.screenshotfailed"));
-        }
+        ScreenshotWriter.Write(drawn, _viewModel.Report);
     }
 
     public void Close()
     {
         _window?.Close();
         ClosePopups();
-        MenuActions.Clear();
+        FrameActions.Clear();
     }
 
     internal static void Shutdown()
@@ -245,34 +170,34 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
         _instance = null;
 
-        StaticState.ResetAll();
+        ModLifetime.Unload();
     }
 
     public void AddToUpdateList()
     {
-        Guard.Run("Handling what the game reported failed", HandleNotices);
-        Guard.Run("Handling the menu's popups failed", DrivePopups);
-        Guard.Run("Updating the menu failed", UpdateViews);
-        Guard.Run("Registering the menu on the GUI update list failed", RegisterViews);
-        Guard.Run("Running the queued menu work failed", MenuActions.Flush);
+        HandleNotices();
+        DrivePopups();
+        UpdateViews();
+        RegisterViews();
+        FrameActions.Drain();
     }
 
     private void HandleNotices()
     {
-        if (ContentWatch.TakeChanged()) { _viewModel.ContentChanged(); }
+        if (ContentReload.TakeRebuild()) { _viewModel.ContentChanged(); }
 
         if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
         {
             _viewModel.ApplySpawnResult(status, queued, problems);
         }
 
-        if (!MenuNotices.TakeResolution()) { return; }
+        if (!ScreenReload.TakeRebuild()) { return; }
 
         DropWindows();
     }
 
-    // Called the moment the content packages change: what the menu holds from the old packages has to go even while
-    // the menu is closed, or the plugin of a package that is being unloaded stays referenced.
+    // Subscribed to ContentReload: what the menu holds from the old packages has to go even while the menu is
+    // closed, or the plugin of a package that is being unloaded stays referenced.
     internal static void ReleaseContent() => _instance?.ReleaseCachedContent();
 
     private void ReleaseCachedContent()
@@ -295,7 +220,7 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
     private void DrivePopups()
     {
-        UiWindow.InputBlocked = AnyPopupOpen();
+        MarkupWindow.InputBlocked = AnyPopupOpen();
 
         if (_popupGrace > 0) { _popupGrace--; }
         else { DismissPopupsOnOutsideClick(); }
@@ -312,9 +237,8 @@ internal sealed class SandboxMenuWindow : IDialogHost
         }
     }
 
-    // The item hints weigh what an item asks for against the skills of whoever is being played, and the game reports
-    // nothing when that changes; compared once a frame here, the rows and tiles on screen take their hints again the
-    // moment the character is switched or lost, instead of holding on to what they said when they were built.
+    // The game reports nothing when whoever is being played changes, and the hints are weighed against that character,
+    // so the rows are told to take their hints again once a frame.
     private void RefreshHints()
     {
         if (ReferenceEquals(_hintedFor, Character.Controlled)) { return; }
@@ -340,7 +264,7 @@ internal sealed class SandboxMenuWindow : IDialogHost
         if (_browser is null || _browserModel is null)
         {
             _browserModel = new ItemBrowserViewModel(this);
-            _browser = new UiWindow("Browser.xml", MenuTheme.DipSize(MenuTheme.BrowserWidth, MenuTheme.BrowserHeight), DialogOrder, _browserModel);
+            _browser = new MarkupWindow("Browser.xml", UiMetrics.DipSize(Theme.BrowserWidth, Theme.BrowserHeight), DialogOrder, _browserModel);
 
             _browserModel.Attach(_browser.Find<GUIListBox>("Results"));
         }
@@ -358,9 +282,9 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
     public void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options)
     {
-        UiWindow popup = new(
+        MarkupWindow popup = new(
             "MultiPicker.xml",
-            MenuTheme.DipSize(MenuTheme.MultiPickerWidth, MenuTheme.MultiPickerHeight),
+            UiMetrics.DipSize(Theme.MultiPickerWidth, Theme.MultiPickerHeight),
             DialogOrder + 1,
             new MultiPickerViewModel(title, options));
 
@@ -375,13 +299,13 @@ internal sealed class SandboxMenuWindow : IDialogHost
             option.Picked();
         }, filterable);
 
-        ShowPopup(new UiWindow("Options.xml", MenuTheme.DipSize(MenuTheme.OptionsWidth, MenuTheme.OptionsHeight), DialogOrder, viewModel));
+        ShowPopup(new MarkupWindow("Options.xml", UiMetrics.DipSize(Theme.OptionsWidth, Theme.OptionsHeight), DialogOrder, viewModel));
     }
 
     public void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2 position)
     {
         ContextMenuViewModel viewModel = new(actions, ClosePopups);
-        UiWindow popup = new("ContextMenu.xml", MenuTheme.DipSize(MenuTheme.ContextMenuWidth, MenuTheme.ContextMenuHeight), PopupOrder, viewModel);
+        MarkupWindow popup = new("ContextMenu.xml", UiMetrics.DipSize(Theme.ContextMenuWidth, Theme.ContextMenuHeight), PopupOrder, viewModel);
 
         ShowPopup(popup);
         popup.PositionAt(position);
@@ -390,10 +314,10 @@ internal sealed class SandboxMenuWindow : IDialogHost
     public void PickWorldPosition(Action<Vector2> onPicked)
     {
         Close();
-        SpawnLocationPicker.Begin(onPicked, Open);
+        SpawnPointPicker.Begin(onPicked, Open);
     }
 
-    private void ShowPopup(IPopupWindow popup, bool keepOpen = false)
+    private void ShowPopup(IDialogWindow popup, bool keepOpen = false)
     {
         if (!keepOpen) { ClosePopups(); }
 
@@ -404,34 +328,12 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
     private void ClosePopups()
     {
-        foreach (IPopupWindow popup in _popups) { ClosePopup(popup); }
+        foreach (IDialogWindow popup in _popups) { ClosePopup(popup); }
 
         _popups.Clear();
     }
 
-    // The host draws its pointer in the screen pass, which a screenshot does not take part in; it goes on top of the
-    // windows here, in whatever state the menu is showing right now — the hand over buttons and rows, the arrow
-    // elsewhere.
-    private static void DrawCursor(SpriteBatch spriteBatch, Point shift)
-    {
-        if (!GameMain.WindowActive || GUI.HideCursor || !GUI.MouseCursorSprites.Prefabs.Any()) { return; }
-
-        Sprite? sprite = GUI.MouseCursorSprites[GUI.MouseCursor] ?? GUI.MouseCursorSprites[CursorState.Default];
-
-        if (sprite is null) { return; }
-
-        sprite.Draw(
-            spriteBatch,
-            PlayerInput.LatestMousePosition + shift.ToVector2(),
-            Color.White,
-            sprite.Origin,
-            0f,
-            GUI.Scale / 1.5f,
-            SpriteEffects.None,
-            null);
-    }
-
-    private void ClosePopup(IPopupWindow popup)
+    private void ClosePopup(IDialogWindow popup)
     {
         try
         {
@@ -463,7 +365,7 @@ internal sealed class SandboxMenuWindow : IDialogHost
 
         Point mouse = PlayerInput.MousePosition.ToPoint();
 
-        foreach (IPopupWindow popup in _popups)
+        foreach (IDialogWindow popup in _popups)
         {
             if (popup.IsOpen && popup.Rect.Contains(mouse)) { return; }
         }

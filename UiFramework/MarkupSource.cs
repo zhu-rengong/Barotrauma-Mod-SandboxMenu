@@ -7,7 +7,7 @@ internal static class MarkupSource
 {
     private static readonly Dictionary<string, MarkupNode> _cache = new(StringComparer.OrdinalIgnoreCase);
 
-    static MarkupSource() => StaticState.Register(_cache.Clear);
+    static MarkupSource() => ModLifetime.Unloading += _cache.Clear;
 
     internal static MarkupNode Load(string fileName)
         => _cache.TryGetValue(fileName, out MarkupNode? cached)

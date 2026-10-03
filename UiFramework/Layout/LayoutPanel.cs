@@ -2,7 +2,7 @@ namespace UiFramework.Layout;
 
 internal abstract class LayoutPanel : ViewElement
 {
-    private readonly ViewLoadContext _view;
+    private readonly ViewContext _view;
     private bool _arranged;
     private bool _dirty = true;
     private float _gap;

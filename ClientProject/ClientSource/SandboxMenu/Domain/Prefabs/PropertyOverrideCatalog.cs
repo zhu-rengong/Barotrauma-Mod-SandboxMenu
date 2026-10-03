@@ -20,8 +20,8 @@ internal static class PropertyOverrideCatalog
 
     static PropertyOverrideCatalog()
     {
-        StaticState.Register(Clear);
-        ContentWatch.Register(Clear);
+        ModLifetime.Unloading += Clear;
+        ContentReload.Invalidated += Clear;
     }
 
     internal static void Clear()

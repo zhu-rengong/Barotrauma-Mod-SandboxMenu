@@ -4,7 +4,7 @@ using UiFramework.Styling;
 namespace UiFramework;
 
 internal sealed class PropertyAssignment(
-    ViewLoadContext view,
+    ViewContext view,
     MarkupNode node,
     ViewElement element,
     PropertyMetadata property)
@@ -21,7 +21,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        (object? value, bool ok) = ValueReader.Read(text, Property.ValueType, () => null);
+        (object? value, bool ok) = ValueConversion.Parse(text, Property.ValueType, () => null);
         if (!ok)
         {
             Report($"'{text}' is not a {Friendly(Property.ValueType)}");
@@ -33,7 +33,7 @@ internal sealed class PropertyAssignment(
 
     internal void SetValue(object? value, string source)
     {
-        (object? converted, bool ok) = ValueReader.Convert(value, Property.ValueType);
+        (object? converted, bool ok) = ValueConversion.Convert(value, Property.ValueType);
         if (!ok)
         {
             Report($"'{source}' does not give a {Friendly(Property.ValueType)}");
@@ -56,7 +56,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        BindingRequest request = new()
+        BindingDefinition definition = new()
         {
             Source = source,
             Path = options.Path,
@@ -72,17 +72,17 @@ internal sealed class PropertyAssignment(
             Report = Report
         };
 
-        binding = Binding.Attach(request);
+        binding = Binding.Attach(definition);
         view.Own(binding);
 
         if (mode is BindingMode.TwoWay or BindingMode.OneWayToSource && Element is IPropertyObserver observer)
         {
-            observer.Observe(Property.Name, request.Changed);
+            observer.Observe(Property.Name, definition.Changed);
         }
 
         if (Property.ValueType == typeof(ICommand) && Element is ICommandElement commandElement)
         {
-            view.Own(Binding.Attach(new BindingRequest
+            view.Own(Binding.Attach(new BindingDefinition
             {
                 Source = source,
                 Path = string.Empty,
@@ -112,7 +112,7 @@ internal sealed class PropertyAssignment(
             BindingOptions options = bindings[i];
             object? source = ResolveSource(options, out string sourceName);
 
-            view.Own(Binding.Attach(new BindingRequest
+            view.Own(Binding.Attach(new BindingDefinition
             {
                 Source = source,
                 Path = options.Path,
@@ -174,7 +174,7 @@ internal sealed class PropertyAssignment(
 
     private void SetKeyText(string key)
     {
-        (object? value, bool ok) = ValueReader.Convert(TextManager.Get(key), Property.ValueType);
+        (object? value, bool ok) = ValueConversion.Convert(TextManager.Get(key), Property.ValueType);
         if (ok) { Property.Apply(Element, value); }
     }
 

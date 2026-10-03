@@ -10,7 +10,7 @@ internal static class ElementRegistry
 
     private static FrozenDictionary<string, ElementMetadata>? _elements;
 
-    static ElementRegistry() => StaticState.Register(() => _elements = null);
+    static ElementRegistry() => ModLifetime.Unloading += () => _elements = null;
 
     internal static FrozenDictionary<string, ElementMetadata> Elements => _elements ??= Scan();
 

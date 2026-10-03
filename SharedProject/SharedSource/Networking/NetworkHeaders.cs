@@ -1,6 +1,6 @@
 namespace SandboxMenu.Networking;
 
-public enum SandboxNetworkHeaders
+public enum NetworkHeaders
 {
     SpawnRequest = 0,
     SpawnResponse = 1

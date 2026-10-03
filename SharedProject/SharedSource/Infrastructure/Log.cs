@@ -10,11 +10,11 @@ internal static class Log
 
     private static readonly ConcurrentDictionary<string, double> _lastSeen = new(StringComparer.Ordinal);
 
-    static Log() => StaticState.Register(Clear);
+    static Log() => ModLifetime.Unloading += Clear;
 
     internal static void Warn(string message) => Write(message, warning: true);
 
-    internal static void Warn(string message, Exception exception) => Write($"{message}: {exception.Message}", warning: true);
+    internal static void Warn(string message, Exception exception) => Write($"{message}: {exception}", warning: true);
 
     internal static void Info(string message) => Write(message, warning: false);
 

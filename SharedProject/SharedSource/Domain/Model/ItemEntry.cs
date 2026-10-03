@@ -28,33 +28,6 @@ internal sealed class ItemEntry : SpawnEntry
 
     public List<SpawnEntry> Inventory { get; } = [];
 
-#if CLIENT
-    public LocalizedString AmountSummary
-    {
-        get
-        {
-            LocalizedString amount = Amount is { } range ? $" ×{range}" : string.Empty;
-            LocalizedString stack = Stacks is { } stacks
-                ? " " + TextManager.GetWithVariable("sandboxmenu.summary.stacks", "[count]", stacks.ToString())
-                : string.Empty;
-
-            return amount + stack;
-        }
-    }
-
-    public override LocalizedString Summary
-    {
-        get
-        {
-            LocalizedString name = string.IsNullOrEmpty(Identifier)
-                ? TextManager.Get("sandboxmenu.summary.unset")
-                : Identifier;
-
-            return name + AmountSummary;
-        }
-    }
-#endif
-
     public override XElement ToXml()
     {
         XElement element = new("Item", new XAttribute("identifier", Identifier));

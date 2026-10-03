@@ -6,8 +6,8 @@ namespace SandboxMenu.UI.Controls;
 [Element("Row")]
 internal sealed class RowElement : ViewElement, IDisposable
 {
-    private readonly MenuRow _row;
-    private readonly ViewLoadContext _view;
+    private readonly RowControl _row;
+    private readonly ViewContext _view;
     private RichString _text = string.Empty;
     private RichString? _shortcut;
     private float _scale;
@@ -25,23 +25,22 @@ internal sealed class RowElement : ViewElement, IDisposable
     [ElementProperty]
     public string TextAlign { set => _row.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(value, Alignment.CenterLeft); }
 
-    private GUIImage? _icon;
+    private DeferredSprite? _icon;
     private GUITextBlock? _subText;
     private float _indent = UiMetrics.Pad;
     private bool _hasCommand;
     private int _laidOutHeight = -1;
 
     public RowElement(ElementContext context)
-        : base(new MenuRow(
+        : base(new RowControl(
             context.Rect(context.Parent, 1f, UiMetrics.RowHeight),
             string.Empty,
             ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft)))
     {
-        _row = (MenuRow)Control;
+        _row = (RowControl)Control;
         _view = context.View;
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _row.TextBlock.Font);
 
-        MenuText.MakeRow(_row);
         _row.TextBlock.TextScale = _scale;
 
         _row.TextBlock.ForceUpperCase = ForceUpperCase.No;
@@ -116,8 +115,7 @@ internal sealed class RowElement : ViewElement, IDisposable
         {
             if (_icon is null) { BuildIcon(); }
 
-            _icon!.Sprite = value;
-            _icon.Scale = FitScale(_icon);
+            _icon!.Set(value);
         }
     }
 
@@ -146,7 +144,7 @@ internal sealed class RowElement : ViewElement, IDisposable
     }
 
     [ElementProperty]
-    public string TextColor { set => MenuText.Apply(_row.TextBlock, ViewMarkup.ColorOf(value, UiMetrics.Text)); }
+    public string TextColor { set => Labels.Apply(_row.TextBlock, ViewMarkup.ColorOf(value, UiMetrics.Text)); }
 
     [ElementProperty]
     public bool Selected { set => _row.Selected = value; }
@@ -201,26 +199,19 @@ internal sealed class RowElement : ViewElement, IDisposable
 
         _row.TextBlock.Padding = new Vector4(left, 0f, right, _subText is null ? 0f : _row.Rect.Height * UiMetrics.SubTextRatio);
         if (_subText is not null) { _subText.Padding = new Vector4(left, 0f, right, 0f); }
-        if (_icon is not null) { _icon.RectTransform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent), 0); }
+        if (_icon is not null) { _icon.Image.RectTransform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent), 0); }
     }
 
     private void BuildIcon()
     {
         int box = UiMetrics.DipInt(UiMetrics.IconBox);
 
-        _icon = new GUIImage(
+        _icon = new DeferredSprite(
             new RectTransform(new Point(box, box), Control.RectTransform, Anchor.CenterLeft, null, ScaleBasis.Normal, isFixedSize: true),
-            style: null,
-            scaleToFit: GUIImage.ScalingMode.ScaleToFitSmallestExtent)
-        {
-            CanBeFocused = false
-        };
+            GUIImage.ScalingMode.ScaleToFitSmallestExtent);
 
-        _icon.RectTransform.SizeChanged += RescaleIcon;
         ForceLayout();
     }
-
-    private void RescaleIcon() => _icon!.Scale = FitScale(_icon);
 
     private void BuildSubText()
     {
@@ -240,20 +231,9 @@ internal sealed class RowElement : ViewElement, IDisposable
         ForceLayout();
     }
 
-    private static float FitScale(GUIImage image)
-    {
-        if (image.Sprite is not { } sprite) { return 1f; }
-
-        Rectangle source = sprite.SourceRect;
-        Rectangle rect = image.RectTransform.Rect;
-        if (source.Width <= 0 || source.Height <= 0 || rect.Width <= 0 || rect.Height <= 0) { return 1f; }
-
-        return Math.Min((float)rect.Width / source.Width, (float)rect.Height / source.Height);
-    }
-
     public void Dispose()
     {
-        if (_icon is { } icon) { icon.RectTransform.SizeChanged -= RescaleIcon; }
+        _icon?.Dispose();
         if (_subText is not null) { _row.RectTransform.SizeChanged -= ApplyLayout; }
     }
 }

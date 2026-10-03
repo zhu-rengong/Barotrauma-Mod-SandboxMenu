@@ -28,10 +28,9 @@ internal sealed class StackElement : ViewElement
 
     internal override void ChildVisibilityChanged(ViewElement child) => ApplyShares();
 
-    // Children sized as a share ("1*", "2*") split what the rest of the axis leaves, so a row that fills its width
-    // fills it again once one of them is hidden. A share only counts towards the main axis: a share on the other
-    // axis is "fill". The host layout group keeps a place for every child it was handed, so a hidden child has to
-    // be taken out of the layout as well.
+    // Children sized as a share ("1*", "2*") split what the rest of the axis leaves, so a row fills its width again
+    // once one of them is hidden; the host layout group keeps a place for every child it was handed, so a hidden
+    // child is taken out of the layout as well.
     private void ApplyShares()
     {
         float shares = 0f;

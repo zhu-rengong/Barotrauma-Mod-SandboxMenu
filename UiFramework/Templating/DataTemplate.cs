@@ -16,10 +16,10 @@ internal sealed class DataTemplate
         return new DataTemplate { Key = node.Text("Key"), DataType = node.Text("DataType"), Content = content };
     }
 
-    internal ViewElement Build(ViewLoadContext view, object? item, RectTransform parent, ViewElement? parentElement = null)
-        => ViewLoader.BuildElement(view, Content, parent, item, parentElement);
+    internal ViewElement Build(ViewContext view, object? item, RectTransform parent, ViewElement? parentElement = null)
+        => ViewBuilder.BuildElement(view, Content, parent, item, parentElement);
 
-    internal static DataTemplate? Select(object? item, string? explicitKey, ViewLoadContext view, ViewElement element)
+    internal static DataTemplate? Select(object? item, string? explicitKey, ViewContext view, ViewElement element)
     {
         if (explicitKey is { } key)
         {

@@ -7,21 +7,17 @@ internal abstract class SpawnEntry
 {
     private static FrozenDictionary<string, Func<XElement, SpawnEntry>>? _readers;
 
-    static SpawnEntry() => StaticState.Register(() => _readers = null);
+    static SpawnEntry() => ModLifetime.Unloading += () => _readers = null;
 
     private static FrozenDictionary<string, Func<XElement, SpawnEntry>> Readers => _readers ??= new Dictionary<string, Func<XElement, SpawnEntry>>(StringComparer.Ordinal)
     {
         ["Item"] = static element => ItemEntry.Read(element),
-        ["Ref"] = static element => RefEntry.Read(element)
+        ["Ref"] = static element => ReferenceEntry.Read(element)
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public ValueRange? Amount { get; set; }
 
     public bool AmountRound { get; set; }
-
-#if CLIENT
-    public abstract LocalizedString Summary { get; }
-#endif
 
     public abstract XElement ToXml();
 

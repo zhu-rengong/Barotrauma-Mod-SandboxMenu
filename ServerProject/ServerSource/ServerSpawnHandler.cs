@@ -9,7 +9,7 @@ internal static class ServerSpawnHandler
     private const string CooldownField = $"{Plugin.ModPrefix}.spawncooldown";
 
     internal static void Handle(SpawnRequest request, Client client)
-        => Guard.Run("Handling a spawn request failed", () => Respond(request, client));
+        => Guard.Run(() => Respond(request, client));
 
     private static void Respond(SpawnRequest request, Client client)
     {
@@ -88,6 +88,6 @@ internal static class ServerSpawnHandler
             result?.QueuedCount ?? 0,
             SpawnPayloadCodec.LimitProblems(result?.Problems ?? []));
 
-        Plugin.NetworkService.SendToClient(client, SandboxNetworkHeaders.SpawnResponse, response);
+        Plugin.NetworkService.SendToClient(client, NetworkHeaders.SpawnResponse, response);
     }
 }

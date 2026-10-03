@@ -10,7 +10,7 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
         Entry = entry;
         Owner = owner;
         Container = container;
-        Indent = (int)(MenuTheme.TreeIndentStart + depth * MenuTheme.TreeIndentStep);
+        Indent = (int)(Theme.TreeIndentStart + depth * Theme.TreeIndentStep);
 
         SelectCommand = new RelayCommand(() => menu.Select(this));
         OpenMenuCommand = new RelayCommand(() => menu.OpenMenu(this));
@@ -31,12 +31,12 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
 
     public override RichString Title
         => Display is { } display && Entry is ItemEntry item
-            ? display.TitleFor(display.Name + item.AmountSummary)
-            : RichString.Rich(Entry.Summary);
+            ? display.TitleFor(display.Name + EntrySummary.AmountSuffix(item))
+            : RichString.Rich(EntrySummary.Text(Entry));
 
     public string ColorName => Entry switch
     {
-        RefEntry => "Dim",
+        ReferenceEntry => "Dim",
         _ => "Bright"
     };
 

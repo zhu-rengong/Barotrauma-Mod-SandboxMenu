@@ -6,7 +6,7 @@ namespace UiFramework.Controls;
 internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 {
     private readonly GUIButton _button;
-    private readonly ViewLoadContext _view;
+    private readonly ViewContext _view;
     private readonly string _hintKey;
     private RichString _text = string.Empty;
     private RichString? _shortcut;

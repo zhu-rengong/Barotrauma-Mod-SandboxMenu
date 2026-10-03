@@ -22,9 +22,8 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
         }
     }
 
-    // A hint can be built from state the game changes without telling anyone — who is being played, above all — and a
-    // bound control only takes its value again when the row says it has changed, so the browser calls this the moment
-    // that state moves on; without it the hint keeps saying what it said when the row was last built.
+    // A hint is built from state the game changes without telling anyone — who is being played, above all — and a
+    // bound control only takes its value again when the row says it changed.
     internal void RefreshHints()
     {
         Raise(nameof(ToolTip));

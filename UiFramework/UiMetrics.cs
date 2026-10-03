@@ -5,7 +5,8 @@ internal static class UiMetrics
     static UiMetrics()
     {
         Reset();
-        StaticState.Register(Reset);
+
+        ModLifetime.Unloading += Reset;
     }
 
     internal static void Reset()
@@ -30,6 +31,8 @@ internal static class UiMetrics
     internal static float Dip(float value) => value * UiScale;
 
     internal static int DipInt(float value) => (int)MathF.Round(Dip(value));
+
+    internal static Point DipSize(float dipWidth, float dipHeight) => new(DipInt(dipWidth), DipInt(dipHeight));
 
     internal static float TextScale => GUI.AdjustForTextScale(UiScale);
 

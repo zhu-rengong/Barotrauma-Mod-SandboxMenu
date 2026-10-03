@@ -1,12 +1,12 @@
 namespace UiFramework;
 
-internal sealed class ElementContext(MarkupNode node, RectTransform parent, ViewLoadContext view)
+internal sealed class ElementContext(MarkupNode node, RectTransform parent, ViewContext view)
 {
     internal MarkupNode Node { get; } = node;
 
     internal RectTransform Parent { get; } = parent;
 
-    internal ViewLoadContext View { get; } = view;
+    internal ViewContext View { get; } = view;
 
     internal string? Skin => Node.Text("Skin") is { } style
         ? string.Equals(style, "None", StringComparison.OrdinalIgnoreCase) ? null : style

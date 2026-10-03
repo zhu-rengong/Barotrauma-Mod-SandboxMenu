@@ -13,6 +13,4 @@ internal sealed class SpawnResult
         _problems.Add(message);
         Log.Warn(message);
     }
-
-    internal void Record(string message) => _problems.Add(message);
 }

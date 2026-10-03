@@ -3,12 +3,12 @@ using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu.UI;
 
-internal static class SpawnLocationPicker
+internal static class SpawnPointPicker
 {
     private static Action<Vector2>? _onPicked;
     private static Action? _onCancelled;
 
-    static SpawnLocationPicker() => StaticState.Register(Abort);
+    static SpawnPointPicker() => ModLifetime.Unloading += Abort;
 
     public static bool IsActive { get; private set; }
 
@@ -54,32 +54,32 @@ internal static class SpawnLocationPicker
         if (!IsActive) { return; }
 
         LocalizedString hint = TextManager.Get("sandboxmenu.picker.hint");
-        float textScale = MenuTheme.FontScale(MenuTheme.PickerHintFontSize, GUIStyle.SmallFont);
+        float textScale = UiMetrics.FontScale(Theme.PickerHintFontSize, GUIStyle.SmallFont);
         Vector2 textSize = GUIStyle.SmallFont.MeasureString(hint, false) * textScale;
         Vector2 mouse = PlayerInput.MousePosition;
         Vector2 textPosition = new(
-            mouse.X + MenuTheme.Dip(MenuTheme.PickerHintOffsetX),
-            mouse.Y + MenuTheme.Dip(MenuTheme.PickerHintOffsetY));
+            mouse.X + UiMetrics.Dip(Theme.PickerHintOffsetX),
+            mouse.Y + UiMetrics.Dip(Theme.PickerHintOffsetY));
 
         int cx = (int)mouse.X;
         int cy = (int)mouse.Y;
-        int arm = MenuTheme.DipInt(MenuTheme.PickerHintArmLength);
-        int thickness = MenuTheme.DipInt(MenuTheme.LineThickness);
-        MenuPaint.Fill(spriteBatch, new Rectangle(cx - arm, cy, arm * 2 + 1, thickness), MenuTheme.Accent);
-        MenuPaint.Fill(spriteBatch, new Rectangle(cx, cy - arm, thickness, arm * 2 + 1), MenuTheme.Accent);
+        int arm = UiMetrics.DipInt(Theme.PickerHintArmLength);
+        int thickness = UiMetrics.DipInt(Theme.LineThickness);
+        Theme.Fill(spriteBatch, new Rectangle(cx - arm, cy, arm * 2 + 1, thickness), Theme.Accent);
+        Theme.Fill(spriteBatch, new Rectangle(cx, cy - arm, thickness, arm * 2 + 1), Theme.Accent);
 
-        int pad = MenuTheme.DipInt(MenuTheme.Pad);
-        int padY = MenuTheme.DipInt(MenuTheme.PickerHintPaddingY);
+        int pad = UiMetrics.DipInt(Theme.Pad);
+        int padY = UiMetrics.DipInt(Theme.PickerHintPaddingY);
         Rectangle frame = new(
             (int)textPosition.X - pad,
             (int)textPosition.Y - padY,
             (int)textSize.X + pad * 2,
             (int)textSize.Y + padY * 2);
 
-        MenuPaint.Fill(spriteBatch, frame, MenuTheme.OverlayFill);
-        MenuPaint.Outline(spriteBatch, frame, MenuTheme.OverlayLine);
+        Theme.Fill(spriteBatch, frame, Theme.OverlayFill);
+        Theme.Outline(spriteBatch, frame, Theme.OverlayLine);
 
-        GUIStyle.SmallFont.DrawString(spriteBatch, hint, textPosition, MenuTheme.Text, 0f, Vector2.Zero, textScale, SpriteEffects.None, 0f);
+        GUIStyle.SmallFont.DrawString(spriteBatch, hint, textPosition, Theme.Text, 0f, Vector2.Zero, textScale, SpriteEffects.None, 0f);
     }
 
     private static void Reset()

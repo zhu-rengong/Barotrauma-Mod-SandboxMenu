@@ -24,7 +24,7 @@ internal static class ValueConverters
         ["Join"] = new JoinConverter()
     };
 
-    static ValueConverters() => StaticState.Register(Clear);
+    static ValueConverters() => ModLifetime.Unloading += Clear;
 
     internal static void Clear()
     {

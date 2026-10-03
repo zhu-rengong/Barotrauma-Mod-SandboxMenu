@@ -3,7 +3,9 @@ using System.Globalization;
 
 namespace UiFramework.Data;
 
-internal sealed class BindingRequest
+// What a binding is: the source and path it reads, the callbacks that apply and report, and everything the markup
+// may set on the way. The binding keeps it and re-points the source when its row is recycled.
+internal sealed class BindingDefinition
 {
     internal required object? Source { get; set; }
 
@@ -32,29 +34,29 @@ internal sealed class BindingRequest
 
 internal sealed class Binding : IDisposable
 {
-    private readonly BindingRequest _request;
+    private readonly BindingDefinition _definition;
     private readonly BindingPath _path;
     private readonly PropertyChangedEventHandler _handler;
     private bool _echoing;
     private bool _disposed;
 
-    private Binding(BindingRequest request, BindingPath path)
+    private Binding(BindingDefinition definition, BindingPath path)
     {
-        _request = request;
+        _definition = definition;
         _path = path;
         _handler = OnSourceChanged;
     }
 
-    internal static Binding Attach(BindingRequest request)
+    internal static Binding Attach(BindingDefinition definition)
     {
-        BindingPath path = BindingPath.Parse(request.Path);
-        Binding binding = new(request, path);
+        BindingPath path = BindingPath.Parse(definition.Path);
+        Binding binding = new(definition, path);
 
-        if (request.Mode != BindingMode.OneWayToSource) { binding.Push(); }
+        if (definition.Mode != BindingMode.OneWayToSource) { binding.Push(); }
 
-        if (request.Mode is BindingMode.OneWay or BindingMode.TwoWay)
+        if (definition.Mode is BindingMode.OneWay or BindingMode.TwoWay)
         {
-            path.Hook(request.Source, binding._handler);
+            path.Hook(definition.Source, binding._handler);
         }
 
         return binding;
@@ -62,37 +64,37 @@ internal sealed class Binding : IDisposable
 
     internal void Retarget(object? source)
     {
-        if (_disposed || ReferenceEquals(_request.Source, source)) { return; }
+        if (_disposed || ReferenceEquals(_definition.Source, source)) { return; }
 
-        if (_request.Mode is BindingMode.OneWay or BindingMode.TwoWay)
+        if (_definition.Mode is BindingMode.OneWay or BindingMode.TwoWay)
         {
-            _path.Unhook(_request.Source, _handler);
+            _path.Unhook(_definition.Source, _handler);
         }
 
-        _request.Source = source;
+        _definition.Source = source;
 
-        if (_request.Mode is BindingMode.OneWay or BindingMode.TwoWay)
+        if (_definition.Mode is BindingMode.OneWay or BindingMode.TwoWay)
         {
             _path.Hook(source, _handler);
         }
 
-        if (_request.Mode != BindingMode.OneWayToSource) { Push(); }
+        if (_definition.Mode != BindingMode.OneWayToSource) { Push(); }
     }
 
     internal void PushFromTarget(object? value)
     {
         if (_disposed || _echoing) { return; }
 
-        if (_request.Mode is not (BindingMode.TwoWay or BindingMode.OneWayToSource)) { return; }
+        if (_definition.Mode is not (BindingMode.TwoWay or BindingMode.OneWayToSource)) { return; }
 
-        object? converted = _request.Converter?.ConvertBack(value, _request.TargetType, _request.ConverterParameter) ?? value;
+        object? converted = _definition.Converter?.ConvertBack(value, _definition.TargetType, _definition.ConverterParameter) ?? value;
 
         _echoing = true;
         try
         {
-            if (!_path.Write(_request.Source, converted))
+            if (!_path.Write(_definition.Source, converted))
             {
-                _request.Report($"'{_request.Path}' cannot be written");
+                _definition.Report($"'{_definition.Path}' cannot be written");
             }
         }
         finally
@@ -105,8 +107,8 @@ internal sealed class Binding : IDisposable
     {
         if (_disposed || _echoing) { return; }
 
-        _path.Unhook(_request.Source, _handler);
-        _path.Hook(_request.Source, _handler);
+        _path.Unhook(_definition.Source, _handler);
+        _path.Hook(_definition.Source, _handler);
         Push();
     }
 
@@ -116,55 +118,55 @@ internal sealed class Binding : IDisposable
 
         try
         {
-            value = _path.Read(_request.Source);
+            value = _path.Read(_definition.Source);
         }
         catch (Exception e)
         {
-            _request.Report($"'{_request.Path}' could not be read ({e.Message})");
+            _definition.Report($"'{_definition.Path}' could not be read ({e.Message})");
             value = null;
         }
 
         if (value is null)
         {
-            value = _request.NullValue ?? _request.Fallback;
+            value = _definition.NullValue ?? _definition.Fallback;
         }
-        else if (_request.Converter is { } converter)
+        else if (_definition.Converter is { } converter)
         {
             try
             {
-                value = converter.Convert(value, _request.TargetType, _request.ConverterParameter);
+                value = converter.Convert(value, _definition.TargetType, _definition.ConverterParameter);
             }
             catch (Exception e)
             {
-                _request.Report($"'{_request.Path}' could not be converted ({e.Message})");
-                value = _request.Fallback;
+                _definition.Report($"'{_definition.Path}' could not be converted ({e.Message})");
+                value = _definition.Fallback;
             }
         }
 
-        if (value is null) { value = _request.Fallback; }
+        if (value is null) { value = _definition.Fallback; }
 
-        if (_request.Format is { } format) { value = Format(value, format); }
+        if (_definition.Format is { } format) { value = Format(value, format); }
 
         Apply(value);
     }
 
     private void Apply(object? value)
     {
-        (object? converted, bool ok) = ValueReader.Convert(value, _request.TargetType);
+        (object? converted, bool ok) = ValueConversion.Convert(value, _definition.TargetType);
         if (!ok)
         {
-            _request.Report($"'{_request.Path}' does not give a {_request.TargetType.Name}");
+            _definition.Report($"'{_definition.Path}' does not give a {_definition.TargetType.Name}");
             return;
         }
 
         _echoing = true;
         try
         {
-            _request.Apply(converted);
+            _definition.Apply(converted);
         }
         catch (Exception e)
         {
-            _request.Report($"'{_request.Path}' could not be applied ({e.Message})");
+            _definition.Report($"'{_definition.Path}' could not be applied ({e.Message})");
         }
         finally
         {
@@ -172,22 +174,18 @@ internal sealed class Binding : IDisposable
         }
     }
 
-    private object Format(object? value, string format)
-    {
-        string pattern = format;
-
-        return value switch
+    private static object Format(object? value, string format)
+        => value switch
         {
-            null => pattern,
-            _ => string.Format(CultureInfo.CurrentCulture, pattern, value)
+            null => format,
+            _ => string.Format(CultureInfo.CurrentCulture, format, value)
         };
-    }
 
     public void Dispose()
     {
         if (_disposed) { return; }
 
         _disposed = true;
-        _path.Unhook(_request.Source, _handler);
+        _path.Unhook(_definition.Source, _handler);
     }
 }

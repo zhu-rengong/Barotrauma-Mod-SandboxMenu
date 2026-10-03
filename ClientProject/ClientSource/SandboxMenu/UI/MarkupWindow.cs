@@ -3,18 +3,18 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-internal sealed class UiWindow : IPopupWindow
+internal sealed class MarkupWindow : IDialogWindow
 {
     private static int _instances;
 
     private readonly GUIFrame _frame;
     private readonly GUIFrame _content;
-    private readonly ViewLoadContext _view;
+    private readonly ViewContext _view;
     private readonly int _order;
     private readonly Point _size;
     private readonly int _id = ++_instances;
 
-    internal UiWindow(string markupFile, Point size, int updateOrder, object viewModel)
+    internal MarkupWindow(string markupFile, Point size, int updateOrder, object viewModel)
     {
         _size = size;
         _order = updateOrder;
@@ -32,9 +32,9 @@ internal sealed class UiWindow : IPopupWindow
         };
 
         _view = ViewLoader.Load(markupFile, viewModel, message => Log.Warn($"#{_id} {message}"), _content.RectTransform);
-        _view.Dispatch = MenuActions.Run;
+        _view.Dispatch = FrameActions.Run;
         _view.DiagnosticSink = message => Log.Warn($"#{_id} {message}");
-        _view.IsInputBlocked = () => UiWindow.InputBlocked;
+        _view.IsInputBlocked = () => MarkupWindow.InputBlocked;
 
         if (Find<GUIComponent>("DragArea") is { } dragArea)
         {
@@ -45,7 +45,7 @@ internal sealed class UiWindow : IPopupWindow
         {
             close.OnClicked = (_, _) =>
             {
-                MenuActions.Run(Close);
+                FrameActions.Run(Close);
                 return false;
             };
         }
@@ -62,11 +62,11 @@ internal sealed class UiWindow : IPopupWindow
 
     public static bool InputBlocked { get; set; }
 
-    static UiWindow() => StaticState.Register(() =>
+    static MarkupWindow() => ModLifetime.Unloading += () =>
     {
         InputBlocked = false;
         _instances = 0;
-    });
+    };
 
     private GUIDragHandle? _dragHandle;
 
@@ -79,7 +79,7 @@ internal sealed class UiWindow : IPopupWindow
         if (_closing) { return; }
 
         _closing = true;
-        Guard.Run($"Handing over the state of window #{_id} failed", () => Closing?.Invoke());
+        Guard.Run(() => Closing?.Invoke(), $"Handing over the state of window #{_id} failed");
     }
 
     public Rectangle Rect => _frame.Rect;

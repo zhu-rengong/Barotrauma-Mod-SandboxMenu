@@ -17,7 +17,7 @@ internal static class TemplateStore
     public static bool Exists(string name) => File.Exists(PathFor(name));
 
     public static IReadOnlyList<string> ListPresets()
-        => Attempt<IReadOnlyList<string>>(
+        => Guard.Try<IReadOnlyList<string>>(
             static () =>
             {
                 if (!Directory.Exists(Folder)) { return []; }
@@ -31,12 +31,11 @@ internal static class TemplateStore
                         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                 ];
             },
-            "Failed to list presets",
             []);
 
     public static bool TryLoad(string name, out SpawnSet? set)
     {
-        set = Attempt<SpawnSet?>(
+        set = Guard.Try<SpawnSet?>(
             () =>
             {
                 string path = PathFor(name);
@@ -44,14 +43,14 @@ internal static class TemplateStore
 
                 return XMLExtensions.TryLoadXml(path) is { Root: { } root } ? SpawnSet.FromXml(root) : null;
             },
-            $"Failed to load preset '{name}'",
-            null);
+            null,
+            $"Failed to load preset '{name}'");
 
         return set is not null;
     }
 
     public static bool Save(SpawnSet set)
-        => Attempt<bool>(
+        => Guard.Try<bool>(
             () =>
             {
                 Directory.CreateDirectory(Folder);
@@ -62,8 +61,8 @@ internal static class TemplateStore
                 SafeXML.SaveSafe(new XDocument(set.ToXml()), path, throwExceptions: true);
                 return true;
             },
-            $"Failed to save preset '{set.Name}'",
-            false);
+            false,
+            $"Failed to save preset '{set.Name}'");
 
     internal static bool ReachesTemplate(SpawnSet set, string name)
         => Reaches(set.Entries, name, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
@@ -72,7 +71,7 @@ internal static class TemplateStore
     {
         foreach (SpawnEntry entry in entries)
         {
-            if (entry is not RefEntry reference || visiting.Contains(reference.TemplateName)) { continue; }
+            if (entry is not ReferenceEntry reference || visiting.Contains(reference.TemplateName)) { continue; }
 
             if (string.Equals(reference.TemplateName, name, StringComparison.OrdinalIgnoreCase)) { return true; }
 
@@ -88,8 +87,6 @@ internal static class TemplateStore
 
         return false;
     }
-
-    private static T Attempt<T>(Func<T> body, string message, T fallback) => Guard.Try(message, body, fallback);
 
     private static string PathFor(string name) => Path.Combine(Folder, Sanitize(name) + Extension);
 

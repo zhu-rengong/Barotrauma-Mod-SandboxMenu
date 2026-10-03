@@ -18,7 +18,7 @@ internal sealed class ItemDisplay
         Identifier = identifier;
         _name = name;
         _description = description;
-        _tags = tags.Length == 0 ? string.Empty : $"‖color:{MenuTheme.TagText.ToStringHex()}‖{tags}‖color:end‖";
+        _tags = tags.Length == 0 ? string.Empty : $"‖color:{Theme.TagText.ToStringHex()}‖{tags}‖color:end‖";
         Tags = RichString.Rich(_tags);
         Icon = icon;
     }
@@ -41,10 +41,9 @@ internal sealed class ItemDisplay
 
     public RichString ToolTip => RichString.Rich(ToolTipText + SkillHints + PackageText);
 
-    // A tile shows the icon alone, so its hint carries what a row shows next to it: the name with the identifier, the
-    // tags, and then the notes every item hint ends with. The text is held on the display (which is cached per prefab
-    // and let go with the content), as the tiles ask for it again on every step the list scrolls; what the skill
-    // requirements say depends on whoever is controlled at the moment, so that part joins the held text every time.
+    // A tile shows the icon alone, so its hint carries what a row shows next to it. The text is held on the display
+    // (cached per prefab, let go with the content) because tiles ask for it on every scroll step; the skill part
+    // depends on whoever is controlled, so it joins the held text every time.
     public RichString TileToolTip
     {
         get
@@ -93,8 +92,7 @@ internal sealed class ItemDisplay
         }
     }
 
-    // The requirements the game weighs against the skills of whoever is controlled, listed the way its own item hint
-    // lists them; blank again when the item asks for no skill, or when nobody is being played to weigh them against.
+    // The requirements the game weighs against whoever is controlled, listed the way its own item hint does.
     private LocalizedString SkillHints
     {
         get

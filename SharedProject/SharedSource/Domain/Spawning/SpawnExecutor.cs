@@ -34,7 +34,7 @@ internal sealed class SpawnExecutor(
     {
         switch (entry)
         {
-            case RefEntry reference:
+            case ReferenceEntry reference:
                 ExpandTemplate(reference);
                 break;
 
@@ -44,7 +44,7 @@ internal sealed class SpawnExecutor(
         }
     }
 
-    private void ExpandTemplate(RefEntry reference)
+    private void ExpandTemplate(ReferenceEntry reference)
     {
         if (_templateChain.Contains(reference.TemplateName, StringComparer.OrdinalIgnoreCase))
         {
@@ -190,7 +190,7 @@ internal sealed class SpawnExecutor(
 
     // Finished on the host's own pass, possibly after the mod is gone: a failure of ours must not travel there.
     private void Settle(Item item, ItemEntry entry)
-        => Guard.Run("Finishing a queued spawn failed", () => AfterSpawned(item, entry));
+        => Guard.Run(() => AfterSpawned(item, entry));
 
     private void AfterSpawned(Item item, ItemEntry entry)
     {
@@ -205,12 +205,12 @@ internal sealed class SpawnExecutor(
         {
             if (entry.InheritChannel)
             {
-                InheritChannel(item, character);
+                CharacterEquipment.InheritChannel(item, character);
             }
 
             if (entry.Equip)
             {
-                Equip(character, item, entry.EquipSlots);
+                CharacterEquipment.Equip(character, item, entry.EquipSlots);
             }
         }
 
@@ -275,29 +275,4 @@ internal sealed class SpawnExecutor(
         }
     }
 
-    private static void InheritChannel(Item item, Character character)
-    {
-        WifiComponent? targetWifi = item.GetComponent<WifiComponent>();
-        if (targetWifi is null) { return; }
-
-        Item? headset = character.Inventory.GetItemInLimbSlot(InvSlotType.Headset);
-        WifiComponent? sourceWifi = headset?.GetComponent<WifiComponent>();
-        if (sourceWifi is null) { return; }
-
-        targetWifi.Channel = sourceWifi.Channel;
-        targetWifi.TeamID = sourceWifi.TeamID;
-        targetWifi.AllowCrossTeamCommunication = sourceWifi.AllowCrossTeamCommunication;
-    }
-
-    private static void Equip(Character character, Item item, InvSlotType[]? allowedSlots)
-    {
-        Inventory? inventory = character.Inventory;
-        if (inventory is null) { return; }
-
-        List<InvSlotType> slots = [.. allowedSlots is { Length: > 0 } ? allowedSlots : item.AllowedSlots];
-        slots.Remove(InvSlotType.Any);
-        if (slots.Count == 0) { slots.Add(InvSlotType.Any); }
-
-        inventory.TryPutItem(item, character, slots);
-    }
 }

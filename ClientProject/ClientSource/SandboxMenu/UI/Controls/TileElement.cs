@@ -4,40 +4,31 @@ using Microsoft.Xna.Framework;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Tile")]
-internal sealed class TileElement : ViewElement
+internal sealed class TileElement : ViewElement, IDisposable
 {
     private const float IconExtent = 0.86f;
 
-    private readonly ViewLoadContext _view;
-    private readonly MenuRow _tile;
-    private readonly GUIImage _icon;
+    private readonly ViewContext _view;
+    private readonly RowControl _tile;
+    private readonly DeferredSprite _icon;
 
     public TileElement(ElementContext context)
-        : base(new MenuRow(context.Rect(context.Parent, 1f, 1f), string.Empty, Alignment.Center))
+        : base(new RowControl(context.Rect(context.Parent, 1f, 1f), string.Empty, Alignment.Center))
     {
         _view = context.View;
-        _tile = (MenuRow)Control;
+        _tile = (RowControl)Control;
 
-        MenuText.MakeRow(_tile);
         _tile.TextBlock.Visible = false;
 
-        _icon = new GUIImage(
+        _icon = new DeferredSprite(
             new RectTransform(new Vector2(IconExtent, IconExtent), Control.RectTransform, Anchor.Center),
-            style: null,
-            scaleToFit: GUIImage.ScalingMode.ScaleToFitSmallestExtent)
-        {
-            CanBeFocused = false
-        };
+            GUIImage.ScalingMode.ScaleToFitSmallestExtent);
     }
 
     [ElementProperty]
     public Sprite? Icon
     {
-        set
-        {
-            _icon.Sprite = value;
-            _icon.Visible = value is not null;
-        }
+        set => _icon.Set(value);
     }
 
     [ElementProperty]
@@ -52,4 +43,6 @@ internal sealed class TileElement : ViewElement
             return false;
         };
     }
+
+    public void Dispose() => _icon.Dispose();
 }

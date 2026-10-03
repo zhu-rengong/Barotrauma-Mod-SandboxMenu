@@ -14,11 +14,11 @@ internal static class ClientSpawnDispatcher
     private static int _resultQueued;
     private static int _resultProblems;
 
-    static ClientSpawnDispatcher() => StaticState.Register(() =>
+    static ClientSpawnDispatcher() => ModLifetime.Unloading += () =>
     {
         _nextRequestId = 0;
         Forget();
-    });
+    };
 
     internal static bool IsMultiplayerClient => GameMain.NetworkMember is { IsClient: true };
 
@@ -77,7 +77,7 @@ internal static class ClientSpawnDispatcher
 
         try
         {
-            Plugin.NetworkService.Send(SandboxNetworkHeaders.SpawnRequest, request);
+            Plugin.NetworkService.Send(NetworkHeaders.SpawnRequest, request);
         }
         catch (Exception e)
         {
@@ -101,7 +101,7 @@ internal static class ClientSpawnDispatcher
                     CollectTemplates(payload, item.Inventory, seen);
                     break;
 
-                case RefEntry reference:
+                case ReferenceEntry reference:
                     if (string.IsNullOrEmpty(reference.TemplateName) || !seen.Add(reference.TemplateName)) { break; }
                     if (!TemplateStore.TryLoad(reference.TemplateName, out SpawnSet? template) || template is null) { break; }
 

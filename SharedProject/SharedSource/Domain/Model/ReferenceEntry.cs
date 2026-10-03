@@ -2,13 +2,10 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-internal sealed class RefEntry : SpawnEntry
+// An entry that stands for another preset: what it spawns is whatever that preset holds.
+internal sealed class ReferenceEntry : SpawnEntry
 {
     public string TemplateName { get; set; } = string.Empty;
-
-#if CLIENT
-    public override LocalizedString Summary => $"@ {TemplateName}";
-#endif
 
     public override XElement ToXml()
     {
@@ -17,9 +14,9 @@ internal sealed class RefEntry : SpawnEntry
         return element;
     }
 
-    internal static RefEntry Read(XElement element)
+    internal static ReferenceEntry Read(XElement element)
     {
-        RefEntry entry = new()
+        ReferenceEntry entry = new()
         {
             TemplateName = element.GetAttributeString("template", string.Empty)
         };
@@ -29,7 +26,7 @@ internal sealed class RefEntry : SpawnEntry
 
     protected override SpawnEntry CloneCore()
     {
-        RefEntry clone = new() { TemplateName = TemplateName };
+        ReferenceEntry clone = new() { TemplateName = TemplateName };
         CopyCommonTo(clone);
         return clone;
     }

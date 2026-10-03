@@ -4,7 +4,7 @@ internal static class DefaultTheme
 {
     private static ResourceDictionary? _theme;
 
-    static DefaultTheme() => StaticState.Register(() => _theme = null);
+    static DefaultTheme() => ModLifetime.Unloading += () => _theme = null;
 
     internal static ResourceDictionary Theme => _theme ??= Build();
 

@@ -92,10 +92,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     public IReadOnlyList<ItemPickerRowViewModel> Rows => _visible;
 
-    // The browser also picks the item of an entry that sits inside another item: what the parent's container accepts
-    // (its containable rules) then decides the list, and the tick box starts out ticked. Opening it again for the
-    // parent it was last opened for hands back the same rows and keeps the place the list was left at; another
-    // parent is another list and starts at the top.
+    // Picking the item of an entry inside another item: what the parent's container accepts decides the list. The same
+    // parent hands back the same rows and keeps the scroll; another parent is another list and starts at the top.
     internal void UseParent(ItemEntry? parent)
     {
         bool sameList = string.Equals(_parent, parent?.Identifier, StringComparison.OrdinalIgnoreCase);
@@ -200,8 +198,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
         ApplyFilter();
     }
 
-    // A filter the player has just changed starts the list at the top; reopening the browser is handed the same
-    // rows again and leaves the place the list was left at, so it must not reset the scroll.
+    // A filter the player changed starts the list at the top; reopening the browser hands it the same rows again and
+    // leaves the scroll alone.
     private void ApplyFilter(bool keepScroll = false)
     {
         ItemFilter filter = new(_packages, _categories);

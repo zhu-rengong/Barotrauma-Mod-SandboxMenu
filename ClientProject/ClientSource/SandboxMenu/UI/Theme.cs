@@ -1,15 +1,12 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-internal static class MenuTheme
+// The menu's own palette and sizes, all of them in DIP: the theme the framework draws with is a different thing
+// (UiFramework.Styling.DefaultTheme).
+internal static class Theme
 {
-    public static float Dip(float value) => UiMetrics.Dip(value);
-
-    public static int DipInt(float value) => UiMetrics.DipInt(value);
-
-    public static float FontScale(float dipSize, GUIFont font) => UiMetrics.FontScale(dipSize, font);
-
     public static Color Text => UiMetrics.Text;
 
     public static Color TextDim => UiMetrics.TextDim;
@@ -64,5 +61,15 @@ internal static class MenuTheme
     public const float ContextMenuWidth = 288f;
     public const float ContextMenuHeight = 352f;
 
-    public static Point DipSize(float dipWidth, float dipHeight) => new(DipInt(dipWidth), DipInt(dipHeight));
+    public static void Fill(SpriteBatch spriteBatch, Rectangle rect, Color color)
+        => GUI.DrawRectangle(spriteBatch, rect, color, true);
+
+    public static void Outline(SpriteBatch spriteBatch, Rectangle rect, Color color, float? thickness = null)
+        => GUI.DrawRectangle(
+            spriteBatch,
+            rect,
+            color,
+            false,
+            0f,
+            Math.Max(1, thickness ?? UiMetrics.DipInt(LineThickness)));
 }
