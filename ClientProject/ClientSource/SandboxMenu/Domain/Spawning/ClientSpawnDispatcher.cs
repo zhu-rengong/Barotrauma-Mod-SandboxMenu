@@ -34,7 +34,7 @@ internal static class ClientSpawnDispatcher
 
         foreach (string problem in response.Problems ?? []) { Log.Warn(problem); }
 
-        _result = response.Status;
+        _result = (SpawnStatus)response.Status;
         _resultQueued = response.Queued;
         _resultProblems = response.Problems?.Length ?? 0;
     }
@@ -70,7 +70,7 @@ internal static class ClientSpawnDispatcher
         uint requestId = ++_nextRequestId;
         SpawnRequest request = new(
             compressed,
-            target,
+            (byte)target,
             worldPosition,
             (ushort)(Character.Controlled?.ID ?? 0),
             requestId);
