@@ -61,6 +61,9 @@ internal static class Theme
     public const float ContextMenuWidth = 288f;
     public const float ContextMenuHeight = 352f;
 
+    public const float ColorPickerWidth = 368f;
+    public const float ColorPickerHeight = 340f;
+
     public static void Fill(SpriteBatch spriteBatch, Rectangle rect, Color color)
         => GUI.DrawRectangle(spriteBatch, rect, color, true);
 

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace UiFramework.Data;
 
 internal interface IValueConverter
@@ -16,7 +18,8 @@ internal static class ValueConverters
 {
     private static readonly Dictionary<string, IValueConverter> _single = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Inverse"] = new InverseBoolConverter()
+        ["Inverse"] = new InverseBoolConverter(),
+        ["Percent"] = new PercentConverter()
     };
 
     private static readonly Dictionary<string, IMultiValueConverter> _multi = new(StringComparer.OrdinalIgnoreCase)
@@ -42,6 +45,19 @@ internal sealed class InverseBoolConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter) => value is not true;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter) => value is not true;
+}
+
+// A fraction shown as the whole number it is a fraction of: a saturation of 0.36 reads as 36.
+internal sealed class PercentConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter)
+        => value is null ? null : ToNumber(value) * 100.0;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter)
+        => value is null ? null : ToNumber(value) / 100.0;
+
+    private static double ToNumber(object value)
+        => value is IConvertible convertible ? convertible.ToDouble(CultureInfo.InvariantCulture) : 0.0;
 }
 
 internal sealed class JoinConverter : IMultiValueConverter

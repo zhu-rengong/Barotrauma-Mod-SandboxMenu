@@ -17,7 +17,7 @@ internal static class PropertyEditService
 
         foreach (PropertyOverride propertyOverride in overrides)
         {
-            if (string.IsNullOrEmpty(propertyOverride.PropertyName)) { continue; }
+            if (!propertyOverride.IsNamed) { continue; }
 
             string? problem = ApplyOne(item, propertyOverride, applied);
             if (problem is not null) { (problems ??= []).Add(problem); }

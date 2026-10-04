@@ -150,6 +150,9 @@ internal sealed class RowElement : ViewElement, IDisposable
     public bool Selected { set => _row.Selected = value; }
 
     [ElementProperty]
+    public string SelectedBar { set => _row.SelectedBar = ViewMarkup.AnchorOf(value, Anchor.CenterLeft); }
+
+    [ElementProperty]
     public ICommand? Command
     {
         set

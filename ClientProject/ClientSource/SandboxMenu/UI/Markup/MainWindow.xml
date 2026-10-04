@@ -24,7 +24,7 @@
 
     <DataTemplate DataType="SlotRow">
       <Field LabelText="{Binding Label}">
-        <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" Skin="GUITextBoxNoIcon" />
+        <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" Skin="GUITextBoxNoIcon" Scale="False" />
       </Field>
     </DataTemplate>
 
@@ -54,14 +54,36 @@
         ToolTip="{Binding ToolTip}" Height="0.12" />
     </DataTemplate>
 
+    <!-- The editors of the types this row is not are bound all the same and only hidden: the stack drops a hidden
+         child from the layout and hands its room to the ones left, so the editor in use fills the slot on its own
+         (and a two component value splits it between its two boxes). -->
     <DataTemplate DataType="PropertyRow">
-      <Field LabelText="{Binding Label}" LabelWidth="0.12" ControlWidth="0.86">
-        <TextBox Text="{Binding ComponentName, Mode=TwoWay}" Width="0.24" />
-        <Button Literal="..." Command="{Binding BrowseComponentCommand}" Width="0.08" Skin="GUIButtonSmall" />
-        <TextBox Text="{Binding PropertyName, Mode=TwoWay}" Width="0.22" />
-        <Button Literal="..." Command="{Binding BrowsePropertyCommand}" Width="0.08" Skin="GUIButtonSmall" />
-        <TextBox Text="{Binding Value, Mode=TwoWay}" Width="0.24" />
-        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.12" />
+      <Field LabelText="{Binding Label}" LabelWidth="0.07" ControlWidth="0.91">
+        <Button Text="{Binding ComponentLabel}" Command="{Binding BrowseComponentCommand}" Width="0.24" Height="1"
+                Skin="GUITextBoxNoIcon" Scale="False" />
+        <Button Text="{Binding PropertyLabel}" Command="{Binding BrowsePropertyCommand}" Width="0.26" Height="1"
+                Skin="GUITextBoxNoIcon" Scale="False" />
+        <Stack Orientation="Horizontal" Width="0.36" Height="1" ChildAnchor="CenterLeft">
+          <TextBox Text="{Binding FloatText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsFloat}"
+                   Width="1*" Height="1" />
+          <Number Value="{Binding IntValue, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+                  Step="{Binding Step}" Visible="{Binding IsInt}" Width="1*" Height="1" />
+          <TextBox Text="{Binding Text, Mode=TwoWay}" Visible="{Binding IsText}" Width="1*" Height="1" />
+          <Tick Selected="{Binding Checked, Mode=TwoWay}" Visible="{Binding IsBool}" Width="1*" Height="1" />
+          <TextBox Text="{Binding VectorXText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
+                   Width="1*" Height="1" />
+          <TextBox Text="{Binding VectorYText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
+                   Width="1*" Height="1" />
+          <Number Value="{Binding PointX, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+                  Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
+          <Number Value="{Binding PointY, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+                  Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
+          <Button Text="{Binding EnumLabel}" Command="{Binding BrowseEnumCommand}" Visible="{Binding IsEnum}"
+                  Width="1*" Height="1" Skin="GUITextBoxNoIcon" Scale="False" />
+          <ColorSwatch Color="{Binding Swatch}" Label="{Binding ColorLabel}" Command="{Binding PickColorCommand}"
+                       Visible="{Binding IsColor}" Width="1*" Height="1" />
+        </Stack>
+        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.14" Height="1" />
       </Field>
     </DataTemplate>
 
@@ -74,47 +96,67 @@
         Command="{Binding SelectCommand}" SecondaryCommand="{Binding OpenMenuCommand}" Height="row" />
     </DataTemplate>
   </Stack.Resources>
-  <!-- Title band. A plain panel rather than a stack: only outside a layout group does the close button's
-       Align anchor put it on the right edge. The drag area is its own panel so that the (invisible, but
-       clickable) drag handle never covers the close button. -->
-  <Panel Skin="None" Height="8*">
-    <Panel Name="DragArea" Skin="None" Width="0.84" Height="1" Align="CenterLeft">
+  <!-- Title band: the title, the function entries right behind it, the drag area and the close button take the band
+       in that order. It is a stack because the four regions divide the axis in sequence, and the drag area is the
+       share that soaks up what the fixed regions leave, which is what keeps the close button on the right edge. The
+       drag area is its own panel so that the (invisible, but clickable) drag handle never covers the entries or the
+       close button, and the entries sit flush because the stack puts no spacing between them. -->
+  <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
+    <Panel Skin="None" Width="0.24" Height="1">
       <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
     </Panel>
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.16" Height="0.6"
-            Align="CenterRight" />
+    <Row Text="{Binding Functions.SpawnTab.Label}" Selected="{Binding Functions.SpawnTab.IsActive}"
+         Command="{Binding Functions.SpawnTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
+         Width="0.17" Height="0.6" />
+    <Row Text="{Binding Functions.AfflictionsTab.Label}" Selected="{Binding Functions.AfflictionsTab.IsActive}"
+         Command="{Binding Functions.AfflictionsTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
+         Width="0.17" Height="0.6" />
+    <Panel Name="DragArea" Skin="None" Width="1*" Height="1" />
+    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.16" Height="0.6" />
+  </Stack>
+
+  <!-- The spawn function's area: everything below the title band belongs to it, so a switch takes the whole area
+       away and hands its room to the other function. The shares inside (75/9/8 of the area) keep the band sizes the
+       window had before there were function areas. -->
+  <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowSpawn}">
+
+    <!-- body: the spawn set tree and the editor -->
+    <Stack Orientation="Horizontal" Height="75*">
+      <Panel Skin="InnerFrame" Width="36*">
+        <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
+      </Panel>
+
+      <Panel Skin="InnerFrame" Width="64*">
+        <List Items="{Binding Spawn.Editor.Rows}" Height="1" Spacing="4" />
+      </Panel>
+    </Stack>
+
+    <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
+         be done with it -->
+    <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft">
+      <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
+        <TextBox Text="{Binding Spawn.PresetName, Mode=TwoWay}" Width="1" />
+      </Field>
+      <Button Text="sandboxmenu.preset.save" Command="{Binding Spawn.SavePresetCommand}" Width="0.15" Height="0.66" />
+      <Button Text="sandboxmenu.preset.load" Command="{Binding Spawn.LoadPresetCommand}" Width="0.15" Height="0.66" />
+      <Button Text="sandboxmenu.preset.reload" Command="{Binding Spawn.ReloadPresetCommand}" Width="0.15" Height="0.66" />
+      <Button Text="sandboxmenu.preset.open" Command="{Binding Spawn.OpenPresetCommand}" Width="0.15" Height="0.66" />
+    </Stack>
+
+    <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
+    <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
+      <Button Text="sandboxmenu.clear" Command="{Binding Spawn.ClearSetCommand}" Width="15*" Height="0.66" />
+      <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
+              Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
+      <Button Text="sandboxmenu.spawnatcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
+      <Text Text="{Binding Spawn.Status}" FontSize="18" Width="45*" Color="Accent" Padding="8" />
+    </Stack>
+  </Stack>
+
+  <!-- The affliction function's area: a placeholder until the browsing and the control are built. -->
+  <Panel Skin="InnerFrame" Height="92*" Visible="{Binding Functions.ShowAfflictions}">
+    <Text Text="sandboxmenu.function.afflictions.placeholder" FontSize="22" Width="0.8" Height="0.2"
+          Align="Center" TextAlign="Center" Wrap="True" />
   </Panel>
-
-  <!-- body: the spawn set tree and the editor -->
-  <Stack Orientation="Horizontal" Height="75*">
-    <Panel Skin="InnerFrame" Width="36*">
-      <List Items="{Binding Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
-    </Panel>
-
-    <Panel Skin="InnerFrame" Width="64*">
-      <List Items="{Binding Editor.Rows}" Height="1" Spacing="4" />
-    </Panel>
-  </Stack>
-
-  <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
-       be done with it -->
-  <Stack Orientation="Horizontal" Height="0.09" ChildAnchor="CenterLeft">
-    <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
-      <TextBox Text="{Binding PresetName, Mode=TwoWay}" Width="1" />
-    </Field>
-    <Button Text="sandboxmenu.preset.save" Command="{Binding SavePresetCommand}" Width="0.15" Height="0.66" />
-    <Button Text="sandboxmenu.preset.load" Command="{Binding LoadPresetCommand}" Width="0.15" Height="0.66" />
-    <Button Text="sandboxmenu.preset.reload" Command="{Binding ReloadPresetCommand}" Width="0.15" Height="0.66" />
-    <Button Text="sandboxmenu.preset.open" Command="{Binding OpenPresetCommand}" Width="0.15" Height="0.66" />
-  </Stack>
-
-  <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
-  <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
-    <Button Text="sandboxmenu.clear" Command="{Binding ClearSetCommand}" Width="15*" Height="0.66" />
-    <Button Text="sandboxmenu.give" Command="{Binding SpawnIntoInventoryCommand}" Shortcut="{Binding GiveShortcut}"
-            Width="26*" Height="0.66" />
-    <Button Text="sandboxmenu.spawnatcursor" Command="{Binding SpawnAtCursorCommand}" Width="21*" Height="0.66" />
-    <Text Text="{Binding Status}" FontSize="18" Width="45*" Color="Accent" Padding="8" />
-  </Stack>
 
 </Stack>

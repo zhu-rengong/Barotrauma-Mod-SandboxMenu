@@ -16,6 +16,8 @@ internal interface IDialogHost
 
     void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2 position);
 
+    void ShowColorPicker(Color current, Action<Color> onPicked);
+
     void PickWorldPosition(Action<Vector2> onPicked);
 }
 

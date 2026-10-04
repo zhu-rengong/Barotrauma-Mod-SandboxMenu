@@ -1,0 +1,54 @@
+<Stack Orientation="Vertical">
+
+  <!-- The band has to hold the close button whole: at 8* of a window this short the button's own text reached past it
+       and the picker below covered the rest. -->
+  <Panel Skin="None" Height="16*">
+    <Text Text="sandboxmenu.colorpick.title" Font="SubHeading" FontSize="22" Width="0.72" Height="1" Padding="8" />
+    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.26" Height="0.8"
+            Align="CenterRight" />
+  </Panel>
+
+  <!-- The picker hands the colour it is dragged to back to the view model; the colour it is given sets where it sits. -->
+  <ColorPicker Color="{Binding Color}" Changed="{Binding Picked}" Height="46*" Width="0.9" />
+
+  <!-- The two field rows sit on the same four columns, so the hue lines up over the red channel and so on. -->
+  <Stack Orientation="Horizontal" Height="14*" ChildAnchor="CenterLeft">
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="H" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Hue, Mode=TwoWay}" Min="0" Max="360" Decimals="0" Width="0.7" />
+    </Stack>
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="S" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Saturation, Mode=TwoWay, Converter=Percent}" Min="0" Max="100" Decimals="0" Width="0.7" />
+    </Stack>
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="V" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Brightness, Mode=TwoWay, Converter=Percent}" Min="0" Max="100" Decimals="0" Width="0.7" />
+    </Stack>
+  </Stack>
+
+  <Stack Orientation="Horizontal" Height="14*" ChildAnchor="CenterLeft">
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="R" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Red, Mode=TwoWay}" Integer="True" Min="0" Max="255" Width="0.7" />
+    </Stack>
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="G" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Green, Mode=TwoWay}" Integer="True" Min="0" Max="255" Width="0.7" />
+    </Stack>
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="B" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Blue, Mode=TwoWay}" Integer="True" Min="0" Max="255" Width="0.7" />
+    </Stack>
+    <Stack Orientation="Horizontal" Width="0.25" Height="1" ChildAnchor="CenterLeft">
+      <Text Literal="A" Width="0.2" Height="1" Wrap="False" Padding="4" />
+      <Number Value="{Binding Alpha, Mode=TwoWay}" Integer="True" Min="0" Max="255" Width="0.7" />
+    </Stack>
+  </Stack>
+
+  <!-- Any way of writing a colour the host reads: #RRGGBB, #RRGGBBAA, or decimal channels. -->
+  <Stack Orientation="Horizontal" Height="14*" ChildAnchor="CenterLeft">
+    <TextBox Text="{Binding Hex, Mode=TwoWay}" Committed="{Binding Commit}" Width="0.72" />
+  </Stack>
+
+</Stack>

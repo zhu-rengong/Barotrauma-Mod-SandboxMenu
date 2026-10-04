@@ -141,8 +141,12 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 editor,
                 index,
                 target,
+                PropertyOverrideCatalog.TargetLabel(item.Identifier, target.ComponentName, target.ComponentIndex),
+                PropertyOverrideCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, target.PropertyName),
                 () => BrowseComponents(item, row),
                 () => BrowseProperties(item, row),
+                () => BrowseEnums(row),
+                () => PickColor(row),
                 () => FrameActions.Post(() =>
                 {
                     item.Properties.Remove(target);
@@ -178,7 +182,45 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
         menu.Host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.component"),
             PropertyOverrideCatalog.Targets(item.Identifier)
-                .Select(target => new PickerOption(target.Label, () => row.SetComponent(target))));
+                .Select(target => new PickerOption(target.Label, () => SetComponent(item, row, target))));
+    }
+
+    // The property stays only while the new component declares it the same way: the metadata behind the row's editor is
+    // taken again from the target the name would be read from.
+    private static void SetComponent(ItemEntry item, PropertyRow row, OverrideTarget target)
+        => row.SetComponent(
+            target,
+            PropertyOverrideCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, row.PropertyName));
+
+    private void BrowseEnums(PropertyRow? row)
+    {
+        if (row?.Descriptor is not { } declared || declared.Values.Length == 0) { return; }
+
+        // A flags enum holds several values at once, which the host's own editors draw as a set of tick boxes; a
+        // plain one is a single choice.
+        if (declared.Kind == PropertyKind.Flags)
+        {
+            menu.Host.ShowMultiPicker(
+                TextManager.Get("sandboxmenu.browse.enumvalue"),
+                declared.Values.Select(value => new PickerToggle(
+                    value,
+                    () => row.HasEnumFlag(value),
+                    on => row.SetEnumFlag(value, on))));
+
+            return;
+        }
+
+        menu.Host.ShowOptions(
+            TextManager.Get("sandboxmenu.browse.enumvalue"),
+            declared.Values.Select(value => new PickerOption(value, () => row.SetEnumValue(value))),
+            filterable: true);
+    }
+
+    private void PickColor(PropertyRow? row)
+    {
+        if (row is null) { return; }
+
+        menu.Host.ShowColorPicker(row.Swatch, color => row.Swatch = color);
     }
 
     private void BrowseEquipSlots(ItemEntry item, SlotRow? row)

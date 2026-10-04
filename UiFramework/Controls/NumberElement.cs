@@ -31,21 +31,52 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
     {
         set
         {
-            if (_integer) { _input.IntValue = (int)MathF.Round(value); }
+            if (_integer) { _input.IntValue = ToInt(value); }
             else { _input.FloatValue = value; }
         }
     }
 
     [ElementProperty]
-    public float Step { set => _input.ValueStep = value; }
+    public float Step
+    {
+        set
+        {
+            if (Math.Abs(_input.ValueStep - value) < 0.0001f) { return; }
+
+            _input.ValueStep = value;
+        }
+    }
+
+    // The host reformats the box whenever the decimals are set, even to the number they already are, and a binding
+    // that is re-read writes them again: without this guard the text under the caret is reformatted as it is typed.
+    [ElementProperty]
+    public int Decimals
+    {
+        set
+        {
+            if (_input.DecimalsToDisplay == value) { return; }
+
+            _input.DecimalsToDisplay = value;
+        }
+    }
 
     [ElementProperty]
     public float Min
     {
         set
         {
-            if (_integer) { _input.MinValueInt = (int)value; }
-            else { _input.MinValueFloat = value; }
+            if (_integer)
+            {
+                int minimum = ToInt(value);
+                if (_input.MinValueInt == minimum) { return; }
+
+                _input.MinValueInt = minimum;
+                return;
+            }
+
+            if (_input.MinValueFloat == value) { return; }
+
+            _input.MinValueFloat = value;
         }
     }
 
@@ -54,8 +85,18 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
     {
         set
         {
-            if (_integer) { _input.MaxValueInt = (int)value; }
-            else { _input.MaxValueFloat = value; }
+            if (_integer)
+            {
+                int maximum = ToInt(value);
+                if (_input.MaxValueInt == maximum) { return; }
+
+                _input.MaxValueInt = maximum;
+                return;
+            }
+
+            if (_input.MaxValueFloat == value) { return; }
+
+            _input.MaxValueFloat = value;
         }
     }
 
@@ -73,4 +114,11 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
     }
 
     private static bool IsInteger(ElementContext context) => ViewMarkup.ToBool(context.Text("Integer"), false);
+
+    // A bound handed over as a float cannot be cast straight back: int.MaxValue is not representable as one, so the
+    // cast would land on int.MinValue and clip every value a box without a bound shows.
+    private static int ToInt(float value)
+        => value >= int.MaxValue ? int.MaxValue
+            : value <= int.MinValue ? int.MinValue
+            : (int)MathF.Round(value);
 }

@@ -10,7 +10,11 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     private readonly string _hintKey;
     private RichString _text = string.Empty;
     private RichString? _shortcut;
+    private RichString? _toolTip;
     private float _scale;
+    private bool _scalable;
+    private float _indent;
+    private Alignment _alignment = Alignment.Center;
     private ICommand? _command;
 
     public ButtonElement(ElementContext context)
@@ -27,10 +31,12 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         _hintKey = context.Skin is "" ? "sandboxmenu.shortcut.hint.dark" : "sandboxmenu.shortcut.hint";
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
-        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(context.Metric("Indent", 0f)), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
-        button.TextBlock.AutoScaleHorizontal = ViewMarkup.ToBool(context.Text("Scale"), true);
+        _indent = context.Metric("Indent", 0f);
+        _alignment = ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center);
+
+        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(_indent), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
         button.TextBlock.TextScale = _scale;
-        button.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center);
+        SetScale(ViewMarkup.ToBool(context.Text("Scale"), true));
 
         button.OnClicked = (_, _) =>
         {
@@ -83,6 +89,19 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     }
 
     [ElementProperty]
+    public RichString? ToolTip
+    {
+        set
+        {
+            _toolTip = value;
+            ApplyToolTip();
+        }
+    }
+
+    [ElementProperty]
+    public bool Scale { set => SetScale(value); }
+
+    [ElementProperty]
     public float FontSize
     {
         set
@@ -95,7 +114,11 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     [ElementProperty]
     public string TextAlign
     {
-        set => _button.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(value, Alignment.Center);
+        set
+        {
+            _alignment = ViewMarkup.AlignmentOf(value, Alignment.Center);
+            ApplyAlignment();
+        }
     }
 
     public void SetCommand(ICommand? command)
@@ -126,5 +149,36 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     {
         _button.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, _hintKey);
         _button.TextBlock.TextScale = _scale;
+        ApplyToolTip();
+    }
+
+    // A button that may not shrink its text is the one whose text may not fit: what does not fit is clipped, and the
+    // whole of it is shown on hover instead.
+    private void SetScale(bool scalable)
+    {
+        _scalable = scalable;
+        _button.TextBlock.AutoScaleHorizontal = scalable;
+        _button.TextBlock.OverflowClip = !scalable;
+        ApplyAlignment();
+        ApplyToolTip();
+    }
+
+    // A button that may not shrink its text keeps it against its left edge: the host centres such a text on the whole
+    // rect, so it would run over the button on both sides before a clip could take it.
+    private void ApplyAlignment()
+    {
+        GUITextBlock block = _button.TextBlock;
+        block.TextAlignment = _scalable ? _alignment : Alignment.Left;
+
+        if (_scalable) { return; }
+
+        block.Padding = new Vector4(UiMetrics.Dip(_indent > 0f ? _indent : UiMetrics.Pad), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
+    }
+
+    private void ApplyToolTip()
+    {
+        if (_toolTip is null && _scalable) { return; }
+
+        _button.ToolTip = _toolTip ?? _text;
     }
 }

@@ -2,6 +2,9 @@
 <infotexts language="Simplified Chinese" nowhitespace="true" translatedname="中文（简体）">
   <sandboxmenu.title>沙盒菜单</sandboxmenu.title>
   <sandboxmenu.close>关闭</sandboxmenu.close>
+  <sandboxmenu.function.spawn>物品生成</sandboxmenu.function.spawn>
+  <sandboxmenu.function.afflictions>状态效果</sandboxmenu.function.afflictions>
+  <sandboxmenu.function.afflictions.placeholder>状态效果的浏览与控制尚未实现。</sandboxmenu.function.afflictions.placeholder>
   <sandboxmenu.give>生成到背包</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>生成到鼠标位置</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>未选中条目。在左侧列表的空白处点击鼠标右键即可打开菜单，添加物品或模板引用。</sandboxmenu.empty>
@@ -73,6 +76,8 @@
   <sandboxmenu.browse>选择物品</sandboxmenu.browse>
   <sandboxmenu.browse.component>选择组件</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>选择属性</sandboxmenu.browse.property>
+  <sandboxmenu.browse.enumvalue>选择取值</sandboxmenu.browse.enumvalue>
+  <sandboxmenu.colorpick.title>选择颜色</sandboxmenu.colorpick.title>
   <sandboxmenu.pick.itemitself>（物品自身）</sandboxmenu.pick.itemitself>
   <sandboxmenu.pick.noproperties>该目标没有可覆盖的属性。</sandboxmenu.pick.noproperties>
   <sandboxmenu.picker.hint>左键在此生成，右键或 Esc 取消</sandboxmenu.picker.hint>

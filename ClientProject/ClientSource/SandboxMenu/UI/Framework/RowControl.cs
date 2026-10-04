@@ -9,6 +9,9 @@ internal sealed class RowControl : GUIButton
 {
     private const string BaseStyle = "GUIButton";
 
+    // Which edge the selection mark sits on: a tree row marks its left, a function tab underlines its bottom.
+    internal Anchor SelectedBar { get; set; } = Anchor.CenterLeft;
+
     internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment)
         : base(rectT, text, alignment, BaseStyle)
     {
@@ -52,18 +55,25 @@ internal sealed class RowControl : GUIButton
 
             if (Selected)
             {
-                GUI.DrawRectangle(
-                    spriteBatch,
-                    new Rectangle(rect.X, rect.Y, UiMetrics.DipInt(Theme.SelectedBarWidth), rect.Height),
-                    Theme.Accent,
-                    true,
-                    0f,
-                    1f);
+                GUI.DrawRectangle(spriteBatch, SelectedBarRect(rect), Theme.Accent, true, 0f, 1f);
             }
         }
         catch (Exception e)
         {
             Log.Warn("Painting a list row failed", e);
         }
+    }
+
+    private Rectangle SelectedBarRect(Rectangle rect)
+    {
+        int thickness = Math.Max(1, UiMetrics.DipInt(Theme.SelectedBarWidth));
+
+        return SelectedBar switch
+        {
+            Anchor.TopLeft or Anchor.TopCenter or Anchor.TopRight => new Rectangle(rect.X, rect.Y, rect.Width, thickness),
+            Anchor.CenterRight => new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height),
+            Anchor.BottomLeft or Anchor.BottomCenter or Anchor.BottomRight => new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness),
+            _ => new Rectangle(rect.X, rect.Y, thickness, rect.Height)
+        };
     }
 }

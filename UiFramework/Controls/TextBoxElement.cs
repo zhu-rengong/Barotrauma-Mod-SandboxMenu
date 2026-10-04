@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework.Input;
+
 namespace UiFramework.Controls;
 
 [Element("TextBox")]
@@ -8,6 +10,8 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
     private Action<object?>? _changed;
     private Action<object?>? _focusChanged;
     private GUITextBox.OnTextChangedHandler? _onTextChanged;
+    private Action? _committed;
+    private bool _commitWired;
 
     public TextBoxElement(ElementContext context)
         : base(new GUITextBox(
@@ -41,6 +45,31 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
             if (value) { _view.FocusAfterClick(FocusBox); }
         }
     }
+
+    // Asked for when the box is done with an edit: the source is given the chance to hand back what it actually holds,
+    // so text that was not taken (or was taken in another spelling) is replaced by the value that stands.
+    [ElementProperty]
+    public Action? Committed
+    {
+        set
+        {
+            _committed = value;
+
+            if (_commitWired || value is null) { return; }
+
+            _commitWired = true;
+            _box.OnEnterPressed = OnBoxEnterPressed;
+            _box.OnDeselected += OnBoxDeselected;
+        }
+    }
+
+    private bool OnBoxEnterPressed(GUITextBox box, string text)
+    {
+        _committed?.Invoke();
+        return true;
+    }
+
+    private void OnBoxDeselected(GUITextBox box, Keys key) => _committed?.Invoke();
 
     private void FocusBox()
     {
@@ -78,11 +107,21 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
     public void Dispose()
     {
         _focusChanged = null;
+        _committed = null;
 
-        if (_onTextChanged is not { } handler) { return; }
+        if (_commitWired)
+        {
+            _commitWired = false;
+            _box.OnEnterPressed = null;
+            _box.OnDeselected -= OnBoxDeselected;
+        }
 
-        _box.OnTextChanged -= handler;
-        _onTextChanged = null;
+        if (_onTextChanged is { } handler)
+        {
+            _box.OnTextChanged -= handler;
+            _onTextChanged = null;
+        }
+
         _changed = null;
     }
 }

@@ -19,7 +19,7 @@ internal sealed class MarkupWindow : IDialogWindow
         _size = size;
         _order = updateOrder;
 
-        Point fit = Fit(size, GUI.Canvas.Rect);
+        Point fit = WindowDraw.Fit(size, GUI.Canvas.Rect);
         _frame = new GUIFrame(new RectTransform(fit, GUI.Canvas, Anchor.Center, null, ScaleBasis.Normal, isFixedSize: true), "GUIFrame")
         {
             Visible = false,
@@ -84,32 +84,7 @@ internal sealed class MarkupWindow : IDialogWindow
 
     public Rectangle Rect => _frame.Rect;
 
-    public void DrawInto(SpriteBatch spriteBatch, Point shift)
-    {
-        RectTransform transform = _frame.RectTransform;
-        Point original = transform.ScreenSpaceOffset;
-
-        try
-        {
-            transform.ScreenSpaceOffset = original + shift;
-            _frame.DrawManually(spriteBatch, alsoChildren: true, recursive: true);
-        }
-        finally
-        {
-            transform.ScreenSpaceOffset = original;
-
-            // DrawManually takes a component off the automatic draw pass so that it is not drawn twice; this draw is
-            // only a copy, so the window has to go back on it.
-            RestoreAutoDraw(_frame);
-        }
-    }
-
-    private static void RestoreAutoDraw(GUIComponent component)
-    {
-        component.AutoDraw = true;
-
-        foreach (RectTransform child in component.RectTransform.Children) { RestoreAutoDraw(child.GUIComponent); }
-    }
+    public void DrawInto(SpriteBatch spriteBatch, Point shift) => WindowDraw.DrawInto(_frame, spriteBatch, shift);
 
     internal void PositionAt(Vector2 position)
     {
@@ -117,7 +92,7 @@ internal sealed class MarkupWindow : IDialogWindow
         Rectangle bounds = GUI.Canvas.Rect;
 
         _frame.RectTransform.AbsoluteOffset +=
-            ClampToCanvas(new Point((int)position.X, (int)position.Y), current.Size, bounds) - current.Location;
+            WindowDraw.ClampToCanvas(new Point((int)position.X, (int)position.Y), current.Size, bounds) - current.Location;
     }
 
     public void Open()
@@ -185,25 +160,26 @@ internal sealed class MarkupWindow : IDialogWindow
         _view.Dispose();
     }
 
+    // A dialog on top takes the input: the window under it stays drawn but is kept out of the update pass, so a click
+    // that lands inside the dialog never also reaches the controls of the window behind it.
+    internal void SetInteractive(bool interactive) => SetAutoUpdate(_frame, interactive);
+
+    private static void SetAutoUpdate(GUIComponent component, bool enabled)
+    {
+        component.AutoUpdate = enabled;
+
+        foreach (RectTransform child in component.RectTransform.Children) { SetAutoUpdate(child.GUIComponent, enabled); }
+    }
+
     private void KeepOnScreen()
     {
         Rectangle canvas = GUI.Canvas.Rect;
-        Point fit = Fit(_size, canvas);
+        Point fit = WindowDraw.Fit(_size, canvas);
         if (_frame.RectTransform.NonScaledSize != fit) { _frame.RectTransform.NonScaledSize = fit; }
 
         if (_dragHandle is { } handle) { handle.DragArea = canvas; }
 
         Rectangle rect = _frame.Rect;
-        _frame.RectTransform.ScreenSpaceOffset += ClampToCanvas(rect.Location, rect.Size, canvas) - rect.Location;
+        _frame.RectTransform.ScreenSpaceOffset += WindowDraw.ClampToCanvas(rect.Location, rect.Size, canvas) - rect.Location;
     }
-
-    private static Point ClampToCanvas(Point location, Point size, Rectangle bounds)
-        => new(
-            Math.Clamp(location.X, bounds.X, Math.Max(bounds.X, bounds.Right - size.X)),
-            Math.Clamp(location.Y, bounds.Y, Math.Max(bounds.Y, bounds.Bottom - size.Y)));
-
-    private static Point Fit(Point size, Rectangle canvas)
-        => new(
-            Math.Clamp(size.X, 1, Math.Max(1, canvas.Width)),
-            Math.Clamp(size.Y, 1, Math.Max(1, canvas.Height)));
 }

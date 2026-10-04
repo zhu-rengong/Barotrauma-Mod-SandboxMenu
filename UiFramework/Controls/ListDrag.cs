@@ -34,13 +34,28 @@ internal sealed class ListDrag(ListBoxElement list)
         _background = dataContext as IListBackground;
     }
 
+    // A list inside a hidden function area keeps the rect it had and its drag code runs off the view's own frame
+    // actions rather than the host's update list, so the element chain is what knows the area went away.
+    private bool IsShown()
+    {
+        for (ViewElement? element = list; element is not null; element = element.Parent)
+        {
+            if (!element.Control.Visible) { return false; }
+        }
+
+        return true;
+    }
+
     internal void Update()
     {
-        if (_target is null || _view.IsInputBlocked()) { return; }
+        if (_view.IsInputBlocked()) { return; }
+
+        // An in-flight drag is let go even if its list was just switched away, so it always tidies up after itself.
+        if (IsDragging) { ContinueDrag(PlayerInput.MousePosition); return; }
+
+        if (!IsShown() || _target is null) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
-
-        if (IsDragging) { ContinueDrag(mouse); return; }
 
         if (!_listBox.Rect.Contains(mouse.ToPoint()))
         {
@@ -75,7 +90,7 @@ internal sealed class ListDrag(ListBoxElement list)
 
     internal void UpdateBackgroundClick()
     {
-        if (_view.IsInputBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
+        if (!IsShown() || _view.IsInputBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
 

@@ -7,7 +7,36 @@ namespace SandboxMenu.Domain.Prefabs;
 
 internal readonly record struct OverrideTarget(string ComponentName, int ComponentIndex, LocalizedString Label);
 
-internal sealed record PropertyOption(string Name, string TypeName, string DefaultValue, bool Editable, bool Saveable)
+// Which editor a property asks for. Anything the host's own editors do not treat specially lands in Text.
+internal enum PropertyKind
+{
+    Float,
+    Int,
+    Bool,
+    Text,
+    Vector2,
+    Point,
+    Color,
+
+    // A single value out of a list, and several of them: the host's own editors draw the first as a dropdown and the
+    // second as a set of tick boxes.
+    Enum,
+    Flags
+}
+
+// What a number editor takes from the property's [Editable] attribute, the same values the host's editors pass on:
+// an attribute that carries no bounds hands over the sentinels, which the host reads as "no limit" too.
+internal readonly record struct NumericRange(float Min, float Max, int Decimals, float Step);
+
+internal sealed record PropertyOption(
+    string Name,
+    string TypeName,
+    string DefaultValue,
+    bool Editable,
+    bool Saveable,
+    PropertyKind Kind,
+    NumericRange? Range,
+    ImmutableArray<string> Values)
 {
     public string Label => $"{Name} ({TypeName}) = {DefaultValue}";
 }
@@ -38,15 +67,51 @@ internal static class PropertyOverrideCatalog
         ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
         if (target.Type is not { } type) { return []; }
 
-        if (!_propertyCache.TryGetValue(type, out ImmutableArray<PropertyOption> declared))
-        {
-            declared = [.. DescribeProperties(type)];
-            _propertyCache[type] = declared;
-        }
+        ImmutableArray<PropertyOption> declared = Declared(type);
 
         return target.Element is not { } element
             ? declared
             : [.. declared.Select(option => AsDeclaredBy(option, element))];
+    }
+
+    // The metadata of the property an override already names, so a row loaded from a preset can put up the editor
+    // its type asks for instead of a plain text box.
+    internal static PropertyOption? Describe(string identifier, string componentName, int componentIndex, string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(propertyName)) { return null; }
+        if (Resolve(identifier, componentName, componentIndex).Type is not { } type) { return null; }
+
+        foreach (PropertyOption option in Declared(type))
+        {
+            if (string.Equals(option.Name, propertyName, StringComparison.OrdinalIgnoreCase)) { return option; }
+        }
+
+        return null;
+    }
+
+    internal static LocalizedString TargetLabel(string identifier, string componentName, int componentIndex)
+    {
+        int wanted = Math.Max(1, componentIndex);
+
+        foreach (OverrideTarget target in DescribeTargets((identifier ?? string.Empty).Trim()))
+        {
+            if (target.ComponentIndex != wanted) { continue; }
+            if (!string.Equals(target.ComponentName, componentName ?? string.Empty, StringComparison.OrdinalIgnoreCase)) { continue; }
+
+            return target.Label;
+        }
+
+        return string.IsNullOrEmpty(componentName) ? ItemItself.Label : componentName;
+    }
+
+    private static ImmutableArray<PropertyOption> Declared(Type type)
+    {
+        if (_propertyCache.TryGetValue(type, out ImmutableArray<PropertyOption> declared)) { return declared; }
+
+        declared = [.. DescribeProperties(type)];
+        _propertyCache[type] = declared;
+
+        return declared;
     }
 
     private static PropertyOption AsDeclaredBy(PropertyOption option, ContentXElement element)
@@ -98,12 +163,49 @@ internal static class PropertyOverrideCatalog
             bool editable = property.Attributes.OfType<Editable>().Any();
             bool saveable = serialize.IsSaveable == IsPropertySaveable.Yes;
 
-            options.Add(new PropertyOption(property.Name, kind, FormatDefault(serialize.DefaultValue), editable, saveable));
+            options.Add(new PropertyOption(
+                property.Name,
+                kind,
+                FormatDefault(serialize.DefaultValue),
+                editable,
+                saveable,
+                KindOf(typeName, property.PropertyType),
+                RangeOf(property, typeName),
+                ValuesOf(property.PropertyType)));
         }
 
         options.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return options;
     }
+
+    private static PropertyKind KindOf(string typeName, Type type) => typeName switch
+    {
+        "float" => PropertyKind.Float,
+        "int" => PropertyKind.Int,
+        "bool" => PropertyKind.Bool,
+        "vector2" => PropertyKind.Vector2,
+        "point" => PropertyKind.Point,
+        "color" => PropertyKind.Color,
+        "Enum" => type.IsDefined(typeof(FlagsAttribute), false) ? PropertyKind.Flags : PropertyKind.Enum,
+        _ => PropertyKind.Text
+    };
+
+    private static NumericRange? RangeOf(SerializableProperty property, string typeName)
+    {
+        if (property.Attributes.OfType<Editable>().FirstOrDefault() is not { } editable) { return null; }
+
+        float step = editable.ValueStep > 0f ? editable.ValueStep : 1f;
+
+        return typeName switch
+        {
+            "float" or "vector2" => new NumericRange(editable.MinValueFloat, editable.MaxValueFloat, Math.Max(1, editable.DecimalCount), step),
+            "int" or "point" => new NumericRange(editable.MinValueInt, editable.MaxValueInt, 0, step),
+            _ => null
+        };
+    }
+
+    private static ImmutableArray<string> ValuesOf(Type type)
+        => type.IsEnum ? [.. Enum.GetNames(type)] : [];
 
     private static string FormatDefault(object? value) => value switch
     {

@@ -2,6 +2,9 @@
 <infotexts language="English" nowhitespace="false" translatedname="English">
   <sandboxmenu.title>Sandbox Menu</sandboxmenu.title>
   <sandboxmenu.close>Close</sandboxmenu.close>
+  <sandboxmenu.function.spawn>Spawn items</sandboxmenu.function.spawn>
+  <sandboxmenu.function.afflictions>Afflictions</sandboxmenu.function.afflictions>
+  <sandboxmenu.function.afflictions.placeholder>Browsing and controlling a character's afflictions is not implemented yet.</sandboxmenu.function.afflictions.placeholder>
   <sandboxmenu.give>Spawn into inventory</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>Spawn at the cursor</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>Nothing is selected. Right-click the empty space in the list on the left to open the menu and add an item or a template reference.</sandboxmenu.empty>
@@ -73,6 +76,8 @@
   <sandboxmenu.browse>Select item</sandboxmenu.browse>
   <sandboxmenu.browse.component>Select component</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>Select property</sandboxmenu.browse.property>
+  <sandboxmenu.browse.enumvalue>Select value</sandboxmenu.browse.enumvalue>
+  <sandboxmenu.colorpick.title>Pick a color</sandboxmenu.colorpick.title>
   <sandboxmenu.pick.itemitself>The item itself</sandboxmenu.pick.itemitself>
   <sandboxmenu.pick.noproperties>This target has no property that can be overridden.</sandboxmenu.pick.noproperties>
   <sandboxmenu.picker.hint>Left click to spawn here, right click / Esc to cancel</sandboxmenu.picker.hint>

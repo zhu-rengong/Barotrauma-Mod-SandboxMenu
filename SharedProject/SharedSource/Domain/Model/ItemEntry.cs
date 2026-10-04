@@ -43,12 +43,16 @@ internal sealed class ItemEntry : SpawnEntry
         XmlValue.WriteBool(element, "install", Install);
         XmlValue.WriteBool(element, "inheritChannel", InheritChannel);
 
-        if (Properties.Count > 0)
+        XElement? properties = null;
+
+        foreach (PropertyOverride property in Properties)
         {
-            XElement properties = new("Properties");
-            foreach (PropertyOverride property in Properties) { properties.Add(property.ToXml()); }
-            element.Add(properties);
+            if (!property.IsNamed) { continue; }
+
+            (properties ??= new XElement("Properties")).Add(property.ToXml());
         }
+
+        if (properties is not null) { element.Add(properties); }
 
         if (Inventory.Count > 0)
         {
@@ -83,7 +87,10 @@ internal sealed class ItemEntry : SpawnEntry
         {
             foreach (XElement property in properties.Elements("Property"))
             {
-                entry.Properties.Add(PropertyOverride.FromXml(property));
+                PropertyOverride read = PropertyOverride.FromXml(property);
+                if (!read.IsNamed) { continue; }
+
+                entry.Properties.Add(read);
             }
         }
 

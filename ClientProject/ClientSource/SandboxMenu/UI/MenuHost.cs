@@ -22,7 +22,7 @@ internal sealed class MenuHost : IDialogHost
 
     public static MenuHost? Current => _instance;
 
-    private readonly SpawnMenuViewModel _viewModel;
+    private readonly SandboxMenuViewModel _viewModel;
     private readonly List<IDialogWindow> _popups = [];
 
     private MarkupWindow? _window;
@@ -31,10 +31,11 @@ internal sealed class MenuHost : IDialogHost
     private ItemBrowserViewModel? _browserModel;
 
     private int _popupGrace;
+    private bool _pressedInsidePopup;
     private bool _screenshotQueued;
     private Character? _hintedFor;
 
-    private MenuHost() => _viewModel = new SpawnMenuViewModel(this);
+    private MenuHost() => _viewModel = new SandboxMenuViewModel(this);
 
     public bool IsOpen => _window?.IsOpen == true;
 
@@ -55,7 +56,7 @@ internal sealed class MenuHost : IDialogHost
             _viewModel);
 
         // The window is kept between openings, so the key hints it shows are refreshed against the settings.
-        _viewModel.RefreshShortcuts();
+        _viewModel.Spawn.RefreshShortcuts();
 
         _window.Open();
     }
@@ -93,21 +94,24 @@ internal sealed class MenuHost : IDialogHost
     {
         if (!IsOpen || AnyPopupOpen()) { return; }
 
+        // The keys from here on act on the spawn set, which is not what the window shows while another function is up.
+        if (_viewModel.Functions.Active != MenuFunction.Spawn) { return; }
+
         if (PlayerInput.KeyHit(Keys.Up) || PlayerInput.KeyHit(Keys.Down))
         {
             int direction = PlayerInput.KeyHit(Keys.Up) ? -1 : 1;
             bool alt = PlayerInput.KeyDown(Keys.LeftAlt) || PlayerInput.KeyDown(Keys.RightAlt);
 
             // Alt reorders inside the list the entry lives in; the arrows on their own walk the list as it is shown.
-            if (alt) { _viewModel.MoveSelection(direction); }
-            else { _viewModel.StepSelection(direction); }
+            if (alt) { _viewModel.Spawn.MoveSelection(direction); }
+            else { _viewModel.Spawn.StepSelection(direction); }
         }
 
-        if (PlayerInput.KeyHit(Keys.Enter)) { _viewModel.FocusIdentifier(); }
+        if (PlayerInput.KeyHit(Keys.Enter)) { _viewModel.Spawn.FocusIdentifier(); }
 
         if (GUI.KeyboardDispatcher.Subscriber is not null) { return; }
 
-        if (PlayerInput.KeyHit(Keys.Delete)) { _viewModel.DeleteSelected(); }
+        if (PlayerInput.KeyHit(Keys.Delete)) { _viewModel.Spawn.DeleteSelected(); }
 
         if (PlayerInput.KeyHit(Keys.OemPlus) || PlayerInput.KeyHit(Keys.Add))
         {
@@ -115,11 +119,11 @@ internal sealed class MenuHost : IDialogHost
             // Shift it is nested inside it.
             bool child = PlayerInput.KeyDown(Keys.LeftShift) || PlayerInput.KeyDown(Keys.RightShift);
 
-            _viewModel.AddItem(child);
+            _viewModel.Spawn.AddItem(child);
         }
     }
 
-    internal void SpawnIntoInventory() => _viewModel.SpawnIntoInventoryCommand.Execute(null);
+    internal void SpawnIntoInventory() => _viewModel.Spawn.SpawnIntoInventoryCommand.Execute(null);
 
     // The capture is queued, not taken where the console runs it: the host lays its layout groups and lists out in
     // their own update, so a capture taken before that pass is served at the end of the frame instead.
@@ -142,11 +146,11 @@ internal sealed class MenuHost : IDialogHost
 
         if (drawn.Count == 0)
         {
-            _viewModel.Report(TextManager.Get("sandboxmenu.status.screenshotclosed"));
+            _viewModel.Spawn.Report(TextManager.Get("sandboxmenu.status.screenshotclosed"));
             return;
         }
 
-        ScreenshotWriter.Write(drawn, _viewModel.Report);
+        ScreenshotWriter.Write(drawn, _viewModel.Spawn.Report);
     }
 
     public void Close()
@@ -184,11 +188,11 @@ internal sealed class MenuHost : IDialogHost
 
     private void HandleNotices()
     {
-        if (ContentReload.TakeRebuild()) { _viewModel.ContentChanged(); }
+        if (ContentReload.TakeRebuild()) { _viewModel.Spawn.ContentChanged(); }
 
         if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
         {
-            _viewModel.ApplySpawnResult(status, queued, problems);
+            _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
         }
 
         if (!ScreenReload.TakeRebuild()) { return; }
@@ -203,7 +207,7 @@ internal sealed class MenuHost : IDialogHost
     private void ReleaseCachedContent()
     {
         DropWindows();
-        _viewModel.ReleaseContent();
+        _viewModel.Spawn.ReleaseContent();
     }
 
     private void DropWindows()
@@ -222,8 +226,29 @@ internal sealed class MenuHost : IDialogHost
     {
         MarkupWindow.InputBlocked = AnyPopupOpen();
 
+        TrackPopupPress();
+
         if (_popupGrace > 0) { _popupGrace--; }
         else { DismissPopupsOnOutsideClick(); }
+    }
+
+    // A click that began inside a dialog is not a click outside it, wherever the button ends up coming loose: dragging
+    // from the colour picker onto the window behind it used to close the picker.
+    private void TrackPopupPress()
+    {
+        if (!PlayerInput.PrimaryMouseButtonDown() && !PlayerInput.SecondaryMouseButtonDown()) { return; }
+
+        _pressedInsidePopup = IsInsidePopup(PlayerInput.MousePosition.ToPoint());
+    }
+
+    private bool IsInsidePopup(Point mouse)
+    {
+        foreach (IDialogWindow popup in _popups)
+        {
+            if (popup.IsOpen && popup.Rect.Contains(mouse)) { return true; }
+        }
+
+        return false;
     }
 
     private void UpdateViews()
@@ -245,12 +270,14 @@ internal sealed class MenuHost : IDialogHost
 
         _hintedFor = Character.Controlled;
 
-        _viewModel.RefreshHints();
+        _viewModel.Spawn.RefreshHints();
         _browserModel?.RefreshHints();
     }
 
     private void RegisterViews()
     {
+        // The dialog on top is what takes input; the menu stays drawn underneath it but stops being updated.
+        _window?.SetInteractive(!AnyPopupOpen());
         _window?.Register();
 
         for (int i = 0; i < _popups.Count; i++)
@@ -301,6 +328,13 @@ internal sealed class MenuHost : IDialogHost
 
         ShowPopup(new MarkupWindow("Options.xml", UiMetrics.DipSize(Theme.OptionsWidth, Theme.OptionsHeight), DialogOrder, viewModel));
     }
+
+    public void ShowColorPicker(Color current, Action<Color> onPicked)
+        => ShowPopup(new MarkupWindow(
+            "ColorPicker.xml",
+            UiMetrics.DipSize(Theme.ColorPickerWidth, Theme.ColorPickerHeight),
+            DialogOrder,
+            new ColorPickerViewModel(current, onPicked)));
 
     public void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2 position)
     {
@@ -362,13 +396,8 @@ internal sealed class MenuHost : IDialogHost
     {
         if (_popups.Count == 0) { return; }
         if (!PlayerInput.PrimaryMouseButtonClicked() && !PlayerInput.SecondaryMouseButtonClicked()) { return; }
-
-        Point mouse = PlayerInput.MousePosition.ToPoint();
-
-        foreach (IDialogWindow popup in _popups)
-        {
-            if (popup.IsOpen && popup.Rect.Contains(mouse)) { return; }
-        }
+        if (_pressedInsidePopup) { return; }
+        if (IsInsidePopup(PlayerInput.MousePosition.ToPoint())) { return; }
 
         ClosePopups();
     }

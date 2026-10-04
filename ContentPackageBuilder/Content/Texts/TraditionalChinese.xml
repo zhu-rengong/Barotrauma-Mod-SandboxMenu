@@ -2,6 +2,9 @@
 <infotexts language="Traditional Chinese" nowhitespace="true" translatedname="中文（繁體）">
   <sandboxmenu.title>沙盒選單</sandboxmenu.title>
   <sandboxmenu.close>關閉</sandboxmenu.close>
+  <sandboxmenu.function.spawn>物品生成</sandboxmenu.function.spawn>
+  <sandboxmenu.function.afflictions>狀態效果</sandboxmenu.function.afflictions>
+  <sandboxmenu.function.afflictions.placeholder>狀態效果的瀏覽與控制尚未實作。</sandboxmenu.function.afflictions.placeholder>
   <sandboxmenu.give>生成到背包</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>生成到滑鼠位置</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>未選中條目。在左側清單的空白處點擊滑鼠右鍵即可開啟選單，新增物品或模板引用。</sandboxmenu.empty>
@@ -67,6 +70,8 @@
   <sandboxmenu.browse>選擇物品</sandboxmenu.browse>
   <sandboxmenu.browse.component>選擇組件</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>選擇屬性</sandboxmenu.browse.property>
+  <sandboxmenu.browse.enumvalue>選擇取值</sandboxmenu.browse.enumvalue>
+  <sandboxmenu.colorpick.title>選擇顏色</sandboxmenu.colorpick.title>
   <sandboxmenu.pick.itemitself>（物品自身）</sandboxmenu.pick.itemitself>
   <sandboxmenu.pick.noproperties>該目標沒有可覆蓋的屬性。</sandboxmenu.pick.noproperties>
   <sandboxmenu.picker.hint>左鍵在此生成，右鍵或 Esc 取消</sandboxmenu.picker.hint>
