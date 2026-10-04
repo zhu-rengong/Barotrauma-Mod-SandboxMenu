@@ -21,7 +21,9 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         _input = (GUINumberInput)Control;
         _integer = integer;
 
-        _input.ValueStep = context.Metric("Step", 1f);
+        // Only a literal step is read here: a bound one arrives through the property below, and the placement reader
+        // would report its binding text as a bad DIP length.
+        if (context.Node.Value("Step")?.Extension is null) { _input.ValueStep = context.Metric("Step", 1f); }
 
         _input.OnValueChanged = _ => _changed?.Invoke(_integer ? _input.IntValue : _input.FloatValue);
     }

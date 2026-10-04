@@ -40,10 +40,14 @@ internal sealed class SwatchButton : GUIButton
 
     internal Color Swatch { get; set; } = Color.White;
 
-    // What reads on a filled chip: the far end of the colour, by how light it is. The border is drawn in it too, so a
-    // pale colour gets a dark frame and a dark one a pale frame.
+    // What reads on a filled chip: the far end of the colour by how light it looks through the dark window behind it. A
+    // colour that lets more of that window through is darker itself, so its label turns light along with it.
     internal static Color Contrast(Color color)
-        => (0.299f * color.R + 0.587f * color.G + 0.114f * color.B) / 255f > 0.55f ? Color.Black : Color.White;
+    {
+        float shown = (0.299f * color.R + 0.587f * color.G + 0.114f * color.B) / 255f * (color.A / 255f);
+
+        return shown > 0.55f ? Color.Black : Color.White;
+    }
 
     public override void Draw(SpriteBatch spriteBatch)
     {

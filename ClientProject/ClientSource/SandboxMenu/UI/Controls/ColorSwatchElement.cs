@@ -52,8 +52,4 @@ internal sealed class ColorSwatchElement : ViewElement, IDisposable
         _button.OnClicked = null;
         _command = null;
     }
-
-    // Readability on a filled button: a light swatch takes dark text and the other way round.
-    private static Color TextColorFor(Color color)
-        => (0.299f * color.R + 0.587f * color.G + 0.114f * color.B) / 255f > 0.55f ? Color.Black : Color.White;
 }
