@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>UiFramework</RootNamespace>
+    <AssemblyName>UiFramework</AssemblyName>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Authors />
+    <!-- Matches the mod's own setting: the host assemblies this framework compiles against are the publicized ones. -->
+    <UsePublicizedAssemblies Condition="'$(UsePublicizedAssemblies)' == ''">true</UsePublicizedAssemblies>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- The host's reference package picks its platform assemblies by these two, and a project reference does not
+         carry them from the mod: the framework is client-only and reads the platform off the runtime it builds for. -->
+    <BuildTarget>Client</BuildTarget>
+    <_UiPlatform>$(RuntimeIdentifier)</_UiPlatform>
+    <_UiPlatform Condition="'$(_UiPlatform)' == 'win-x64'">Windows</_UiPlatform>
+    <_UiPlatform Condition="'$(_UiPlatform)' == 'linux-x64'">Linux</_UiPlatform>
+    <_UiPlatform Condition="'$(_UiPlatform)' == 'osx-x64'">Mac</_UiPlatform>
+    <_UiPlatform Condition="'$(_UiPlatform)' == ''">Windows</_UiPlatform>
+    <PlatformName Condition="'$(PlatformName)' == ''">$(_UiPlatform)</PlatformName>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsePublicizedAssemblies)' != 'true'">
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Vanilla" Version="*-*" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UsePublicizedAssemblies)' == 'true'">
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Vanilla.Publicized" Version="*-*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
+    <PackageReference Include="Barotrauma.ReferenceAssemblies.Libraries" Version="*-*" />
+    <!-- Declares IgnoresAccessChecksToAttribute, which GlobalUsings.cs needs; the mod keeps the same reference for the same reason. -->
+    <PackageReference Include="HarmonyX" Version="2.15.0" />
+  </ItemGroup>
+</Project>

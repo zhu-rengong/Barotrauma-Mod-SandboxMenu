@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Tile")]
-internal sealed class TileElement : ViewElement, IDisposable
+public sealed class TileElement : ViewElement, IDisposable
 {
     private const float IconExtent = 0.86f;
 

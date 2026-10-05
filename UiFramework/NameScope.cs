@@ -1,6 +1,6 @@
 namespace UiFramework;
 
-internal sealed class NameScope
+public sealed class NameScope
 {
     private readonly Dictionary<string, ViewElement> _elements = new(StringComparer.Ordinal);
 
@@ -11,5 +11,5 @@ internal sealed class NameScope
         diagnostics.Report($"the name '{name}' is used twice", node);
     }
 
-    internal ViewElement? Find(string name) => _elements.GetValueOrDefault(name);
+    public ViewElement? Find(string name) => _elements.GetValueOrDefault(name);
 }

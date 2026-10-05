@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using Microsoft.Xna.Framework.Graphics;
 using UiFramework.Styling;
 
@@ -5,15 +6,17 @@ namespace UiFramework;
 
 // One loaded view: the tree it built, the text it was given, and the building scopes that own everything hanging
 // off it.
-internal sealed class ViewContext : IDisposable
+public sealed class ViewContext : IDisposable
 {
     private readonly List<ViewScope> _scopes = [];
     private readonly List<ViewScope> _building;
     private readonly List<Action> _queuedOnce = [];
     private readonly List<Action> _firingOnce = [];
     private readonly List<Action> _focusOnOpen = [];
+    private readonly List<Input.KeyBinding> _inputs = [];
 
     private Action<string>? _diagnosticSink;
+    private ICommand? _closeCommand;
 
     internal ViewContext(string view)
     {
@@ -29,7 +32,7 @@ internal sealed class ViewContext : IDisposable
 
     internal MarkupDiagnostics Diagnostics { get; }
 
-    internal NameScope Names { get; } = new();
+    public NameScope Names { get; } = new();
 
     internal object? DataContext { get; set; }
 
@@ -37,7 +40,10 @@ internal sealed class ViewContext : IDisposable
 
     internal ViewElement? Root { get; set; }
 
-    internal Action<string>? DiagnosticSink
+    // What the view was built as, for a shell that has to hold on to it (its window frame, its size).
+    public ViewElement? RootElement => Root;
+
+    public Action<string>? DiagnosticSink
     {
         get => _diagnosticSink;
         set
@@ -47,25 +53,44 @@ internal sealed class ViewContext : IDisposable
         }
     }
 
-    internal Func<bool> IsInputBlocked { get; set; } = static () => false;
+    public Func<bool> IsInputBlocked { get; set; } = static () => false;
 
-    internal Action<Action> Dispatch { get; set; } = static work => work();
+    // What closing this view means, and how a region of it is turned into a drag handle that moves the window: both
+    // are the shell's, and markup asks for them by name (CloseView / Drag) rather than reaching for controls after
+    // the tree has been built.
+    public Action? Close { get; set; }
 
-    internal List<Action<SpriteBatch>> Overlays { get; } = [];
+    public Action<RectTransform, RectTransform>? MakeDraggable { get; set; }
+
+    public ICommand CloseCommand => _closeCommand ??= new ViewCommand(() => Close?.Invoke());
+
+    // The window this view was built in, when it starts with one: the drag handle moves that frame.
+    internal Controls.WindowElement? Window { get; set; }
+
+    internal void AttachDrag(RectTransform region)
+    {
+        if (Window is not { } window) { return; }
+
+        MakeDraggable?.Invoke(region, window.Frame.RectTransform);
+    }
+
+    public Action<Action> Dispatch { get; set; } = static work => work();
+
+    public List<Action<SpriteBatch>> Overlays { get; } = [];
 
     private ViewScope? Current => _building.Count > 0 ? _building[^1] : null;
 
-    internal void EveryFrame(Action action) => Current?.EveryFrame(action);
+    public void EveryFrame(Action action) => Current?.EveryFrame(action);
 
-    internal void Once(Action action) => _queuedOnce.Add(action);
+    public void Once(Action action) => _queuedOnce.Add(action);
 
     internal void FocusOnOpen(Action focus) => _focusOnOpen.Add(focus);
 
     // A focus asked for while the view is up waits for the click in flight to end: a text box clears itself when
     // the click lands somewhere else and would take the keyboard right back.
-    internal void FocusAfterClick(Action focus) => FocusOnClickEnd(focus);
+    public void FocusAfterClick(Action focus) => FocusOnClickEnd(focus);
 
-    internal void RequestFocus()
+    public void RequestFocus()
     {
         for (int i = 0; i < _focusOnOpen.Count; i++) { FocusOnClickEnd(_focusOnOpen[i]); }
     }
@@ -78,10 +103,40 @@ internal sealed class ViewContext : IDisposable
             return;
         }
 
-        Guard.Run(focus);
+        UiGuard.Run(focus);
     });
 
-    internal void RunFrameActions()
+    internal void RegisterInput(Input.KeyBinding binding) => _inputs.Add(binding);
+
+    // Runs the keys the view declares: the ones whose area is in sight, and where a key is spelled twice the more
+    // specific modifier wins over the plain one (the arrows walk the list; the arrows with Alt move the entry).
+    public void RunInputBindings()
+    {
+        for (int i = 0; i < _inputs.Count; i++)
+        {
+            Input.KeyBinding binding = _inputs[i];
+
+            if (!binding.Owner.Control.Visible) { continue; }
+            if (binding.RequiresNoTextInput && GUI.KeyboardDispatcher.Subscriber is not null) { continue; }
+            if (!binding.Held() || !binding.Pressed() || Outranked(binding)) { continue; }
+
+            UiGuard.Run(binding.Fire);
+        }
+    }
+
+    private bool Outranked(Input.KeyBinding binding)
+    {
+        foreach (Input.KeyBinding other in _inputs)
+        {
+            if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
+            if (!other.Owner.Control.Visible || !other.Held() || !other.Pressed()) { continue; }
+            if (other.Keys.Intersect(binding.Keys).Any()) { return true; }
+        }
+
+        return false;
+    }
+
+    public void RunFrameActions()
     {
         for (int i = 0; i < _scopes.Count; i++) { _scopes[i].RunFrameActions(); }
 
@@ -92,7 +147,7 @@ internal sealed class ViewContext : IDisposable
 
         try
         {
-            for (int i = 0; i < _firingOnce.Count; i++) { Guard.Run(_firingOnce[i]); }
+            for (int i = 0; i < _firingOnce.Count; i++) { UiGuard.Run(_firingOnce[i]); }
         }
         finally
         {
@@ -100,11 +155,11 @@ internal sealed class ViewContext : IDisposable
         }
     }
 
-    internal void Own(IDisposable disposable)
+    public void Own(IDisposable disposable)
     {
         if (Current is not { } scope)
         {
-            Guard.Run(disposable.Dispose);
+            UiGuard.Run(disposable.Dispose);
             return;
         }
 
@@ -128,12 +183,12 @@ internal sealed class ViewContext : IDisposable
             if (current.Resources?.Find(key) is { } found) { return found; }
         }
 
-        return Resources?.Find(key) ?? DefaultTheme.Theme.Find(key);
+        return Resources?.Find(key) ?? GlobalResources.Find(key);
     }
 
     public void Dispose()
     {
-        if (Root is { } root) { Guard.Run(root.Control, Detach); }
+        if (Root is { } root) { UiGuard.Run(root.Control, Detach); }
 
         ViewScope[] scopes = [.. _scopes];
         _scopes.Clear();
@@ -141,13 +196,15 @@ internal sealed class ViewContext : IDisposable
 
         foreach (ViewScope scope in scopes)
         {
-            Guard.Run(scope.Dispose);
+            UiGuard.Run(scope.Dispose);
         }
 
         _queuedOnce.Clear();
         _firingOnce.Clear();
         _focusOnOpen.Clear();
         Overlays.Clear();
+        _inputs.Clear();
+        Window = null;
         Root = null;
     }
 

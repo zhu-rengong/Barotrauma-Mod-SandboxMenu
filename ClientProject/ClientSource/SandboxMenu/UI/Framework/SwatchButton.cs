@@ -10,7 +10,7 @@ internal sealed class SwatchButton : GUIButton
 
     // What the chip leaves free above and below itself, in DIP: the swatch takes the height the layout gives it, and
     // what it paints is that less the padding, so nothing here has to know how tall a row is.
-    internal float Padding { get; set; } = UiMetrics.Pad;
+    internal float Padding { get; set; } = Theme.Pad;
 
     internal SwatchButton(RectTransform rectT, LocalizedString text)
         : base(rectT, text, Alignment.Center, BaseStyle)

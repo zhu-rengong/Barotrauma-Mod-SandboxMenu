@@ -8,7 +8,7 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
 
     public TickElement(ElementContext context)
         : base(new GUITickBox(
-            context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
+            context.Rect(context.Parent, 1f, UiTokens.Percent("control", 0.84f)),
             string.Empty,
             ViewMarkup.FontOf(context.Text("Font"))))
     {
@@ -36,7 +36,7 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public bool Selected { set => _tick.Selected = value; }
 
-    internal override void AddContent(ViewElement child) => throw new NotSupportedException("Tick takes no content");
+    public override void AddContent(ViewElement child) => throw new NotSupportedException("Tick takes no content");
 
     void IPropertyObserver.Observe(string property, Action<object?> changed)
     {

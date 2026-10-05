@@ -1,10 +1,12 @@
+<Window Width="368dip" Height="340dip">
+
 <Stack Orientation="Vertical">
 
   <!-- The band has to hold the close button whole: at 8* of a window this short the button's own text reached past it
        and the picker below covered the rest. -->
   <Panel Skin="None" Height="16*">
     <Text Text="sandboxmenu.colorpick.title" Font="SubHeading" FontSize="22" Width="0.72" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.26" Height="0.8"
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.26" Height="0.8"
             Align="CenterRight" />
   </Panel>
 
@@ -52,3 +54,5 @@
   </Stack>
 
 </Stack>
+
+</Window>

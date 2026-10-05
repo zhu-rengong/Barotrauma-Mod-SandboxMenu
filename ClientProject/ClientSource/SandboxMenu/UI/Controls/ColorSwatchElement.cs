@@ -3,7 +3,7 @@ using System.Windows.Input;
 namespace SandboxMenu.UI.Controls;
 
 [Element("ColorSwatch")]
-internal sealed class ColorSwatchElement : ViewElement, IDisposable
+public sealed class ColorSwatchElement : ViewElement, IDisposable
 {
     private readonly SwatchButton _button;
     private readonly ViewContext _view;
@@ -11,11 +11,11 @@ internal sealed class ColorSwatchElement : ViewElement, IDisposable
     private ICommand? _command;
 
     public ColorSwatchElement(ElementContext context)
-        : base(new SwatchButton(context.Rect(context.Parent, 1f, UiMetrics.ControlHeight), string.Empty))
+        : base(new SwatchButton(context.Rect(context.Parent, 1f, Theme.ControlHeight), string.Empty))
     {
         _view = context.View;
         _button = (SwatchButton)Control;
-        _button.Padding = context.Metric("Padding", UiMetrics.Pad);
+        _button.Padding = context.Metric("Padding", Theme.Pad);
 
         _button.OnClicked = (_, _) =>
         {

@@ -7,7 +7,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 {
     private readonly GUIButton _button;
     private readonly ViewContext _view;
-    private readonly string _hintKey;
+    private readonly string? _hintKey;
     private RichString _text = string.Empty;
     private RichString? _shortcut;
     private RichString? _toolTip;
@@ -28,13 +28,14 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         _button = button;
 
         // No skin means the host's plain button, which is drawn light: its key hint has to be darker to be read.
-        _hintKey = context.Skin is "" ? "sandboxmenu.shortcut.hint.dark" : "sandboxmenu.shortcut.hint";
+        // Both templates are the mod's, handed over at startup.
+        _hintKey = context.Skin is "" ? ViewMarkup.DarkHintKey : ViewMarkup.HintKey;
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
         _indent = context.Metric("Indent", 0f);
         _alignment = ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center);
 
-        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(_indent), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
+        button.TextBlock.Padding = new Vector4(UiMetrics.Dip(_indent), 0f, UiMetrics.Dip(UiTokens.Dip("pad", 6f)), 0f);
         button.TextBlock.TextScale = _scale;
         SetScale(ViewMarkup.ToBool(context.Text("Scale"), true));
 
@@ -77,6 +78,17 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
     [ElementProperty]
     public ICommand? Command { set => SetCommand(value); }
+
+    // Closes the view this button sits in: what every window's close button declares instead of being wired up by
+    // name once the tree is built.
+    [ElementProperty]
+    public bool CloseView
+    {
+        set
+        {
+            if (value && Context is { } view) { SetCommand(view.CloseCommand); }
+        }
+    }
 
     [ElementProperty]
     public ICommand? SecondaryCommand
@@ -129,7 +141,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
     public void RefreshCanExecute() => _button.Enabled = _command?.CanExecute(null) ?? true;
 
-    internal override void AddContent(ViewElement child) => throw new NotSupportedException("Button takes no content");
+    public override void AddContent(ViewElement child) => throw new NotSupportedException("Button takes no content");
 
     public void Dispose()
     {
@@ -140,7 +152,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
     private static GUIButton Create(ElementContext context)
         => new(
-            context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
+            context.Rect(context.Parent, 1f, UiTokens.Percent("control", 0.84f)),
             string.Empty,
             ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.Center),
             context.Skin);
@@ -172,7 +184,8 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
         if (_scalable) { return; }
 
-        block.Padding = new Vector4(UiMetrics.Dip(_indent > 0f ? _indent : UiMetrics.Pad), 0f, UiMetrics.Dip(UiMetrics.Pad), 0f);
+        float pad = UiTokens.Dip("pad", 6f);
+        block.Padding = new Vector4(UiMetrics.Dip(_indent > 0f ? _indent : pad), 0f, UiMetrics.Dip(pad), 0f);
     }
 
     private void ApplyToolTip()

@@ -2,14 +2,14 @@ using Microsoft.Xna.Framework;
 
 namespace UiFramework.Data;
 
-internal enum DropMode
+public enum DropMode
 {
     Before,
     After,
     Nest
 }
 
-internal interface IItemDropTarget
+public interface IItemDropTarget
 {
     bool CanDrag(object item);
 
@@ -18,7 +18,7 @@ internal interface IItemDropTarget
     void Drop(object dragged, object? onto, DropMode mode);
 }
 
-internal interface IListBackground
+public interface IListBackground
 {
     void ShowBackgroundMenu(Vector2 position);
 }

@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using Barotrauma.Items.Components;
 
-namespace SandboxMenu.Domain.Prefabs;
+namespace SandboxMenu.UI.Models;
 
 internal readonly record struct OverrideTarget(string ComponentName, int ComponentIndex, LocalizedString Label);
 

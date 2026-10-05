@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 namespace UiFramework.Controls;
 
 [Element("List")]
-internal sealed class ListBoxElement : ViewElement, IDisposable
+internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposable
 {
     private readonly GUIListBox _listBox;
     private readonly ViewContext _view;
@@ -23,6 +23,9 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
     private bool _retriedEmpty;
     private bool _probed;
     private int _rowHeight;
+
+    private Action<object?>? _reportScroll;
+    private float _reportedScroll = -1f;
 
     private readonly int _detailRows;
 
@@ -55,7 +58,7 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
 
         Windowed = ViewMarkup.ToBool(context.Text("Virtual"), false) || _detailRows > 0;
 
-        _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiMetrics.Gap));
+        _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiTokens.Dip("gap", 4f)));
 
         _listBox.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", 0f)));
 
@@ -116,16 +119,47 @@ internal sealed class ListBoxElement : ViewElement, IDisposable
         set => _rowPool.RowTemplateKey = value;
     }
 
+    // How far the list is scrolled, 0 at the top: what a view model writes to bring a refilled list back to its
+    // first item, and what a two-way binding reports back when the player scrolls it.
+    [ElementProperty(Mode = BindingMode.TwoWay)]
+    public float Scroll
+    {
+        get => _listBox.BarScroll;
+        set => _listBox.BarScroll = Math.Clamp(value, 0f, 1f);
+    }
+
+    void IPropertyObserver.Observe(string property, Action<object?> changed)
+    {
+        if (!string.Equals(property, nameof(Scroll), StringComparison.Ordinal)) { return; }
+
+        _reportScroll = changed;
+        _view.EveryFrame(ReportScroll);
+    }
+
+    // Written back from the frame the player scrolled in, which is where the host moves its bar.
+    private void ReportScroll()
+    {
+        if (_reportScroll is not { } report) { return; }
+
+        float scroll = _listBox.BarScroll;
+
+        if (Math.Abs(scroll - _reportedScroll) < 0.0001f) { return; }
+
+        _reportedScroll = scroll;
+        report(scroll);
+    }
+
     [ElementProperty]
     public float Spacing { set => _listBox.Spacing = UiMetrics.DipInt(value); }
 
-    internal override void AddContent(ViewElement child) => throw new NotSupportedException("List takes no content");
+    public override void AddContent(ViewElement child) => throw new NotSupportedException("List takes no content");
 
     public void Dispose()
     {
         if (_observed is not null) { _observed.CollectionChanged -= OnCollectionChanged; }
 
         _observed = null;
+        _reportScroll = null;
         _drag.Reset();
 
         for (int i = 0; i < _rows.Count; i++) { _rowPool.Drop(_rows[i]); }

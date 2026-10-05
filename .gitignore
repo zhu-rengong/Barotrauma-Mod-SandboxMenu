@@ -75,3 +75,4 @@ _ReSharper*/
 # CodeBuddy session artifacts (only the project rules under .codebuddy/rules/ are tracked)
 .codebuddy/*
 !.codebuddy/rules/
+.VSCodeCounter/*

@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 
-namespace SandboxMenu.Domain.Prefabs;
+namespace SandboxMenu.UI.Models;
 
 internal sealed record ItemPrefabEntry(ItemDisplay Display, ContentPackage? Package, MapEntityCategory Category, string Tags)
 {

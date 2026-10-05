@@ -2,6 +2,8 @@ global using SandboxMenu.Domain.Persistence;
 global using SandboxMenu.Domain.Prefabs;
 global using SandboxMenu.Settings;
 global using SandboxMenu.UI;
+global using SandboxMenu.UI.Models;
+global using SandboxMenu.UI.Startup;
 global using SandboxMenu.UI.Framework;
 global using SandboxMenu.UI.ViewModels;
 global using UiFramework;

@@ -1,6 +1,6 @@
 using Barotrauma.Items.Components;
 
-namespace SandboxMenu.Domain.Model;
+namespace SandboxMenu.UI.Models;
 
 internal sealed class ItemDisplay
 {

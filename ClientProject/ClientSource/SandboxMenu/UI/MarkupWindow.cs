@@ -3,59 +3,35 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
+// A dialog: the view markup builds the window's frame and everything in it, and what is left here is the lifecycle a
+// view cannot own — being put in and taken out of the host's update list, being kept on screen, and handing the input
+// to the dialog on top.
 internal sealed class MarkupWindow : IDialogWindow
 {
     private static int _instances;
 
-    private readonly GUIFrame _frame;
-    private readonly GUIFrame _content;
+    private readonly IViewWindow _chrome;
+    private readonly GUIComponent _frame;
     private readonly ViewContext _view;
     private readonly int _order;
-    private readonly Point _size;
     private readonly int _id = ++_instances;
 
-    internal MarkupWindow(string markupFile, Point size, int updateOrder, object viewModel)
+    private GUIDragHandle? _dragHandle;
+    private bool _closing;
+
+    internal MarkupWindow(string markupFile, int updateOrder, object viewModel)
     {
-        _size = size;
         _order = updateOrder;
 
-        Point fit = WindowDraw.Fit(size, GUI.Canvas.Rect);
-        _frame = new GUIFrame(new RectTransform(fit, GUI.Canvas, Anchor.Center, null, ScaleBasis.Normal, isFixedSize: true), "GUIFrame")
-        {
-            Visible = false,
-            CanBeFocused = false
-        };
+        _view = ViewLoader.Load(markupFile, viewModel, Configure, message => Log.Warn($"#{_id} {message}"), GUI.Canvas);
 
-        _content = new GUIFrame(new RectTransform(new Vector2(0.97f, 0.93f), _frame.RectTransform, Anchor.Center), style: null)
+        if (_view.RootElement is not IViewWindow chrome)
         {
-            HoverCursor = CursorState.Default
-        };
-
-        _view = ViewLoader.Load(markupFile, viewModel, message => Log.Warn($"#{_id} {message}"), _content.RectTransform);
-        _view.Dispatch = FrameActions.Run;
-        _view.DiagnosticSink = message => Log.Warn($"#{_id} {message}");
-        _view.IsInputBlocked = () => MarkupWindow.InputBlocked;
-
-        if (Find<GUIComponent>("DragArea") is { } dragArea)
-        {
-            _dragHandle = new GUIDragHandle(new RectTransform(Vector2.One, dragArea.RectTransform), _frame.RectTransform, null);
+            throw new InvalidDataException($"The view '{markupFile}' does not open with a <Window>");
         }
 
-        if (Find<GUIButton>("Close") is { } close)
-        {
-            close.OnClicked = (_, _) =>
-            {
-                FrameActions.Run(Close);
-                return false;
-            };
-        }
-
-        _ = new GUICustomComponent(
-            new RectTransform(Vector2.One, _frame.RectTransform),
-            (spriteBatch, _) => DrawOverlay(spriteBatch))
-        {
-            CanBeFocused = false
-        };
+        _chrome = chrome;
+        _frame = chrome.Frame;
     }
 
     public bool IsOpen { get; private set; }
@@ -68,9 +44,15 @@ internal sealed class MarkupWindow : IDialogWindow
         _instances = 0;
     };
 
-    private GUIDragHandle? _dragHandle;
-
-    private bool _closing;
+    // Handed to the view before it is built: what markup asks for by name (CloseView, Drag) arrives here rather
+    // than being wired up to controls looked up afterwards.
+    private void Configure(ViewContext view)
+    {
+        view.Dispatch = FrameActions.Run;
+        view.IsInputBlocked = () => InputBlocked;
+        view.Close = Close;
+        view.MakeDraggable = (region, target) => _dragHandle = new GUIDragHandle(new RectTransform(Vector2.One, region), target, null);
+    }
 
     public Action? Closing { get; set; }
 
@@ -114,8 +96,6 @@ internal sealed class MarkupWindow : IDialogWindow
         NotifyClosing();
     }
 
-    public T? Find<T>(string name) where T : GUIComponent => _view.Names.Find(name)?.Control as T;
-
     public void Register()
     {
         if (!IsOpen || !_frame.Visible) { return; }
@@ -132,22 +112,8 @@ internal sealed class MarkupWindow : IDialogWindow
         _view.RunFrameActions();
     }
 
-    private void DrawOverlay(SpriteBatch spriteBatch)
-    {
-        if (!IsOpen) { return; }
-
-        for (int i = 0; i < _view.Overlays.Count; i++)
-        {
-            try
-            {
-                _view.Overlays[i](spriteBatch);
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"#{_id} overlay failed", e);
-            }
-        }
-    }
+    // The keys the view declares; the shell decides when they are asked for.
+    internal void RunInputBindings() => _view.RunInputBindings();
 
     public void Dispose()
     {
@@ -174,7 +140,7 @@ internal sealed class MarkupWindow : IDialogWindow
     private void KeepOnScreen()
     {
         Rectangle canvas = GUI.Canvas.Rect;
-        Point fit = WindowDraw.Fit(_size, canvas);
+        Point fit = WindowDraw.Fit(_chrome.NominalSize, canvas);
         if (_frame.RectTransform.NonScaledSize != fit) { _frame.RectTransform.NonScaledSize = fit; }
 
         if (_dragHandle is { } handle) { handle.DragArea = canvas; }

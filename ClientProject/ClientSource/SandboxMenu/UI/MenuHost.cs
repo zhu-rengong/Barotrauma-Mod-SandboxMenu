@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu.UI;
 
@@ -49,11 +48,8 @@ internal sealed class MenuHost : IDialogHost
     {
         HandleNotices();
 
-        _window ??= new MarkupWindow(
-            "MainWindow.xml",
-            UiMetrics.DipSize(Theme.WindowWidth, Theme.WindowHeight),
-            WindowOrder,
-            _viewModel);
+        // The window's size is written in its own markup, where the view it holds is written.
+        _window ??= new MarkupWindow("MainWindow.xml", WindowOrder, _viewModel);
 
         // The window is kept between openings, so the key hints it shows are refreshed against the settings.
         _viewModel.Spawn.RefreshShortcuts();
@@ -88,39 +84,13 @@ internal sealed class MenuHost : IDialogHost
         return false;
     }
 
-    // The menu's own keys, working on the entry the left list has selected and only while no dialog is up. Arrows and
-    // Enter command rather than type, so they are taken even while a box has the keyboard; Del and "+" are text keys.
+    // The menu's own keys are declared by the view that answers to them, so all that is left is the shell's part of
+    // it: while no dialog is up, the window runs whatever keys are live in what it is showing.
     internal void HandleKeys()
     {
         if (!IsOpen || AnyPopupOpen()) { return; }
 
-        // The keys from here on act on the spawn set, which is not what the window shows while another function is up.
-        if (_viewModel.Functions.Active != MenuFunction.Spawn) { return; }
-
-        if (PlayerInput.KeyHit(Keys.Up) || PlayerInput.KeyHit(Keys.Down))
-        {
-            int direction = PlayerInput.KeyHit(Keys.Up) ? -1 : 1;
-            bool alt = PlayerInput.KeyDown(Keys.LeftAlt) || PlayerInput.KeyDown(Keys.RightAlt);
-
-            // Alt reorders inside the list the entry lives in; the arrows on their own walk the list as it is shown.
-            if (alt) { _viewModel.Spawn.MoveSelection(direction); }
-            else { _viewModel.Spawn.StepSelection(direction); }
-        }
-
-        if (PlayerInput.KeyHit(Keys.Enter)) { _viewModel.Spawn.FocusIdentifier(); }
-
-        if (GUI.KeyboardDispatcher.Subscriber is not null) { return; }
-
-        if (PlayerInput.KeyHit(Keys.Delete)) { _viewModel.Spawn.DeleteSelected(); }
-
-        if (PlayerInput.KeyHit(Keys.OemPlus) || PlayerInput.KeyHit(Keys.Add))
-        {
-            // "+" sits on Shifted "=" on most layouts: without Shift the new entry lands next to the selection, with
-            // Shift it is nested inside it.
-            bool child = PlayerInput.KeyDown(Keys.LeftShift) || PlayerInput.KeyDown(Keys.RightShift);
-
-            _viewModel.Spawn.AddItem(child);
-        }
+        _window?.RunInputBindings();
     }
 
     internal void SpawnIntoInventory() => _viewModel.Spawn.SpawnIntoInventoryCommand.Execute(null);
@@ -291,9 +261,7 @@ internal sealed class MenuHost : IDialogHost
         if (_browser is null || _browserModel is null)
         {
             _browserModel = new ItemBrowserViewModel(this);
-            _browser = new MarkupWindow("Browser.xml", UiMetrics.DipSize(Theme.BrowserWidth, Theme.BrowserHeight), DialogOrder, _browserModel);
-
-            _browserModel.Attach(_browser.Find<GUIListBox>("Results"));
+            _browser = new MarkupWindow("Browser.xml", DialogOrder, _browserModel);
         }
 
         _browserModel.UseParent(container);
@@ -309,11 +277,7 @@ internal sealed class MenuHost : IDialogHost
 
     public void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options)
     {
-        MarkupWindow popup = new(
-            "MultiPicker.xml",
-            UiMetrics.DipSize(Theme.MultiPickerWidth, Theme.MultiPickerHeight),
-            DialogOrder + 1,
-            new MultiPickerViewModel(title, options));
+        MarkupWindow popup = new("MultiPicker.xml", DialogOrder + 1, new MultiPickerViewModel(title, options));
 
         ShowPopup(popup, keepOpen: true);
     }
@@ -326,23 +290,19 @@ internal sealed class MenuHost : IDialogHost
             option.Picked();
         }, filterable);
 
-        ShowPopup(new MarkupWindow("Options.xml", UiMetrics.DipSize(Theme.OptionsWidth, Theme.OptionsHeight), DialogOrder, viewModel));
+        ShowPopup(new MarkupWindow("Options.xml", DialogOrder, viewModel));
     }
 
     public void ShowColorPicker(Color current, Action<Color> onPicked)
-        => ShowPopup(new MarkupWindow(
-            "ColorPicker.xml",
-            UiMetrics.DipSize(Theme.ColorPickerWidth, Theme.ColorPickerHeight),
-            DialogOrder,
-            new ColorPickerViewModel(current, onPicked)));
+        => ShowPopup(new MarkupWindow("ColorPicker.xml", DialogOrder, new ColorPickerViewModel(current, onPicked)));
 
-    public void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2 position)
+    public void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2? position = null)
     {
         ContextMenuViewModel viewModel = new(actions, ClosePopups);
-        MarkupWindow popup = new("ContextMenu.xml", UiMetrics.DipSize(Theme.ContextMenuWidth, Theme.ContextMenuHeight), PopupOrder, viewModel);
+        MarkupWindow popup = new("ContextMenu.xml", PopupOrder, viewModel);
 
         ShowPopup(popup);
-        popup.PositionAt(position);
+        popup.PositionAt(position ?? PlayerInput.MousePosition);
     }
 
     public void PickWorldPosition(Action<Vector2> onPicked)

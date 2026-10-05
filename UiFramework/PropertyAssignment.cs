@@ -7,11 +7,16 @@ internal sealed class PropertyAssignment(
     ViewContext view,
     MarkupNode node,
     ViewElement element,
-    PropertyMetadata property)
+    PropertyMetadata property,
+    object? target = null)
 {
     internal PropertyMetadata Property { get; } = property;
 
     internal ViewElement Element { get; } = element;
+
+    // What the value is written to, when it is not the element the assignment was read from: the command of a key
+    // binding is resolved against the element that declares it but belongs to the binding.
+    private object Target { get; } = target ?? element;
 
     internal void SetText(string text)
     {
@@ -28,7 +33,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        Property.Apply(Element, value);
+        Property.Apply(Target, value);
     }
 
     internal void SetValue(object? value, string source)
@@ -40,7 +45,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        Property.Apply(Element, converted);
+        Property.Apply(Target, converted);
     }
 
     internal void Bind(BindingOptions options)
@@ -175,7 +180,7 @@ internal sealed class PropertyAssignment(
     private void SetKeyText(string key)
     {
         (object? value, bool ok) = ValueConversion.Convert(TextManager.Get(key), Property.ValueType);
-        if (ok) { Property.Apply(Element, value); }
+        if (ok) { Property.Apply(Target, value); }
     }
 
     private static string Friendly(Type type) => type.Name;

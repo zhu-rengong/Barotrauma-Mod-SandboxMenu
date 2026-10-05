@@ -14,7 +14,9 @@ internal interface IDialogHost
 
     void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options);
 
-    void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2 position);
+    // Where it opens is the shell's business: a menu opened by a key lands where the pointer is, one opened by a
+    // click inside a list lands where the click did.
+    void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2? position = null);
 
     void ShowColorPicker(Color current, Action<Color> onPicked);
 

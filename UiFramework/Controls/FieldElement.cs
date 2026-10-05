@@ -7,22 +7,22 @@ internal sealed class FieldElement : ViewElement
     private readonly GUILayoutGroup _controls;
 
     public FieldElement(ElementContext context)
-        : base(new GUILayoutGroup(context.Rect(context.Parent, 1f, UiMetrics.RowHeight), isHorizontal: true, Anchor.CenterLeft)
+        : base(new GUILayoutGroup(context.Rect(context.Parent, 1f, UiTokens.Percent("row", 0.075f)), isHorizontal: true, Anchor.CenterLeft)
         {
             CanBeFocused = false,
             HoverCursor = CursorState.Default
         })
     {
-        float labelWidth = context.Size("LabelWidth", UiMetrics.LabelWidth);
+        float labelWidth = context.Size("LabelWidth", UiTokens.Percent("labelWidth", 0.38f));
         float controlWidth = context.Size("ControlWidth", 1f - labelWidth);
 
         _label = new GUITextBlock(
-            new RectTransform(new Vector2(labelWidth, UiMetrics.ControlHeight), Control.RectTransform),
+            new RectTransform(new Vector2(labelWidth, UiTokens.Percent("control", 0.84f)), Control.RectTransform),
             string.Empty,
             textColor: UiMetrics.Text,
             textAlignment: Alignment.CenterLeft)
         {
-            Padding = new Vector4(UiMetrics.Dip(UiMetrics.Pad), 0f, 0f, 0f),
+            Padding = new Vector4(UiMetrics.Dip(UiTokens.Dip("pad", 6f)), 0f, 0f, 0f),
             AutoScaleHorizontal = true,
             CanBeFocused = false
         };
@@ -36,7 +36,7 @@ internal sealed class FieldElement : ViewElement
         };
     }
 
-    internal override void AddContent(ViewElement child)
+    public override void AddContent(ViewElement child)
     {
     }
 
@@ -67,5 +67,5 @@ internal sealed class FieldElement : ViewElement
         set => _controls.RectTransform.RelativeSize = new Vector2(value, 1f);
     }
 
-    internal override RectTransform ContentParent => _controls.RectTransform;
+    public override RectTransform ContentParent => _controls.RectTransform;
 }

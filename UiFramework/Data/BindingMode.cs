@@ -1,6 +1,6 @@
 namespace UiFramework.Data;
 
-internal enum BindingMode
+public enum BindingMode
 {
     OneWay,
     TwoWay,

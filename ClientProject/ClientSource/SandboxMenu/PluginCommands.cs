@@ -1,4 +1,3 @@
-#if CLIENT
 namespace SandboxMenu;
 
 public sealed partial class Plugin
@@ -22,4 +21,3 @@ public sealed partial class Plugin
             });
     }
 }
-#endif

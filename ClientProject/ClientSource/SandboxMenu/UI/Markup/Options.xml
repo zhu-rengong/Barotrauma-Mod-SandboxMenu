@@ -1,3 +1,5 @@
+<Window Width="496dip" Height="432dip">
+
 <Stack Orientation="Vertical">
 
   <!-- The picker row is a template on the view model's type: the list asks for it by the item it presents.
@@ -11,7 +13,7 @@
 
   <Panel Skin="None" Height="16*">
     <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
             Align="CenterRight" />
   </Panel>
 
@@ -28,3 +30,5 @@
   <List Items="{Binding Options}" Height="64*" Spacing="3" />
 
 </Stack>
+
+</Window>

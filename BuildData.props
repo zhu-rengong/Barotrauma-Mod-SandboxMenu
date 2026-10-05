@@ -10,14 +10,14 @@
 
   <Import Project="SharedProject\SharedProject.projitems" Label="Shared" />
   <Import Project="SharedProject\SharedItems.props" />
-  <!-- The markup UI framework is a client concern; the server assembly must not carry it. -->
-  <Import Project="UiFramework\UiFramework.projitems" Label="Shared" Condition="'$(BuildTarget)' != 'Server'" />
 
   <Target Name="CopyFiles" AfterTargets="Build">
     <ItemGroup>
       <FilesToCopy Include="$(TargetDir)$(TargetName).dll" />
       <FilesToCopy Include="$(TargetDir)$(TargetName).deps.json" />
       <FilesToCopy Include="$(TargetDir)$(TargetName).pdb" />
+      <!-- The framework is a client concern and travels with it; the server assembly must not carry it. -->
+      <FilesToCopy Include="$(TargetDir)UiFramework.dll" Condition="'$(BuildTarget)' == 'Client'" />
     </ItemGroup>
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(MSBuildThisFileDirectory)ContentPackageBuilder\Content\bin\$(PlatformName)" />
   </Target>

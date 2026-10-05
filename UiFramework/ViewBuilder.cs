@@ -1,3 +1,5 @@
+using System.Windows.Input;
+
 namespace UiFramework;
 
 // Builds one element of a view from its markup node and hands it what the node says: its style, its attributes,
@@ -29,6 +31,7 @@ internal static class ViewBuilder
         element.Node = node;
 
         element.DataContext = dataContext ?? view.DataContext;
+        element.Context = view;
         element.Parent = parentElement;
 
         if (element is IDisposable disposable) { view.Own(disposable); }
@@ -194,6 +197,12 @@ internal static class ViewBuilder
                 continue;
             }
 
+            if (string.Equals(property.Name, "InputBindings", StringComparison.OrdinalIgnoreCase))
+            {
+                ReadInputBindings(view, element, property);
+                continue;
+            }
+
             if (metadata.Properties.TryGetValue(property.Name, out PropertyMetadata? declared))
             {
                 ApplyPropertyElement(view, node, element, declared, property);
@@ -247,25 +256,48 @@ internal static class ViewBuilder
         extension.Apply(new PropertyAssignment(view, propertyNode, element, property));
     }
 
-    private static void ReadResources(ViewContext view, ResourceDictionary dictionary, MarkupNode propertyNode)
+    // The commands of the keys an element answers to are bound off the element's own data context, so a key binding
+    // is written exactly like the command of a button.
+    private static void ReadInputBindings(ViewContext view, ViewElement element, MarkupNode propertyNode)
     {
         foreach (MarkupNode child in propertyNode.Content)
         {
-            if (string.Equals(child.Name, "Style", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(child.Name, "KeyBinding", StringComparison.OrdinalIgnoreCase)) { continue; }
+
+            if (Input.KeyBinding.Read(child, element) is not { } binding)
             {
-                Style style = Style.Read(child);
-                dictionary.Set(style.Key ?? style.TargetType ?? throw new InvalidDataException($"a style needs a Key or a TargetType ({child})"), style);
+                view.Diagnostics.Report("a key binding needs a Key", child);
                 continue;
             }
 
-            if (string.Equals(child.Name, "DataTemplate", StringComparison.OrdinalIgnoreCase))
-            {
-                Templating.DataTemplate template = Templating.DataTemplate.Read(child);
-                dictionary.Set(template.Key ?? template.DataType ?? throw new InvalidDataException($"a data template needs a Key or a DataType ({child})"), template);
-                continue;
-            }
+            (element.Bindings ??= []).Add(binding);
+            view.RegisterInput(binding);
 
-            view.Diagnostics.Report($"<{child.Name}> cannot be declared as a resource (yet)", child);
+            if (child.Value("Command") is { } command)
+            {
+                Give(new PropertyAssignment(view, child, element, KeyCommandProperty, binding), command);
+            }
+        }
+    }
+
+    private static readonly PropertyMetadata KeyCommandProperty = new(
+        "Command",
+        typeof(ICommand),
+        ApplyPhase.Live,
+        BindingMode.OneWay,
+        SettableFromStyle: false,
+        KeyText: false,
+        (target, value) => ((Input.KeyBinding)target).Command = (ICommand?)value);
+
+    private static void ReadResources(ViewContext view, ResourceDictionary dictionary, MarkupNode propertyNode)
+    {
+        try
+        {
+            foreach ((string key, object value) in ResourceDictionary.Read(propertyNode).Entries()) { dictionary.Set(key, value); }
+        }
+        catch (InvalidDataException e)
+        {
+            view.Diagnostics.Report(e.Message, propertyNode);
         }
     }
 
@@ -276,7 +308,7 @@ internal static class ViewBuilder
     {
         internal PlaceholderElement(MarkupNode node, RectTransform parent)
             : base(new GUITextBlock(
-                MarkupPlacement.Of(node, 1f, UiMetrics.ControlHeight).ToRectTransform(parent),
+                MarkupPlacement.Of(node, 1f, UiTokens.Percent("control", 0.84f)).ToRectTransform(parent),
                 RichString.Rich($"<{node.Name}>"),
                 textColor: UiMetrics.Danger,
                 textAlignment: Alignment.CenterLeft)
@@ -286,7 +318,7 @@ internal static class ViewBuilder
         {
         }
 
-        internal override void AddContent(ViewElement child)
+        public override void AddContent(ViewElement child)
         {
         }
     }

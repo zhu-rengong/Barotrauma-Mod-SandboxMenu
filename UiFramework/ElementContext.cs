@@ -1,25 +1,34 @@
 namespace UiFramework;
 
-internal sealed class ElementContext(MarkupNode node, RectTransform parent, ViewContext view)
+// What an element is handed while it is built: the node it came from, the transform it sits in and the view it
+// belongs to. The node itself stays inside the framework; the helpers below are what an element author uses.
+public sealed class ElementContext
 {
-    internal MarkupNode Node { get; } = node;
+    internal ElementContext(MarkupNode node, RectTransform parent, ViewContext view)
+    {
+        Node = node;
+        Parent = parent;
+        View = view;
+    }
 
-    internal RectTransform Parent { get; } = parent;
+    internal MarkupNode Node { get; }
 
-    internal ViewContext View { get; } = view;
+    public RectTransform Parent { get; }
 
-    internal string? Skin => Node.Text("Skin") is { } style
+    public ViewContext View { get; }
+
+    public string? Skin => Node.Text("Skin") is { } style
         ? string.Equals(style, "None", StringComparison.OrdinalIgnoreCase) ? null : style
         : string.Empty;
 
     internal MarkupPlacement Place(float defaultWidth, float defaultHeight) => MarkupPlacement.Of(Node, defaultWidth, defaultHeight, View.Diagnostics);
 
-    internal RectTransform Rect(RectTransform parent, float defaultWidth, float defaultHeight)
+    public RectTransform Rect(RectTransform parent, float defaultWidth, float defaultHeight)
         => Place(defaultWidth, defaultHeight).ToRectTransform(parent);
 
-    internal string? Text(string attribute) => Node.Text(attribute);
+    public string? Text(string attribute) => Node.Text(attribute);
 
-    internal float Size(string attribute, float fallback) => MarkupPlacement.Size(Node, attribute, fallback, View.Diagnostics);
+    public float Size(string attribute, float fallback) => MarkupPlacement.Size(Node, attribute, fallback, View.Diagnostics);
 
-    internal float Metric(string attribute, float fallback) => MarkupPlacement.Metric(Node, attribute, fallback, View.Diagnostics);
+    public float Metric(string attribute, float fallback) => MarkupPlacement.Metric(Node, attribute, fallback, View.Diagnostics);
 }

@@ -1,21 +1,22 @@
 using System.Collections.Frozen;
+using UiFramework.Data;
 
 namespace UiFramework;
 
-internal enum ApplyPhase
+public enum ApplyPhase
 {
     Construct,
     Live
 }
 
 [AttributeUsage(AttributeTargets.Class)]
-internal sealed class ElementAttribute(string name) : Attribute
+public sealed class ElementAttribute(string name) : Attribute
 {
     public string Name { get; } = name;
 }
 
 [AttributeUsage(AttributeTargets.Property)]
-internal sealed class ElementPropertyAttribute(string? name = null) : Attribute
+public sealed class ElementPropertyAttribute(string? name = null) : Attribute
 {
     public string? Name { get; } = name;
 

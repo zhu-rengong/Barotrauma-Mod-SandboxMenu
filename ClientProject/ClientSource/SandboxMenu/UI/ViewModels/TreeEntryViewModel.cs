@@ -10,7 +10,7 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
         Entry = entry;
         Owner = owner;
         Container = container;
-        Indent = (int)(Theme.TreeIndentStart + depth * Theme.TreeIndentStep);
+        Depth = depth;
 
         SelectCommand = new RelayCommand(() => menu.Select(this));
         OpenMenuCommand = new RelayCommand(() => menu.OpenMenu(this));
@@ -27,7 +27,8 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
     // The item this entry is stored inside, when it is nested in one: it decides what the entry may be.
     internal ItemEntry? Container { get; }
 
-    public int Indent { get; }
+    // How deep the entry sits in the tree; how far that is drawn is the row's business.
+    public int Depth { get; }
 
     public override RichString Title
         => Display is { } display && Entry is ItemEntry item

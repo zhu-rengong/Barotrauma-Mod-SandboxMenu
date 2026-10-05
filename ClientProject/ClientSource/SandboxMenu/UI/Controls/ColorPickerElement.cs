@@ -3,7 +3,7 @@ namespace SandboxMenu.UI.Controls;
 // The host's colour picker as a markup element: the view says where it sits, the element keeps it in step with the
 // colour it is bound to and hands every colour picked out of it back through Changed.
 [Element("ColorPicker")]
-internal sealed class ColorPickerElement : ViewElement, IDisposable
+public sealed class ColorPickerElement : ViewElement, IDisposable
 {
     private readonly GUIFrame _holder;
 

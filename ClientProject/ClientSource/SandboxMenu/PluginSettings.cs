@@ -1,4 +1,3 @@
-#if CLIENT
 using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu;
@@ -39,4 +38,3 @@ public sealed partial class Plugin
         SettingsService.RegisterSetting(_giveKeySetting);
     }
 }
-#endif

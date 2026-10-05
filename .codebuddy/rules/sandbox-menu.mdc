@@ -1,8 +1,8 @@
 ---
-description: 通用 .NET 插件/模组工程约束：C# 12 现代特性、风格与注释纪律、宿主程序集直接访问、只构建验证不部署、不影响宿主、UI 分辨率无关、卸载可回收、跨平台、优先宿主原生接口。
+description: 通用 .NET 插件/模组工程约束：C# 12 现代特性、风格与注释纪律、宿主程序集直接访问、只构建验证不部署、不影响宿主、UI 分辨率无关、卸载可回收、跨平台、优先宿主原生接口、只用宿主有意公开的 API 与扩展。
 alwaysApply: true
 enabled: true
-updatedAt: 2026-10-04T00:00:00.000Z
+updatedAt: 2026-10-05T00:00:00.000Z
 provider:
 ---
 
@@ -24,9 +24,9 @@ provider:
    - 不起线程、定时器或异步循环，帧内工作走宿主的帧队列；不把插件对象（委托、视图模型、组件）放进宿主类型或单例的静态字段/集合。
    - 新增静态可变状态（缓存表、注册表、单例列表）同步登记清理，清理集中在统一入口、随关闭流程执行，不抛异常且不依赖其它类型的初始化顺序。
    - **外部派生数据不跨失效源存活**：本程序集之外的任何东西（宿主的对象与样式、别的内容包/插件的类型与实例）只要被缓存或挂进界面，来源一变就必须一并释放——不等下次使用、不等下次打开菜单。
-     - 来源与信号：内容包与文本（`TextManager.LanguageVersion`，由 `ContentWatch` 统一冒泡）；分辨率与 HUD 缩放（窗口重建已覆盖）；宿主服务与设置（随本插件卸载由 `StaticState` 清理）。
-     - 缓存：静态构造里 `ContentWatch.Register(清理)`（写法对照 `StaticState.Register`）；宿主派生但随时可变的值（如 `GUIStyle` 的颜色选择器）不缓存，每次直接读取。
-     - 界面数据：`SandboxMenuWindow.ReleaseContent()` 是唯一入口（丢窗口 + 行的 `ItemDisplay` 置空）；界面重建交给菜单按 Flag 做。
+     - 来源与信号：内容包与文本（`TextManager.LanguageVersion`，由 `ContentReload` 统一冒泡）；分辨率与 HUD 缩放（窗口重建已覆盖）；宿主服务与设置（框架静态随 `UiHost.Shutdown()`、应用静态随 `ModLifetime.Unload()` 清理）。
+     - 缓存：框架内静态构造里 `UiLifetime.Unloading += 清理`，应用内 `ModLifetime.Unloading += 清理`（写法对照 `UiBootstrap` 与 `MenuHost`）；宿主派生但随时可变的值（如 `GUIStyle` 的颜色选择器）不缓存，每次直接读取。
+     - 界面数据：`MenuHost.ReleaseContent()` 是唯一入口（丢窗口 + 行的 `ItemDisplay` 置空）；界面重建交给菜单按 Flag 做。
      - 判据：引用链另一端是可回收 ALC（对方插件自定义的类型/实例）会挡对方卸载；只是宿主对象则占内存；若是"我们建好、宿主仍挂着的组件/委托/事件订阅"则挡我们自己卸载。
    - 验证：卸载后无"未能完整卸载"警告；出现即按上述清单排查，优先查订阅与被塞进宿主侧集合的对象；再挂一个带自定义组件/物品的包，反复装卸内容包，确认该包也不报"未能完整卸载"。
 10. **跨平台（Linux / macOS / Windows）**：不依赖单一操作系统。
@@ -39,5 +39,10 @@ provider:
     - 服务经 `GetService<T>()` 一类入口获取，统一走 `Plugin` 上的惰性属性（`??=` 缓存、卸载时清掉）：宿主靠 `Assembly.GetCallingAssembly()` 识别插件，前提只是「调用帧属于本程序集」——不需要 `NoInlining`，但调用点不能挪到别的程序集（会报 "Failed to find plugin data for the calling assembly"）。
     - UI、文本本地化、数据访问同样优先既有类型与机制：本地化字符串自更新不落快照、列表显隐用宿主子项机制、过滤刷新"隐藏而非重建"、能用宿主 hook/回调表达就不打补丁。
     - 判定顺序：先到反编译源码确认宿主有无现成能力 → 有就直接用 → 确实没有才自研，并注明原生缺什么。宿主提供的成对 API 本身也是第 9 条的卸载保证。
+12. **只用宿主有意公开的 API 与扩展**：功能一律建立在游戏自己提供的扩展面上——服务走 `PluginServiceProvider.GetService<T>()`（`IDebugConsole`/`ISettingsService`/`IGameNetwork`/`IGameScreen`/`ISimpleHookService`），钩子走 `ISimpleHookService.RegisterHook`，网络走 `IGameNetwork`，设置走 `ISettingsService.RegisterSetting` + `BaseSetting<T>.CreateUI`，文本走 `TextManager`，UI 与数据访问用宿主既有类型与机制（第 11 条）。
+    - 禁止把功能架在宿主之外的运行时上：外部进程与随附 exe、内嵌浏览器引擎（Chrome/CEF/WebView）、脚本宿主（Python/JRE/Node 等）、本地服务器与套接字（`HttpListener`/`TcpListener`/`Socket`/`HttpClient`/`WebClient`/`WebRequest`）、内核与 P/Invoke（`DllImport`/`NativeLibrary`/`Marshal`）、运行时加载程序集或动态生成代码（`Assembly.Load`/`AssemblyLoadContext`/`LoadFrom`/`DynamicMethod`）。
+    - 已登记例外（新增例外必须写进本条，不允许默默使用）：① 第 4 条的 publicized 程序集 + `[assembly: IgnoresAccessChecksTo(...)]`，只用于直接访问宿主类型与成员；② 第 10 条要求的 `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`——把文件/目录交给系统默认程序，全仓唯一一处（打开预设目录），必须有失败兜底；③ 常规基础库能力：本 mod 存档目录（`Plugin.SettingsService.SaveFolder`）下的文件 IO、`System.IO.Compression` 压缩、对本插件自身程序集（`UiFramework.dll` 与客户端程序集）的反射与表达式——`ElementRegistry`/`MemberAccess`/`MarkupSource` 读自身类型与嵌入资源。
+    - `UiFramework` 作为独立程序集是既定架构：框架只接收 app 告知的程序集引用（启动时一次，`UiHost.Shutdown()` 清掉），自身不加载任何程序集；`UiHost.RegisterElementAssembly`/`RegisterViewAssembly` 属跨程序集告知，不是运行时装配。
+    - 验证：对上述禁用标识符 grep 应为 0 命中；`Process.Start` 的命中点必须能指名道姓说是「打开预设目录」那一处。
 
-除以上十一条外，实现方式自由发挥。
+除以上十二条外，实现方式自由发挥。

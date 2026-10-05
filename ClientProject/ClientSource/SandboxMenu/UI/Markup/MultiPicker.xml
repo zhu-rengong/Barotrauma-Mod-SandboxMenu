@@ -1,3 +1,5 @@
+<Window Width="608dip" Height="528dip">
+
 <Stack Orientation="Vertical">
 
   <!-- Every entry the picker was given has a row here; the search text below hides the ones it is not looking for,
@@ -10,7 +12,7 @@
 
   <Panel Skin="None" Height="16*">
     <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
             Align="CenterRight" />
   </Panel>
 
@@ -27,3 +29,5 @@
   <List Items="{Binding Options}" Height="64*" Spacing="3" />
 
 </Stack>
+
+</Window>

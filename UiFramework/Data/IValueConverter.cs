@@ -2,14 +2,14 @@ using System.Globalization;
 
 namespace UiFramework.Data;
 
-internal interface IValueConverter
+public interface IValueConverter
 {
     object? Convert(object? value, Type targetType, object? parameter);
 
     object? ConvertBack(object? value, Type targetType, object? parameter);
 }
 
-internal interface IMultiValueConverter
+public interface IMultiValueConverter
 {
     object? Convert(IReadOnlyList<object?> values, Type targetType, object? parameter);
 }
@@ -27,13 +27,18 @@ internal static class ValueConverters
         ["Join"] = new JoinConverter()
     };
 
-    static ValueConverters() => ModLifetime.Unloading += Clear;
+    static ValueConverters() => UiLifetime.Unloading += Clear;
 
     internal static void Clear()
     {
         _single.Clear();
         _multi.Clear();
     }
+
+    // What markup can name in a Converter: the framework's own, plus whatever the mod registers at startup.
+    internal static void Register(string name, IValueConverter converter) => _single[name] = converter;
+
+    internal static void RegisterMulti(string name, IMultiValueConverter converter) => _multi[name] = converter;
 
     internal static IValueConverter? Find(string name) => _single.GetValueOrDefault(name);
 

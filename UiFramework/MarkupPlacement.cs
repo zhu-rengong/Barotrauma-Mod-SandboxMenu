@@ -33,9 +33,9 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
     internal static float Measure(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
         => node.Text(attribute)?.Trim().ToLowerInvariant() switch
         {
-            "row" => UiMetrics.RowHeight,
-            "section" => UiMetrics.SectionHeight,
-            "control" => UiMetrics.ControlHeight,
+            "row" => UiTokens.Percent("row", 0.075f),
+            "section" => UiTokens.Percent("section", 0.085f),
+            "control" => UiTokens.Percent("control", 0.84f),
             "fill" or "*" => 1f,
             null or "" => fallback,
             _ => Size(node, attribute, fallback, diagnostics)

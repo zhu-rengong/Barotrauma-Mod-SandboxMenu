@@ -11,7 +11,7 @@ internal static class MemberAccess
 
     private static readonly Dictionary<(Type Type, string Name), Accessors> _cache = [];
 
-    static MemberAccess() => ModLifetime.Unloading += Clear;
+    static MemberAccess() => UiLifetime.Unloading += Clear;
 
     internal static void Clear() => _cache.Clear();
 

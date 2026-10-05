@@ -23,7 +23,7 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
 
         for (int i = 0; i < _frameActions.Count; i++)
         {
-            Guard.Run(_frameActions[i]);
+            UiGuard.Run(_frameActions[i]);
         }
     }
 
@@ -50,7 +50,7 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
 
         for (int i = 0; i < _owned.Count; i++)
         {
-            Guard.Run(_owned[i].Dispose);
+            UiGuard.Run(_owned[i].Dispose);
         }
 
         _owned.Clear();

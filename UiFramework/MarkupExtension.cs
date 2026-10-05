@@ -5,7 +5,7 @@ internal abstract class MarkupExtension
     private static Dictionary<string, Func<string, MarkupExtension>>? _kinds;
     private static Dictionary<string, Func<MarkupNode, MarkupExtension>>? _elements;
 
-    static MarkupExtension() => ModLifetime.Unloading += () => (_kinds, _elements) = (null, null);
+    static MarkupExtension() => UiLifetime.Unloading += () => (_kinds, _elements) = (null, null);
 
     private static Dictionary<string, Func<string, MarkupExtension>> Kinds => _kinds ??= new(StringComparer.OrdinalIgnoreCase)
     {

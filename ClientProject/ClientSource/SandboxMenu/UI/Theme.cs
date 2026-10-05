@@ -3,8 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// The menu's own palette and sizes, all of them in DIP: the theme the framework draws with is a different thing
-// (UiFramework.Styling.DefaultTheme).
+// The menu's own palette and sizes, all of them in DIP: the framework a view is built by knows none of them, so the
+// numbers live here and the ones markup names (row, pad, …) are handed over as tokens at startup (UiBootstrap).
 internal static class Theme
 {
     public static Color Text => UiMetrics.Text;
@@ -15,11 +15,30 @@ internal static class Theme
 
     public static Color TextDisabled => UiMetrics.TextDisabled;
 
-    public static float SelectedBarWidth => UiMetrics.SelectedBarWidth;
+    public const float SelectedBarWidth = 3f;
 
-    public static float TreeIndentStep => UiMetrics.TreeIndentStep;
+    public const float TreeIndentStep = 14f;
 
-    public static float Pad => UiMetrics.Pad;
+    public const float Pad = 6f;
+
+    public const float Gap = 4f;
+
+    // Fractions of the row a control sits in.
+    public const float RowHeight = 0.075f;
+
+    public const float SectionHeight = 0.085f;
+
+    public const float ControlHeight = 0.84f;
+
+    public const float LabelWidth = 0.38f;
+
+    public const float IconBox = 24f;
+
+    public const float IconGap = 6f;
+
+    public const float TileSize = 36f;
+
+    public const float SubTextRatio = 0.5f;
 
     public static readonly Color RowHover = new(255, 255, 255, 84);
 
@@ -45,24 +64,6 @@ internal static class Theme
     public const float PickerHintArmLength = 8f;
 
     public const float PickerHintPaddingY = 4f;
-
-    public const float WindowWidth = 1008f;
-    public const float WindowHeight = 624f;
-
-    public const float BrowserWidth = 608f;
-    public const float BrowserHeight = 528f;
-
-    public const float MultiPickerWidth = 608f;
-    public const float MultiPickerHeight = 528f;
-
-    public const float OptionsWidth = 496f;
-    public const float OptionsHeight = 432f;
-
-    public const float ContextMenuWidth = 288f;
-    public const float ContextMenuHeight = 352f;
-
-    public const float ColorPickerWidth = 368f;
-    public const float ColorPickerHeight = 340f;
 
     public static void Fill(SpriteBatch spriteBatch, Rectangle rect, Color color)
         => GUI.DrawRectangle(spriteBatch, rect, color, true);

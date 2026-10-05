@@ -5,6 +5,14 @@
   </PropertyGroup>
   <Import Project="..\BuildData.props" />
 
+  <!-- The markup framework is a separate assembly: the mod references it, it never references the mod. The host's
+       reference package picks its assemblies by platform, and a project reference carries no properties of its own,
+       so the platform and the publicized switch are handed over with it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\UiFramework\UiFramework.csproj"
+                      AdditionalProperties="BuildTarget=Client;PlatformName=$(PlatformName);UsePublicizedAssemblies=$(UsePublicizedAssemblies)" />
+  </ItemGroup>
+
   <!-- The view markup ships inside the assembly, so a build produces a single file to deploy. -->
   <ItemGroup>
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MainWindow.xml" LogicalName="SandboxMenu.MainWindow.xml" />
@@ -13,5 +21,6 @@
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ColorPicker.xml" LogicalName="SandboxMenu.ColorPicker.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Styling\Theme.xml" LogicalName="SandboxMenu.Theme.xml" />
   </ItemGroup>
 </Project>

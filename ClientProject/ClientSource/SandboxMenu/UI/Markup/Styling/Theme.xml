@@ -1,0 +1,15 @@
+<ResourceDictionary>
+
+  <!-- The styles every view falls back on, the ones the framework used to carry itself: a Text without a FontSize
+       is a body line, and a section header is one size up. -->
+  <Style TargetType="Text">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="Wrap" Value="True" />
+    <Setter Property="Scale" Value="False" />
+  </Style>
+
+  <Style Key="SectionHeader" TargetType="Text">
+    <Setter Property="FontSize" Value="24" />
+  </Style>
+
+</ResourceDictionary>

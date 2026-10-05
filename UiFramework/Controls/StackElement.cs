@@ -19,14 +19,14 @@ internal sealed class StackElement : ViewElement
         Control.RectTransform.ScaleChanged += ApplyShares;
     }
 
-    internal override void AddContent(ViewElement child)
+    public override void AddContent(ViewElement child)
     {
         _children.Add(child);
 
         ApplyShares();
     }
 
-    internal override void ChildVisibilityChanged(ViewElement child) => ApplyShares();
+    public override void ChildVisibilityChanged(ViewElement child) => ApplyShares();
 
     // Children sized as a share ("1*", "2*") split what the rest of the axis leaves, so a row fills its width again
     // once one of them is hidden; the host layout group keeps a place for every child it was handed, so a hidden

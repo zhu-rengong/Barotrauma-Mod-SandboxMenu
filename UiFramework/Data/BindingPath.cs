@@ -9,7 +9,7 @@ internal sealed class BindingPath
 {
     private static readonly Dictionary<string, BindingSegment[]> _parseCache = new(StringComparer.Ordinal);
 
-    static BindingPath() => ModLifetime.Unloading += Clear;
+    static BindingPath() => UiLifetime.Unloading += Clear;
 
     private readonly BindingSegment[] _segments;
     private readonly List<INotifyPropertyChanged> _hooked = [];

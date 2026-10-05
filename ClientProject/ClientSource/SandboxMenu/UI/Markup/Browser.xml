@@ -1,3 +1,5 @@
+<Window Width="608dip" Height="528dip">
+
 <Stack Orientation="Vertical">
 
   <!-- The browser's rows are item rows: icon, name with the identifier after it, and the start of the
@@ -19,7 +21,7 @@
 
   <Panel Skin="None" Height="16*">
     <Text Text="sandboxmenu.browser.title" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.2" Height="0.6"
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
             Align="CenterRight" />
   </Panel>
 
@@ -37,7 +39,9 @@
       Visible="{Binding ContainerFilterVisible}" />
   </Stack>
 
-  <List Name="Results" Items="{Binding Rows}" Height="64*" Spacing="3" Virtual="True"
+  <List Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="64*" Spacing="3" Virtual="True"
         Rows="4" TileTemplate="ItemTile" />
 
 </Stack>
+
+</Window>

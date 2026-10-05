@@ -1,4 +1,4 @@
-namespace SandboxMenu.Domain.Prefabs;
+namespace SandboxMenu;
 
 internal static class ContentRevision
 {

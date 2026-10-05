@@ -14,7 +14,7 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
 
     private NumberElement(ElementContext context, bool integer)
         : base(new GUINumberInput(
-            context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
+            context.Rect(context.Parent, 1f, UiTokens.Percent("control", 0.84f)),
             integer ? NumberType.Int : NumberType.Float,
             textAlignment: ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft)))
     {
@@ -102,7 +102,7 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         }
     }
 
-    internal override void AddContent(ViewElement child) => throw new NotSupportedException("Number takes no content");
+    public override void AddContent(ViewElement child) => throw new NotSupportedException("Number takes no content");
 
     void IPropertyObserver.Observe(string property, Action<object?> changed)
     {

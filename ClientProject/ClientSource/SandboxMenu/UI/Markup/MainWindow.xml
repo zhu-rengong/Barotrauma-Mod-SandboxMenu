@@ -1,3 +1,5 @@
+<Window Width="1008dip" Height="624dip">
+
 <Stack Orientation="Vertical">
 
   <Stack.Resources>
@@ -91,7 +93,7 @@
       <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" />
     </DataTemplate>
     <DataTemplate DataType="TreeEntryViewModel">
-      <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" Indent="{Binding Indent}"
+      <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" IndentLevel="{Binding Depth}"
         TextColor="{Binding ColorName}" Selected="{Binding IsSelected}"
         Command="{Binding SelectCommand}" SecondaryCommand="{Binding OpenMenuCommand}" Height="row" />
     </DataTemplate>
@@ -111,14 +113,30 @@
     <Row Text="{Binding Functions.AfflictionsTab.Label}" Selected="{Binding Functions.AfflictionsTab.IsActive}"
          Command="{Binding Functions.AfflictionsTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
          Width="0.17" Height="0.6" />
-    <Panel Name="DragArea" Skin="None" Width="1*" Height="1" />
-    <Button Name="Close" Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" Width="0.16" Height="0.6" />
+    <Panel Skin="None" Width="1*" Height="1" Drag="True" />
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
   </Stack>
 
   <!-- The spawn function's area: everything below the title band belongs to it, so a switch takes the whole area
        away and hands its room to the other function. The shares inside (75/9/8 of the area) keep the band sizes the
        window had before there were function areas. -->
   <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowSpawn}">
+
+    <!-- The menu's own keys, acting on the entry the left list has selected. They hang off this area, so they are
+         live exactly while it is the one on show. The arrows walk the list and, with Alt, move the entry inside it;
+         Enter takes the editor to the identifier. Del and "+" are text keys and stand back while a box has the
+         keyboard; "+" sits on Shifted "=" on most layouts, so without Shift the new entry lands next to the selection
+         and with Shift it is nested inside it. -->
+    <Stack.InputBindings>
+      <KeyBinding Key="Up" Command="{Binding Spawn.StepUpCommand}" />
+      <KeyBinding Key="Down" Command="{Binding Spawn.StepDownCommand}" />
+      <KeyBinding Key="Up" Modifiers="Alt" Command="{Binding Spawn.MoveUpCommand}" />
+      <KeyBinding Key="Down" Modifiers="Alt" Command="{Binding Spawn.MoveDownCommand}" />
+      <KeyBinding Key="Enter" Command="{Binding Spawn.FocusIdentifierCommand}" />
+      <KeyBinding Key="Delete" Command="{Binding Spawn.DeleteSelectedCommand}" RequiresNoTextInput="True" />
+      <KeyBinding Key="OemPlus,Add" Command="{Binding Spawn.AddItemCommand}" RequiresNoTextInput="True" />
+      <KeyBinding Key="OemPlus,Add" Modifiers="Shift" Command="{Binding Spawn.AddChildCommand}" RequiresNoTextInput="True" />
+    </Stack.InputBindings>
 
     <!-- body: the spawn set tree and the editor -->
     <Stack Orientation="Horizontal" Height="75*">
@@ -160,3 +178,5 @@
   </Panel>
 
 </Stack>
+
+</Window>

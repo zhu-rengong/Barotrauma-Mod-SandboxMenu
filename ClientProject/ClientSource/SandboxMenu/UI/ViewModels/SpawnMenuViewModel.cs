@@ -32,6 +32,15 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         SpawnIntoInventoryCommand = new RelayCommand(_requests.Give);
         SpawnAtCursorCommand = new RelayCommand(_requests.AtCursor);
 
+        StepUpCommand = new RelayCommand(() => _treeEditor.StepSelection(-1));
+        StepDownCommand = new RelayCommand(() => _treeEditor.StepSelection(1));
+        MoveUpCommand = new RelayCommand(() => _treeEditor.MoveSelection(-1));
+        MoveDownCommand = new RelayCommand(() => _treeEditor.MoveSelection(1));
+        FocusIdentifierCommand = new RelayCommand(FocusIdentifier);
+        DeleteSelectedCommand = new RelayCommand(_treeEditor.DeleteSelected);
+        AddItemCommand = new RelayCommand(() => _treeEditor.AddItem(asChild: false));
+        AddChildCommand = new RelayCommand(() => _treeEditor.AddItem(asChild: true));
+
         _tree.Rebuild();
     }
 
@@ -78,6 +87,23 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public RelayCommand SpawnAtCursorCommand { get; }
 
+    // The keys the menu answers to; which of them are live is decided by the markup that declares them.
+    public RelayCommand StepUpCommand { get; }
+
+    public RelayCommand StepDownCommand { get; }
+
+    public RelayCommand MoveUpCommand { get; }
+
+    public RelayCommand MoveDownCommand { get; }
+
+    public RelayCommand FocusIdentifierCommand { get; }
+
+    public RelayCommand DeleteSelectedCommand { get; }
+
+    public RelayCommand AddItemCommand { get; }
+
+    public RelayCommand AddChildCommand { get; }
+
     // The key the give button shows behind its label.
     public LocalizedString GiveShortcut => Plugin.GiveKey.ToString();
 
@@ -90,10 +116,6 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
     internal void Report(LocalizedString message) => Status = message;
 
     internal void RefreshShortcuts() => Raise(nameof(GiveShortcut));
-
-    internal void AddItem(bool asChild) => _treeEditor.AddItem(asChild);
-
-    internal void DeleteSelected() => _treeEditor.DeleteSelected();
 
     public TreeEntryViewModel? SelectedEntry
     {
@@ -168,9 +190,9 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         Editor.ReleaseContent();
     }
 
-    public void ShowBackgroundMenu(Vector2 position) => OpenMenu(null);
+    public void ShowBackgroundMenu(Vector2 position) => OpenMenu(null, position);
 
-    internal void OpenMenu(TreeEntryViewModel? row)
+    internal void OpenMenu(TreeEntryViewModel? row, Vector2? position = null)
     {
         if (row is not null) { Select(row); }
 
@@ -207,12 +229,8 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
             actions.Add(new MenuAction("sandboxmenu.movedown", () => _treeEditor.Move(row, 1), TextManager.Get("sandboxmenu.shortcut.movedown")));
         }
 
-        _host.ShowContextMenu(actions, PlayerInput.MousePosition);
+        _host.ShowContextMenu(actions, position);
     }
-
-    internal void MoveSelection(int direction) => _treeEditor.MoveSelection(direction);
-
-    internal void StepSelection(int direction) => _treeEditor.StepSelection(direction);
 
     internal void FocusIdentifier() => Editor.FocusIdentifier();
 

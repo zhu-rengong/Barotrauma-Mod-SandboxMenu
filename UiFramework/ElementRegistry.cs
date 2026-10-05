@@ -8,23 +8,42 @@ internal static class ElementRegistry
 {
     private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
+    private static readonly List<Assembly> _sources = [typeof(ElementRegistry).Assembly];
     private static FrozenDictionary<string, ElementMetadata>? _elements;
 
-    static ElementRegistry() => ModLifetime.Unloading += () => _elements = null;
+    static ElementRegistry() => UiLifetime.Unloading += Reset;
 
     internal static FrozenDictionary<string, ElementMetadata> Elements => _elements ??= Scan();
 
     internal static ElementMetadata? Find(string name) => Elements.GetValueOrDefault(name);
 
+    // The mod's elements live in its own assembly, so they are handed over rather than scanned for.
+    internal static void Register(Assembly assembly)
+    {
+        if (_sources.Contains(assembly)) { return; }
+
+        _sources.Add(assembly);
+        _elements = null;
+    }
+
+    private static void Reset()
+    {
+        _sources.Clear();
+        _elements = null;
+    }
+
     private static FrozenDictionary<string, ElementMetadata> Scan()
     {
         Dictionary<string, ElementMetadata> elements = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (Type type in typeof(ElementRegistry).Assembly.GetTypes())
+        foreach (Assembly source in _sources)
         {
-            if (type.GetCustomAttribute<ElementAttribute>() is not { } element || type.IsAbstract) { continue; }
+            foreach (Type type in source.GetTypes())
+            {
+                if (type.GetCustomAttribute<ElementAttribute>() is not { } element || type.IsAbstract) { continue; }
 
-            elements[element.Name] = new ElementMetadata(element.Name, FactoryOf(type), PropertiesOf(type));
+                elements[element.Name] = new ElementMetadata(element.Name, FactoryOf(type), PropertiesOf(type));
+            }
         }
 
         return elements.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);

@@ -39,7 +39,7 @@ internal sealed class ListBandGeometry
         _rowHeight = rowHeight;
         _count = count;
 
-        int tile = UiMetrics.DipInt(UiMetrics.TileSize);
+        int tile = UiMetrics.DipInt(UiTokens.Dip("tile", 36f));
         int stride = Math.Max(1, rowHeight + spacing);
 
         Columns = Math.Max(1, (int)MathF.Round((width + spacing) / (float)Math.Max(1, tile + spacing)));

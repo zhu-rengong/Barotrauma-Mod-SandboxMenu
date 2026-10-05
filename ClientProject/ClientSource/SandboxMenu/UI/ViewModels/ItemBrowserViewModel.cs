@@ -24,7 +24,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private Action<string> _onPicked = static _ => { };
     private string _query = string.Empty;
     private MapEntityCategory _categories;
-    private GUIListBox? _results;
+    private float _scroll;
 
     private ContainerRules? _container;
     private string? _parent;
@@ -45,9 +45,15 @@ internal sealed class ItemBrowserViewModel : Notifiable
         ApplyFilter();
     }
 
-    internal void Attach(GUIListBox? results) => _results = results;
-
     internal void PickInto(Action<string> onPicked) => _onPicked = onPicked;
+
+    // The list's scroll position, bound two-way: writing it is how the list is sent back to the top, and the list
+    // reports the player's scrolling back through it.
+    public float Scroll
+    {
+        get => _scroll;
+        set => Set(ref _scroll, value);
+    }
 
     internal void RefreshHints()
     {
@@ -207,7 +213,12 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
         _visible = [.. _rows.Where(row => Shows(row.Entry, filter, query))];
 
-        if (!keepScroll && _results is { } list) { list.BarScroll = 0f; }
+        // Raised even when it does not change: the list has to be told to go back to the top, not read.
+        if (!keepScroll)
+        {
+            _scroll = 0f;
+            Raise(nameof(Scroll));
+        }
 
         Raise(nameof(Rows));
 

@@ -122,7 +122,7 @@ internal sealed class ListDrag(ListBoxElement list)
 
         int thickness = UiMetrics.DipInt(2f);
         int half = Math.Max(1, rect.Height / 2);
-        int indent = UiMetrics.DipInt(UiMetrics.TreeIndentStep);
+        int indent = UiMetrics.DipInt(UiTokens.Dip("indent", 14f));
 
         Rectangle slot = _highlightMode switch
         {

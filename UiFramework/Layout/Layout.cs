@@ -95,9 +95,9 @@ internal readonly record struct Length(LengthKind Kind, float Value)
 
     private static Length? Keyword(string text) => text.ToLowerInvariant() switch
     {
-        "row" => Percent(UiMetrics.RowHeight),
-        "section" => Percent(UiMetrics.SectionHeight),
-        "control" => Percent(UiMetrics.ControlHeight),
+        "row" => UiTokens.AsLength("row", Percent(0.075f)),
+        "section" => UiTokens.AsLength("section", Percent(0.085f)),
+        "control" => UiTokens.AsLength("control", Percent(0.84f)),
         _ => null
     };
 

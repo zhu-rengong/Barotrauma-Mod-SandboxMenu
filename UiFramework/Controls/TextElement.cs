@@ -21,7 +21,7 @@ internal sealed class TextElement : ViewElement
         _font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _font);
 
-        _block.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", UiMetrics.Pad)), 0f, 0f, 0f);
+        _block.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", UiTokens.Dip("pad", 6f))), 0f, 0f, 0f);
         _block.CanBeFocused = false;
 
         if (ViewMarkup.ToBool(context.Text("Wrap"), false))
@@ -69,7 +69,7 @@ internal sealed class TextElement : ViewElement
 
     private static GUITextBlock CreateBlock(ElementContext context)
         => new(
-            context.Rect(context.Parent, 1f, UiMetrics.ControlHeight),
+            context.Rect(context.Parent, 1f, UiTokens.Percent("control", 0.84f)),
             string.Empty,
             textColor: UiMetrics.Text,
             font: ViewMarkup.FontOf(context.Text("Font")),

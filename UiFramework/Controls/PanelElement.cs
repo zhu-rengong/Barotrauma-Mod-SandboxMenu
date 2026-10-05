@@ -11,7 +11,7 @@ internal sealed class PanelElement : ViewElement
     {
     }
 
-    internal override void AddContent(ViewElement child)
+    public override void AddContent(ViewElement child)
     {
     }
 }

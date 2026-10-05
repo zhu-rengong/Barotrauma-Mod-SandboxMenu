@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Row")]
-internal sealed class RowElement : ViewElement, IDisposable
+public sealed class RowElement : ViewElement, IDisposable
 {
     private readonly RowControl _row;
     private readonly ViewContext _view;
@@ -27,13 +27,13 @@ internal sealed class RowElement : ViewElement, IDisposable
 
     private DeferredSprite? _icon;
     private GUITextBlock? _subText;
-    private float _indent = UiMetrics.Pad;
+    private float _indent = Theme.Pad;
     private bool _hasCommand;
     private int _laidOutHeight = -1;
 
     public RowElement(ElementContext context)
         : base(new RowControl(
-            context.Rect(context.Parent, 1f, UiMetrics.RowHeight),
+            context.Rect(context.Parent, 1f, Theme.RowHeight),
             string.Empty,
             ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft)))
     {
@@ -104,7 +104,7 @@ internal sealed class RowElement : ViewElement, IDisposable
     private void ApplyText()
     {
         // A row draws its own dark fill, so the hint keeps the light dim colour.
-        _row.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, "sandboxmenu.shortcut.hint");
+        _row.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, ViewMarkup.HintKey);
         _row.TextBlock.TextScale = _scale;
     }
 
@@ -141,6 +141,14 @@ internal sealed class RowElement : ViewElement, IDisposable
             _indent = value;
             ForceLayout();
         }
+    }
+
+    // The depth a tree row sits at, turned into the DIP it is drawn at: the view model holds the depth, the view
+    // decides how deep that looks.
+    [ElementProperty]
+    public int IndentLevel
+    {
+        set => Indent = Theme.TreeIndentStart + value * Theme.TreeIndentStep;
     }
 
     [ElementProperty]
@@ -197,17 +205,17 @@ internal sealed class RowElement : ViewElement, IDisposable
 
     private void ApplyAll()
     {
-        int left = UiMetrics.DipInt(_indent + (_icon is null ? 0f : UiMetrics.IconBox + UiMetrics.IconGap));
-        int right = UiMetrics.DipInt(UiMetrics.Pad);
+        int left = UiMetrics.DipInt(_indent + (_icon is null ? 0f : Theme.IconBox + Theme.IconGap));
+        int right = UiMetrics.DipInt(Theme.Pad);
 
-        _row.TextBlock.Padding = new Vector4(left, 0f, right, _subText is null ? 0f : _row.Rect.Height * UiMetrics.SubTextRatio);
+        _row.TextBlock.Padding = new Vector4(left, 0f, right, _subText is null ? 0f : _row.Rect.Height * Theme.SubTextRatio);
         if (_subText is not null) { _subText.Padding = new Vector4(left, 0f, right, 0f); }
         if (_icon is not null) { _icon.Image.RectTransform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent), 0); }
     }
 
     private void BuildIcon()
     {
-        int box = UiMetrics.DipInt(UiMetrics.IconBox);
+        int box = UiMetrics.DipInt(Theme.IconBox);
 
         _icon = new DeferredSprite(
             new RectTransform(new Point(box, box), Control.RectTransform, Anchor.CenterLeft, null, ScaleBasis.Normal, isFixedSize: true),
@@ -219,7 +227,7 @@ internal sealed class RowElement : ViewElement, IDisposable
     private void BuildSubText()
     {
         _subText = new GUITextBlock(
-            new RectTransform(new Vector2(1f, UiMetrics.SubTextRatio), Control.RectTransform, Anchor.BottomLeft),
+            new RectTransform(new Vector2(1f, Theme.SubTextRatio), Control.RectTransform, Anchor.BottomLeft),
             string.Empty,
             font: GUIStyle.Font,
             textAlignment: Alignment.CenterLeft)

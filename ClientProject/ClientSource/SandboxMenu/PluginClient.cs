@@ -13,6 +13,8 @@ public sealed partial class Plugin
 
     internal partial void Setup()
     {
+        UiBootstrap.Register();
+
         NetworkService.RegisterNetworkHeaders<NetworkHeaders>();
         NetworkService.RegisterHandler<NetworkHeaders, SpawnResponse>(NetworkHeaders.SpawnResponse, ClientSpawnDispatcher.OnResponse);
 
@@ -27,6 +29,7 @@ public sealed partial class Plugin
     internal partial void Teardown()
     {
         MenuHost.Shutdown();
+        UiBootstrap.Shutdown();
 
         _gameScreen = null;
         _hookService = null;

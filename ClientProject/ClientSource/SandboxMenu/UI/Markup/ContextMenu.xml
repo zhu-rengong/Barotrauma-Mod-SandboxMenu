@@ -1,3 +1,5 @@
+<Window Width="288dip" Height="352dip">
+
 <Stack Orientation="Vertical" Spacing="2">
 
   <Stack.Resources>
@@ -10,3 +12,5 @@
   <List Items="{Binding Options}" Height="1" Spacing="2" />
 
 </Stack>
+
+</Window>

@@ -16,7 +16,7 @@ internal abstract class LayoutPanel : ViewElement
 
     protected void SetGap(float gapDip) => _gap = gapDip;
 
-    internal override void AddContent(ViewElement child)
+    public override void AddContent(ViewElement child)
     {
         Children.Add(child);
         Invalidate();

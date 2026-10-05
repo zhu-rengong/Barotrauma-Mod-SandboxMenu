@@ -5,7 +5,7 @@
       "ClientProject\\WindowsClient.csproj",
       "ServerProject\\WindowsServer.csproj",
       "SharedProject\\SharedSource.shproj",
-      "UiFramework\\UiFramework.shproj"
+      "UiFramework\\UiFramework.csproj"
     ]
   }
 }
