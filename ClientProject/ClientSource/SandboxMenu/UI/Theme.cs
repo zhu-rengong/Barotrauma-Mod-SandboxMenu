@@ -15,7 +15,7 @@ internal static class Theme
     public static Color TextDisabled => UiMetrics.TextDisabled;
 
     // The colour a line that has to be noticed is written in rather than just read.
-    public static Color Callout => GUIStyle.Orange;
+    public static Color Callout => GUIStyle.EquipmentSlotIconColor;
 
     public const float SelectedBarWidth = 3f;
 
@@ -45,7 +45,7 @@ internal static class Theme
 
     public const float IconShadowOffset = 2f;
 
-    public static readonly Color SlotFill = new(49, 56, 49, 220);
+    public static readonly Color SlotFill = new(56, 56, 56, 220);
 
     public static readonly Color SlotLine = new(122, 137, 152, 110);
 
