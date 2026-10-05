@@ -1,3 +1,5 @@
+using UiFramework.Layout;
+
 namespace UiFramework.Controls;
 
 // The rows and tiles a list builds from its templates, and the two ways they come back: a windowed list recycles
@@ -66,7 +68,7 @@ internal sealed class ListRowPool
 
         // A fresh row is laid out on the spot: waiting for its first update would show it for a frame with its
         // labels and controls still sitting at their default places.
-        row.Control.ForceLayoutRecalculation();
+        LayoutFlush.Apply(row.Control);
 
         row.Parent = _owner;
         row.Control.UserData = item;

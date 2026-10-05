@@ -61,7 +61,7 @@ internal sealed class StackElement : ViewElement
             }
         }
 
-        if (_horizontal ? Control.Rect.Width > 0 : Control.Rect.Height > 0) { _group.ForceLayoutRecalculation(); }
+        if (_horizontal ? Control.Rect.Width > 0 : Control.Rect.Height > 0) { LayoutFlush.Apply(Control); }
         else { _group.NeedsToRecalculate = true; }
     }
 

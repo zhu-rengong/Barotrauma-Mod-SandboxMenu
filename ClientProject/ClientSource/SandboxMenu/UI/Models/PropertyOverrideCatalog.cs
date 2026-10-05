@@ -41,9 +41,13 @@ internal sealed record PropertyOption(
     public string Label => $"{Name} ({TypeName}) = {DefaultValue}";
 }
 
+// A property and what the picker knows about it: the two travel together because the default the option shows
+// depends on the property's own [Serialize] attribute (see PropertyDefaults).
+internal readonly record struct DeclaredProperty(PropertyOption Option, SerializableProperty Property);
+
 internal static class PropertyOverrideCatalog
 {
-    private static readonly Dictionary<Type, ImmutableArray<PropertyOption>> _propertyCache = [];
+    private static readonly Dictionary<Type, ImmutableArray<DeclaredProperty>> _propertyCache = [];
 
     private static FrozenDictionary<string, Type>? _componentTypes;
 
@@ -67,11 +71,11 @@ internal static class PropertyOverrideCatalog
         ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
         if (target.Type is not { } type) { return []; }
 
-        ImmutableArray<PropertyOption> declared = Declared(type);
+        ImmutableArray<DeclaredProperty> declared = Declared(type);
 
         return target.Element is not { } element
-            ? declared
-            : [.. declared.Select(option => AsDeclaredBy(option, element))];
+            ? [.. declared.Select(entry => entry.Option)]
+            : [.. declared.Select(entry => AsDeclaredBy(entry, element))];
     }
 
     // The metadata of the property an override already names, so a row loaded from a preset can put up the editor
@@ -79,11 +83,15 @@ internal static class PropertyOverrideCatalog
     internal static PropertyOption? Describe(string identifier, string componentName, int componentIndex, string propertyName)
     {
         if (string.IsNullOrWhiteSpace(propertyName)) { return null; }
-        if (Resolve(identifier, componentName, componentIndex).Type is not { } type) { return null; }
 
-        foreach (PropertyOption option in Declared(type))
+        ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
+        if (target.Type is not { } type) { return null; }
+
+        foreach (DeclaredProperty entry in Declared(type))
         {
-            if (string.Equals(option.Name, propertyName, StringComparison.OrdinalIgnoreCase)) { return option; }
+            if (!string.Equals(entry.Option.Name, propertyName, StringComparison.OrdinalIgnoreCase)) { continue; }
+
+            return target.Element is { } element ? AsDeclaredBy(entry, element) : entry.Option;
         }
 
         return null;
@@ -104,9 +112,9 @@ internal static class PropertyOverrideCatalog
         return string.IsNullOrEmpty(componentName) ? ItemItself.Label : componentName;
     }
 
-    private static ImmutableArray<PropertyOption> Declared(Type type)
+    private static ImmutableArray<DeclaredProperty> Declared(Type type)
     {
-        if (_propertyCache.TryGetValue(type, out ImmutableArray<PropertyOption> declared)) { return declared; }
+        if (_propertyCache.TryGetValue(type, out ImmutableArray<DeclaredProperty> declared)) { return declared; }
 
         declared = [.. DescribeProperties(type)];
         _propertyCache[type] = declared;
@@ -114,10 +122,10 @@ internal static class PropertyOverrideCatalog
         return declared;
     }
 
-    private static PropertyOption AsDeclaredBy(PropertyOption option, ContentXElement element)
-        => element.GetAttribute(option.Name)?.Value is { } value
-            ? option with { DefaultValue = value }
-            : option;
+    // The value the prefab itself writes for this property, or the [Serialize] default when it writes none: the same
+    // rule the write path uses to tell a value that changes nothing (PropertyDefaults).
+    private static PropertyOption AsDeclaredBy(DeclaredProperty entry, ContentXElement element)
+        => entry.Option with { DefaultValue = PropertyDefaults.DeclaredValue(entry.Property, element) };
 
     private static List<OverrideTarget> DescribeTargets(string identifier)
     {
@@ -146,10 +154,10 @@ internal static class PropertyOverrideCatalog
         return targets;
     }
 
-    private static List<PropertyOption> DescribeProperties(Type type)
+    private static List<DeclaredProperty> DescribeProperties(Type type)
     {
         object probe = RuntimeHelpers.GetUninitializedObject(type);
-        List<PropertyOption> options = [];
+        List<DeclaredProperty> options = [];
 
         foreach (SerializableProperty property in SerializableProperty.GetProperties(probe).Values)
         {
@@ -163,18 +171,20 @@ internal static class PropertyOverrideCatalog
             bool editable = property.Attributes.OfType<Editable>().Any();
             bool saveable = serialize.IsSaveable == IsPropertySaveable.Yes;
 
-            options.Add(new PropertyOption(
-                property.Name,
-                kind,
-                FormatDefault(serialize.DefaultValue),
-                editable,
-                saveable,
-                KindOf(typeName, property.PropertyType),
-                RangeOf(property, typeName),
-                ValuesOf(property.PropertyType)));
+            options.Add(new DeclaredProperty(
+                new PropertyOption(
+                    property.Name,
+                    kind,
+                    PropertyDefaults.Format(serialize.DefaultValue),
+                    editable,
+                    saveable,
+                    KindOf(typeName, property.PropertyType),
+                    RangeOf(property, typeName),
+                    ValuesOf(property.PropertyType)),
+                property));
         }
 
-        options.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+        options.Sort(static (a, b) => string.Compare(a.Option.Name, b.Option.Name, StringComparison.OrdinalIgnoreCase));
         return options;
     }
 
@@ -206,27 +216,6 @@ internal static class PropertyOverrideCatalog
 
     private static ImmutableArray<string> ValuesOf(Type type)
         => type.IsEnum ? [.. Enum.GetNames(type)] : [];
-
-    private static string FormatDefault(object? value) => value switch
-    {
-        null => string.Empty,
-        string text => text,
-        string[] texts => string.Join(';', texts),
-        Identifier[] identifiers => string.Join(';', identifiers),
-        Identifier identifier => identifier.ToString(),
-        float number => number.ToString("G", CultureInfo.InvariantCulture),
-        int number => number.ToString(CultureInfo.InvariantCulture),
-        ushort number => number.ToString(CultureInfo.InvariantCulture),
-        Point point => XMLExtensions.PointToString(point),
-        Vector2 vector => XMLExtensions.Vector2ToString(vector),
-        Vector3 vector => XMLExtensions.Vector3ToString(vector, "G"),
-        Vector4 vector => XMLExtensions.Vector4ToString(vector, "G"),
-        Rectangle rect => XMLExtensions.RectToString(rect),
-        Color color => color.ToStringHex(),
-        Enum enumeration => enumeration.ToString(),
-        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-        _ => value.ToString() ?? string.Empty
-    };
 
     private readonly record struct ResolvedTarget(Type? Type, ContentXElement? Element);
 

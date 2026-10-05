@@ -86,11 +86,20 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
         if (_picker is not { } picker) { return; }
 
         Vector3 hsv = ToolBox.RGBToHSV(_color);
-        float hue = float.IsNaN(hsv.X) ? 0f : hsv.X;
+
+        // A colour that is black or grey carries no hue at all — RGBToHSV answers -1 for black and NaN for a grey —
+        // and a black one carries no saturation either, so those readings say nothing about where the player put the
+        // marker. Taking them anyway is what dragged the marker off to red whenever a drag reached the bottom edge
+        // of the board; the picker keeps the hue and saturation it has, and only the value it can read is written
+        // back. The hue test also rejects the NaN: every comparison with it is false.
+        bool carriesHue = hsv.X >= 0f && hsv.Y > 0f && hsv.Z > 0f;
+        float hue = carriesHue ? hsv.X : picker.SelectedHue;
+        float saturation = hsv.Z > 0f ? hsv.Y : picker.SelectedSaturation;
+
         bool hueMoved = Math.Abs(hue - picker.SelectedHue) > 0.001f;
 
         picker.SelectedHue = hue;
-        picker.SelectedSaturation = hsv.Y;
+        picker.SelectedSaturation = saturation;
         picker.SelectedValue = hsv.Z;
         picker.CurrentColor = _color;
 

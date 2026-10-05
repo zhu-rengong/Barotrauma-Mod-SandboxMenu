@@ -10,9 +10,12 @@ internal sealed class KeyBinding
 {
     internal ViewElement Owner { get; init; } = null!;
 
+    // The spellings of the key itself: any one of them being hit counts as the key.
     internal KeyCode[] Keys { get; init; } = [];
 
-    internal KeyCode[] Modifiers { get; init; } = [];
+    // One entry per modifier named, each carrying that modifier's own spellings: every entry has to be held, and
+    // within an entry any spelling will do. Alt is one entry of left and right, not a demand for both at once.
+    internal KeyCode[][] Modifiers { get; init; } = [];
 
     internal ICommand? Command { get; set; }
 
@@ -23,7 +26,7 @@ internal sealed class KeyBinding
 
     internal int Specificity => Modifiers.Length;
 
-    internal bool Held() => Modifiers.Length == 0 || Modifiers.All(PlayerInput.KeyDown);
+    internal bool Held() => Modifiers.All(group => group.Any(PlayerInput.KeyDown));
 
     internal bool Pressed() => Keys.Any(PlayerInput.KeyHit);
 
@@ -51,19 +54,19 @@ internal sealed class KeyBinding
                 .Where(name => Enum.TryParse(name, ignoreCase: true, out KeyCode _))
                 .Select(name => Enum.Parse<KeyCode>(name, ignoreCase: true))];
 
-    private static KeyCode[] ParseModifiers(string? text)
+    private static KeyCode[][] ParseModifiers(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) { return []; }
 
-        List<KeyCode> modifiers = [];
+        List<KeyCode[]> modifiers = [];
 
         foreach (string name in text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             switch (name.ToLowerInvariant())
             {
-                case "alt": modifiers.Add(KeyCode.LeftAlt); modifiers.Add(KeyCode.RightAlt); break;
-                case "shift": modifiers.Add(KeyCode.LeftShift); modifiers.Add(KeyCode.RightShift); break;
-                case "ctrl" or "control": modifiers.Add(KeyCode.LeftControl); modifiers.Add(KeyCode.RightControl); break;
+                case "alt": modifiers.Add([KeyCode.LeftAlt, KeyCode.RightAlt]); break;
+                case "shift": modifiers.Add([KeyCode.LeftShift, KeyCode.RightShift]); break;
+                case "ctrl" or "control": modifiers.Add([KeyCode.LeftControl, KeyCode.RightControl]); break;
                 default: break;
             }
         }
