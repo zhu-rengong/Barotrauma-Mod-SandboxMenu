@@ -3,9 +3,8 @@ using System.Globalization;
 // A layout vocabulary the elements and the builder both spell out, so it lives in the framework's own namespace.
 namespace UiFramework;
 
-// The room markup keeps around or inside an element, one figure per side: one value for all four, two for the vertical
-// and the horizontal, or the four the way CSS spells them out — top, right, bottom, left — in DIP like every other
-// size in markup.
+// One figure per side, in DIP: one value for all four, two for the vertical and the horizontal, or the four the way CSS
+// spells them out — top, right, bottom, left.
 internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 {
     internal static Insets None { get; } = new(0, 0, 0, 0);
@@ -30,7 +29,11 @@ internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 
         for (int i = 0; i < parts.Length; i++)
         {
-            if (!float.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out float value)) { return None; }
+            string part = parts[i];
+
+            if (part.EndsWith("dip", StringComparison.OrdinalIgnoreCase)) { part = part[..^3]; }
+
+            if (!float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float value)) { return None; }
 
             values[i] = UiMetrics.DipInt(value);
         }

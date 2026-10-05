@@ -16,11 +16,8 @@ internal static class Labels
         block.HoverSelectedTextColor = color;
     }
 
-    internal static void SetLabelEnabled(GUITextBlock label, bool enabled)
-    {
-        Color color = enabled ? Theme.Text : Theme.TextDim;
-        label.TextColor = color;
-        label.OverrideTextColor(color);
-    }
-
+    // The package's own accent colour, spelled the one way the mod spells it: an item hint wears it, and so does the
+    // package filter.
+    internal static LocalizedString AccentMarkup(LocalizedString text, ContentPackage package)
+        => "‖color:" + package.GetAccentColor().ToStringHex() + "‖" + text + "‖color:end‖";
 }

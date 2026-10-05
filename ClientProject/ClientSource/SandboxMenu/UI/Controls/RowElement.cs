@@ -12,8 +12,6 @@ public sealed class RowElement : ViewElement, IDisposable
     private RichString? _shortcut;
     private float _scale;
 
-    // The box the icon is drawn in and whether it sits in a slot of its own: both are the view's call, so a list that
-    // shows items can size and frame them the way an inventory does without touching the lists that do not.
     private float _iconBox = Theme.IconBox;
     private bool _iconSlot;
 
@@ -125,8 +123,7 @@ public sealed class RowElement : ViewElement, IDisposable
         }
     }
 
-    // How big the icon is drawn, in DIP, and whether it sits in a slot of its own. Both are the view's call, so a list
-    // that shows items can size and frame them the way an inventory does without touching the lists that do not.
+    // The box the icon is drawn in and whether it sits in a slot of its own: both are the view's call.
     [ElementProperty]
     public float IconSize
     {
@@ -283,9 +280,8 @@ public sealed class RowElement : ViewElement, IDisposable
             CanBeFocused = false,
             TextScale = UiMetrics.TextScale,
 
-            // The host hands every child the row's state, and the default text-block style carries a hover bar of its
-            // own (the one the mod lists wear): the row paints the highlight, so the subtext must not draw one over its
-            // half of it.
+            // The host hands every child the row's state and a text block carries a hover bar of its own, which is what
+            // the row paints instead.
             HoverColor = Color.Transparent,
             SelectedColor = Color.Transparent
         };

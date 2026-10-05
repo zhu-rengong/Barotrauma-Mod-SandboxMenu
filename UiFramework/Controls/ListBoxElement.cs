@@ -28,6 +28,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     private float _reportedScroll = -1f;
 
     private readonly int _detailRows;
+    private readonly Insets _padding;
 
     public ListBoxElement(ElementContext context)
         : base(new GUIListBox(context.Rect(context.Parent, 1f, 1f), style: null!)
@@ -60,9 +61,10 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiTokens.Dip("gap", 4f)));
 
-        // The bands of a banded list are placed inside the content and keep the room themselves, so the host's own inset
-        // stays out of it; a plain list keeps the inset the host's way.
-        if (_detailRows == 0) { _listBox.Padding = Insets.Parse(context.Text("Padding")).ToVector4(); }
+        _padding = context.Padding;
+
+        // A banded list's parts keep the room inside the content themselves, so the host's own inset stays out of it.
+        if (_detailRows == 0) { _listBox.Padding = _padding.ToVector4(); }
 
         if (Windowed) { _view.EveryFrame(UpdateWindow); }
 
@@ -95,6 +97,8 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     internal bool Probed { get => _probed; set => _probed = value; }
 
     internal int DetailRows => _detailRows;
+
+    internal Insets Padding => _padding;
 
     [ElementProperty]
     public IEnumerable? Items
@@ -194,6 +198,8 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         else if (Extends()) { Append(); }
         else { RebuildAll(); }
 
+        // A row is as tall as the host lays it out, which is not known before the host has placed the first one, so a
+        // list that came out empty although it has items asks for one more pass on the next frame.
         bool empty = _detailRows > 0 ? _bands.IsEmpty : _rows.Count == 0;
 
         if (empty && HasItems() && !_retriedEmpty)

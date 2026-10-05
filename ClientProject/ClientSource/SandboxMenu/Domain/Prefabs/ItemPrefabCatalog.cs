@@ -1,14 +1,18 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 
-namespace SandboxMenu.UI.Models;
+namespace SandboxMenu.Domain.Prefabs;
 
-internal sealed record ItemPrefabEntry(ItemDisplay Display, ContentPackage? Package, MapEntityCategory Category, string Tags)
+internal sealed record ItemPrefabEntry(ItemPrefab Prefab, ContentPackage? Package, MapEntityCategory Category, string Tags)
 {
+    internal string Identifier => Prefab.Identifier.Value;
+
     internal bool Matches(string text)
-        => Display.Name.Value.Contains(text, StringComparison.OrdinalIgnoreCase)
-            || Display.Identifier.Contains(text, StringComparison.OrdinalIgnoreCase)
+        => Name.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || Identifier.Contains(text, StringComparison.OrdinalIgnoreCase)
             || Tags.Contains(text, StringComparison.OrdinalIgnoreCase);
+
+    private string Name => Prefab.Name?.Value is { Length: > 0 } name ? name : Identifier;
 }
 
 internal sealed record ItemFilter(IReadOnlySet<ContentPackage> Packages, MapEntityCategory Categories)
@@ -83,11 +87,9 @@ internal static class ItemPrefabCatalog
 
     private static ItemPrefabEntry Describe(ItemPrefab prefab)
     {
-        ItemDisplay display = ItemDisplay.For(prefab);
-
         string tags = prefab.Tags is null ? string.Empty : string.Join(' ', prefab.Tags.Select(tag => tag.Value));
 
-        return new ItemPrefabEntry(display, prefab.ContentPackage, prefab.Category, tags);
+        return new ItemPrefabEntry(prefab, prefab.ContentPackage, prefab.Category, tags);
     }
 
     private static void EnsureBuilt()
@@ -116,7 +118,7 @@ internal static class ItemPrefabCatalog
             masks[package] = masks.TryGetValue(package, out MapEntityCategory mask) ? mask | entry.Category : entry.Category;
         }
 
-        list.Sort(static (a, b) => string.Compare(a.Display.Identifier, b.Display.Identifier, StringComparison.OrdinalIgnoreCase));
+        list.Sort(static (a, b) => string.Compare(a.Identifier, b.Identifier, StringComparison.OrdinalIgnoreCase));
 
         _entries = list.ToImmutableArray();
         _packages = BuildPackages(found);

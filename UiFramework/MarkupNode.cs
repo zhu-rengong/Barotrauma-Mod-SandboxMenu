@@ -15,6 +15,9 @@ internal sealed class MarkupNode
     private readonly Dictionary<string, MarkupAttribute> _attributes = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<MarkupNode> _children = [];
 
+    private Insets? _padding;
+    private Insets? _margin;
+
     private MarkupNode(string name, string? owner, string view, int line)
     {
         Name = name;
@@ -46,6 +49,11 @@ internal sealed class MarkupNode
     internal MarkupValue? Value(string name) => Attribute(name)?.Value;
 
     internal string? Text(string name) => Attribute(name)?.Value.Raw;
+
+    // Read by an element while it is built and by the container that lays it out afterwards, so the node reads it once.
+    internal Insets Padding => _padding ??= Insets.Parse(Text("Padding"));
+
+    internal Insets Margin => _margin ??= Insets.Parse(Text("Margin"));
 
     internal static MarkupNode Parse(string view, XElement element)
     {

@@ -2,13 +2,8 @@
 
 <Stack Orientation="Vertical">
 
-  <!-- The browser's rows are item rows: icon, name with the identifier after it, and the start of the
-       description. The template is found by the row view model's type, and the list builds only the rows on
-       screen, so the search text and the filters hand it the matching rows instead of hiding rows one by one.
-       The tiles are the same view models as icons only: they fill the grid bands the list puts above and below
-       its four detail rows, so the entries outside the scroll view stay in the same sequence and next to the
-       rows they precede and follow. A tile's IconExtent is how much of its cell the icon takes; the rest is the
-       room the grid keeps between two icons. -->
+  <!-- The tiles are the same rows as icons only: they fill the grid bands above and below the detail rows, so the
+       entries outside the scroll view keep their sequence. IconExtent is how much of its cell an icon takes. -->
   <Stack.Resources>
     <DataTemplate Key="ItemTile">
       <Tile Icon="{Binding Icon}" ToolTip="{Binding TileSelfToolTip}" Command="{Binding PickCommand}"
@@ -21,18 +16,14 @@
     </DataTemplate>
   </Stack.Resources>
 
-  <!-- Title band: the title and the close button take the row, the title taking what the button leaves. What the right
-       button does is said in the tooltip of every entry instead of beside the title. -->
+  <!-- The title takes what the close button leaves; what the right button does is said in each entry's tooltip. -->
   <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
     <Text Text="sandboxmenu.browser.title" Font="SubHeading" FontSize="22" Width="1*" Height="1" Padding="8" />
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6" />
   </Stack>
 
-  <!-- What the list is limited to: the content packages and the item categories (several of either can be chosen
-       at once — each button opens a list of tick boxes on top of this window and says what is ticked), the query, and
-       the rules of the parent container, which is a single tick box because there is only one of it. It only shows up
-       when the browser was opened from an entry that is stored inside another item, and the two buttons then take the
-       width it gives back. The query shares the row, which leaves everything below it to the list. -->
+  <!-- What the list is limited to. The two buttons each open a list of tick boxes on top of this window; the container
+       tick is a single one and only shows up when the browser came from an entry stored inside another item. -->
   <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
     <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
     <Button Text="{Binding CategoryFilter}" Command="{Binding PickCategoriesCommand}" Width="1.5*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
@@ -42,10 +33,8 @@
     <Tick Text="{Binding HiddenFilterLabel}" Selected="{Binding HideHidden, Mode=TwoWay}" Width="2*" />
   </Stack>
 
-  <!-- The inner frame keeps the list's room uniform: the window's own skin is a top-dark gradient and the row highlight
-       is a translucent white, so without it a hovered row reads as a gradient of its own instead of the flat one the
-       main window's lists get. Inside it the bands keep that much distance from the frame's edges, which is what a tile
-       grows into when the mouse is on it — the list clips anything that reaches past them. -->
+  <!-- The window's own skin is a top-dark gradient and a row highlight is a translucent white, so the list needs this
+       frame under it or a hovered row reads as a gradient; the bands keep clear of its edges when a tile grows. -->
   <Panel Skin="InnerFrame" Height="80*">
     <List Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="1" Spacing="3" Virtual="True" Rows="5"
           Padding="6,6" TileTemplate="ItemTile" />

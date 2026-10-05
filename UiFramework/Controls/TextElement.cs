@@ -21,11 +21,14 @@ internal sealed class TextElement : ViewElement
         _font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _font);
 
-        _block.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", UiTokens.Dip("pad", 6f))), 0f, 0f, 0f);
+        // Markup asks for room on every side of a text; without it the text keeps the pad token at its left only.
+        _block.Padding = context.Padding.IsEmpty
+            ? new Vector4(UiMetrics.Dip(UiTokens.Dip("pad", 6f)), 0f, 0f, 0f)
+            : context.Padding.ToVector4();
+
         _block.CanBeFocused = false;
 
-        // A text that is a list row is handed the row's state, and the host's default text-block style carries a hover
-        // bar of its own: a body of text is not a control and must not dress up as one.
+        // The host's default text-block style carries a hover bar: a body of text is not a control.
         _block.HoverColor = Microsoft.Xna.Framework.Color.Transparent;
         _block.SelectedColor = Microsoft.Xna.Framework.Color.Transparent;
 

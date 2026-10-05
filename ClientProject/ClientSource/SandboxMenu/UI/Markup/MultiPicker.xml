@@ -2,10 +2,8 @@
 
 <Stack Orientation="Vertical">
 
-  <!-- Every entry the picker was given has a row here; the search text below hides the ones it is not looking for,
-       so a row keeps its tick box and its tick instead of being built again on every keystroke. A row is one control
-       of its own — its tick box, the icon a category is shown by, and its label — so the list sizes the row to what it
-       draws. -->
+  <!-- The search text hides rows instead of rebuilding them, so a row keeps its tick box and its tick; a row is one
+       control of its own — tick box, icon and label — so the list sizes it to what it draws. -->
   <Stack.Resources>
     <DataTemplate DataType="ToggleRowViewModel">
       <Tick Selected="{Binding Selected, Mode=TwoWay}" Text="{Binding Label}" Icon="{Binding Icon}"
@@ -22,8 +20,7 @@
   <!-- A filter, like the item browser: a package or a category can be looked up by typing. -->
   <TextBox Text="{Binding Query, Mode=TwoWay}" Height="12*" Clear="True" />
 
-  <!-- Taking or clearing everything at once, over the list rather than in it, so the pair stays reachable however far
-       the list has been scrolled; both work on what the search box is leaving in sight. -->
+  <!-- Taking or clearing everything at once, outside the list so the pair stays reachable however far it is scrolled. -->
   <Stack Orientation="Horizontal" Height="8*" Spacing="3">
     <Button Text="selectall" Command="{Binding SelectAllCommand}" Width="1*" Height="1" />
     <Button Text="deselectall" Command="{Binding DeselectAllCommand}" Width="1*" Height="1" />

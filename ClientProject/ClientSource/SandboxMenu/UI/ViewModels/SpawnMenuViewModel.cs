@@ -85,8 +85,7 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public RelayCommand SpawnIntoInventoryCommand { get; }
 
-    // The right mouse button in the item browser: the item picked there goes onto the character the way the give button
-    // sends the whole set, without the set itself being touched.
+    // The item picked in the browser goes onto the character without the set itself being touched.
     internal void GiveToCharacter(ItemEntry entry) => _requests.Give([entry]);
 
     public RelayCommand SpawnAtCursorCommand { get; }

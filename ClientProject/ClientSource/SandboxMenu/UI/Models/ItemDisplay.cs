@@ -4,6 +4,9 @@ namespace SandboxMenu.UI.Models;
 
 internal sealed class ItemDisplay
 {
+    // Built once per prefab: the browser holds one of these for every item, and a hint is asked for on every scroll step.
+    private static readonly Dictionary<ItemPrefab, ItemDisplay> _cache = new(ReferenceEqualityComparer.Instance);
+
     private readonly ItemPrefab _prefab;
     private readonly LocalizedString _name;
     private readonly LocalizedString? _description;
@@ -11,6 +14,12 @@ internal sealed class ItemDisplay
 
     private LocalizedString? _tileToolTipText;
     private RichString? _tileToolTip;
+
+    static ItemDisplay()
+    {
+        ModLifetime.Unloading += _cache.Clear;
+        ContentReload.Invalidated += _cache.Clear;
+    }
 
     private ItemDisplay(ItemPrefab prefab, string identifier, LocalizedString name, LocalizedString? description, string tags, Sprite? icon)
     {
@@ -41,9 +50,8 @@ internal sealed class ItemDisplay
 
     public RichString ToolTip => RichString.Rich(ToolTipText + SkillHints + PackageText);
 
-    // A tile shows the icon alone, so its hint carries what a row shows next to it. The text is held on the display
-    // (cached per prefab, let go with the content) because tiles ask for it on every scroll step; the skill part
-    // depends on whoever is controlled, so it joins the held text every time.
+    // Held on the display because tiles ask for it on every scroll step; the skill part depends on whoever is controlled
+    // and joins the held text every time.
     public RichString TileToolTip
     {
         get
@@ -106,13 +114,8 @@ internal sealed class ItemDisplay
         }
     }
 
-    // The package's own accent colour, spelled the one way the mod spells it: an item hint wears it, and so does the
-    // package filter.
-    internal static LocalizedString AccentMarkup(LocalizedString text, ContentPackage package)
-        => "‖color:" + package.GetAccentColor().ToStringHex() + "‖" + text + "‖color:end‖";
-
     private LocalizedString PackageText
-        => _prefab.ContentPackage is { } package ? "\n" + AccentMarkup(package.Name, package) : LocalizedString.EmptyString;
+        => _prefab.ContentPackage is { } package ? "\n" + Labels.AccentMarkup(package.Name, package) : LocalizedString.EmptyString;
 
     private LocalizedString ToolTipText
     {
@@ -127,6 +130,16 @@ internal sealed class ItemDisplay
     }
 
     internal static ItemDisplay For(ItemPrefab prefab)
+    {
+        if (_cache.TryGetValue(prefab, out ItemDisplay? built)) { return built; }
+
+        ItemDisplay display = Build(prefab);
+        _cache[prefab] = display;
+
+        return display;
+    }
+
+    private static ItemDisplay Build(ItemPrefab prefab)
     {
         string identifier = prefab.Identifier.Value;
 

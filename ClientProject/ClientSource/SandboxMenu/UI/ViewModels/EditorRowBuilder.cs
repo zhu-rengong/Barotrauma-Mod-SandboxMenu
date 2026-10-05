@@ -73,6 +73,13 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
     {
         ItemPreviewRow preview = ItemPreviewRow.For(item.Identifier);
 
+        void Take(string identifier)
+        {
+            item.Identifier = identifier;
+            editor.Rebuild();
+            editor.NotifyEdited();
+        }
+
         _rows.Add(new BrowseRow(
             editor,
             TextManager.Get("sandboxmenu.field.identifier"),
@@ -82,18 +89,14 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 item.Identifier = value;
                 preview.Show(value);
             },
-            () => menu.Host.ShowItemBrowser(identifier => FrameActions.Post(() =>
-            {
-                item.Identifier = identifier;
-                editor.Rebuild();
-                editor.NotifyEdited();
-            }), container, identifier => FrameActions.Post(() =>
-            {
-                item.Identifier = identifier;
-                editor.Rebuild();
-                editor.NotifyEdited();
-                menu.GiveToCharacter(item);
-            }))));
+            () => menu.Host.ShowItemBrowser(
+                identifier => FrameActions.Post(() => Take(identifier)),
+                container,
+                identifier => FrameActions.Post(() =>
+                {
+                    Take(identifier);
+                    menu.GiveToCharacter(item);
+                }))));
 
         _rows.Add(preview);
     }

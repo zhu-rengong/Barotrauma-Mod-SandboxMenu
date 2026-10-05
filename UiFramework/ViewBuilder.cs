@@ -172,8 +172,7 @@ internal static class ViewBuilder
 
     private static void ApplyAttributes(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
     {
-        // Padding is room kept inside the element, and the element itself is what knows where its content goes: a text
-        // block takes it on the spot.
+        // A text block is the one control the framework hands the room to itself; every other element reads its own.
         static void GivePadding(ViewElement target, Insets padding)
         {
             if (padding.IsEmpty) { return; }
@@ -181,9 +180,8 @@ internal static class ViewBuilder
             if (target.Control is GUITextBlock block) { block.Padding = padding.ToVector4(); }
         }
 
-        // A margin is room kept outside the element, which has to come off the rect the element was given: that is exact
-        // while the room around it is known — the content of a window is sized from its own numbers — and is left to the
-        // container that lays the element out otherwise, where a Stack folds it into the share it gives instead.
+        // A margin is room outside the element, so it comes off the rect the element was given; a container that lays it
+        // out takes it into its own share instead.
         static void GiveMargin(ViewContext view, MarkupNode node, ViewElement element, Insets margin)
         {
             if (margin.IsEmpty) { return; }
@@ -215,13 +213,13 @@ internal static class ViewBuilder
         {
             if (string.Equals(attribute.Name, "Padding", StringComparison.OrdinalIgnoreCase))
             {
-                GivePadding(element, Insets.Parse(node.Text(attribute.Name)));
+                GivePadding(element, node.Padding);
                 continue;
             }
 
             if (string.Equals(attribute.Name, "Margin", StringComparison.OrdinalIgnoreCase))
             {
-                GiveMargin(view, node, element, Insets.Parse(node.Text(attribute.Name)));
+                GiveMargin(view, node, element, node.Margin);
                 continue;
             }
 

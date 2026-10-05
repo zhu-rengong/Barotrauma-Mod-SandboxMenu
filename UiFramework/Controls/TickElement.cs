@@ -17,15 +17,18 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         _tick.TextBlock.TextScale = UiMetrics.TextScale;
         _tick.TextBlock.Padding = new Vector4(UiMetrics.Dip(4f), 0f, 0f, 0f);
 
+        // The host draws a tick box's label whole however wide it is, so a label too wide for its share would be drawn
+        // outside the control: it is clipped instead, and the hint on hover says it whole.
+        _tick.TextBlock.OverflowClip = true;
+
         _tick.OnSelected = tickBox =>
         {
             _changed?.Invoke(tickBox.Selected);
             return true;
         };
 
-        // The host works a tick box out again after every resize — the label's width, and the width the mouse answers on.
-        // Both are taken back here, and the host subscribes while it builds the box, so a handler added after that runs
-        // on the sizes it has just worked out.
+        // The host works a tick box's label width and hit width out again after every resize, and subscribes while it
+        // builds the box, so a handler added here runs on the sizes it has just worked out.
         _tick.RectTransform.SizeChanged += Fit;
         _tick.RectTransform.ScaleChanged += Fit;
     }
@@ -37,6 +40,7 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         {
             _tick.TextBlock.Text = value;
             _tick.TextBlock.TextScale = UiMetrics.TextScale;
+            _tick.ToolTip = value;
         }
     }
 

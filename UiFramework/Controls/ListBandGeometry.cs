@@ -1,7 +1,6 @@
 namespace UiFramework.Controls;
 
-// The grid a banded list lays its tiles out in, and the bounds the viewport puts on the detail rows. Worked out
-// per frame, so it only keeps what a size, a row height and a list length fix for good.
+// Worked out per frame, so it keeps only what a size, a row height and a list length fix for good.
 internal sealed class ListBandGeometry
 {
     private int _width = -1;
@@ -49,10 +48,8 @@ internal sealed class ListBandGeometry
         MaxRows = Math.Max(detailRows, (viewport - spacing - MinCell) / stride);
         Usable = viewport >= 3 * MinCell;
 
-        // The rows the end of the scroll leaves for the detail rows, where the top band is the only one on screen: it
-        // takes its whole nominal height and the rest of the viewport goes to the rows. This is the same sum the frame
-        // works out for that state, and the scroll range ends on it, so the last items come to rest in the rows instead
-        // of staying behind in the bottom band.
+        // The sum the frame works out where the top band is the only one on screen: it has to match, or the last items
+        // stay behind in the bottom band instead of coming to rest in the rows.
         int endTop = NominalTileRows * (CellWidth + spacing) - spacing;
 
         DetailRowsOneBand = Math.Clamp((int)MathF.Floor((viewport - endTop) / (float)stride), detailRows, MaxRows);
@@ -60,9 +57,8 @@ internal sealed class ListBandGeometry
         return Usable;
     }
 
-    // The rows a band of this height holds, in whole cells: a cell is as wide as the grid makes it and as tall as it is
-    // wide, so two tiles keep the same gap across as they keep down whatever height the band comes out at. What a band
-    // cannot use — the part of a row its height rounds off — is left empty on the side away from the seam.
+    // The rows a band of this height holds, in whole cells: a cell is as tall as it is wide, so the gap across matches
+    // the gap down whatever height the band comes out at.
     internal BandShape ShapeOf(int height, int used)
     {
         int rows = Math.Clamp((height + _spacing) / (CellWidth + _spacing), 1, used);
@@ -74,8 +70,6 @@ internal sealed class ListBandGeometry
         => Math.Clamp((int)MathF.Round((band + spacing) / (float)Math.Max(1, cellWidth + spacing)), 1, Math.Max(1, cap));
 }
 
-// What one grid band is this frame: how tall it is, how many tile rows it shows, how tall a cell is and how many
-// tiles it holds.
 internal readonly record struct BandShape(int Height, int Rows, int CellHeight, int Capacity)
 {
     internal static BandShape None { get; } = new(0, 1, 1, 0);

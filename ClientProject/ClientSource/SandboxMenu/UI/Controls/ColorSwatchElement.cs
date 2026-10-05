@@ -15,7 +15,6 @@ public sealed class ColorSwatchElement : ViewElement, IDisposable
     {
         _view = context.View;
         _button = (SwatchButton)Control;
-        _button.Padding = context.Metric("Padding", Theme.Pad);
 
         _button.OnClicked = (_, _) =>
         {

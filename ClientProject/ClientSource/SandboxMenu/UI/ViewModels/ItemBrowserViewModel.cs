@@ -5,12 +5,9 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
     public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked, Action<string> onSelf)
     {
         Entry = entry;
-        Display = entry.Display;
-        PickCommand = new RelayCommand(() => onPicked(entry.Display.Identifier));
-
-        // The right mouse button asks the same question about the same item, but the answer goes somewhere else: onto
-        // the character. It is asked for at the click, so a browser opened without that errand does nothing.
-        SelfCommand = new RelayCommand(() => onSelf(entry.Display.Identifier));
+        Display = ItemDisplay.For(entry.Prefab);
+        PickCommand = new RelayCommand(() => onPicked(entry.Identifier));
+        SelfCommand = new RelayCommand(() => onSelf(entry.Identifier));
     }
 
     public ItemPrefabEntry Entry { get; }
@@ -19,9 +16,7 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 
     public RelayCommand SelfCommand { get; }
 
-    // The item's own hint says what the item is; the browser adds a line about what its buttons do, once per list that
-    // shows the item, so the line is there whether it is read from a tile or from a row. That line is the one thing in
-    // the tooltip a player has to notice, so it is written in the call-out colour rather than the tooltip's own.
+    // The line the browser adds about its buttons, in the call-out colour because it is the one thing to notice.
     public RichString SelfToolTip => WithSelfHint(ToolTip);
 
     public RichString TileSelfToolTip => WithSelfHint(TileToolTip);
@@ -30,8 +25,7 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
     {
         RichString hint = RichString.ColorizeText(TextManager.Get("sandboxmenu.browser.selfhint"), Theme.Callout);
 
-        // The two are nested markup, so they are joined as such and parsed again: joining them with `+` lands on a
-        // LocalizedString, and the implicit way back is RichString.Plain, which drops every tag the tooltip carries.
+        // Joined as nested markup: joining the two with `+` lands on a LocalizedString and drops every tag.
         return RichString.Rich(text.NestedStr + "\n" + hint.NestedStr);
     }
 }
@@ -164,8 +158,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private void Picked(string identifier) => _onPicked(identifier);
 
     private bool Shows(ItemPrefabEntry entry, ItemFilter filter, string query)
-        => (!_containerOnly || _fits.Contains(entry.Display.Prefab))
-            && (!_hideHidden || !entry.Display.Prefab.HideInMenus)
+        => (!_containerOnly || _fits.Contains(entry.Prefab))
+            && (!_hideHidden || !entry.Prefab.HideInMenus)
             && (query.Length == 0 || entry.Matches(query))
             && filter.Allows(entry);
 
@@ -177,7 +171,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
         {
             foreach (ItemPrefabEntry entry in ItemPrefabCatalog.All())
             {
-                if (container.Allows(entry.Display.Prefab)) { fits.Add(entry.Display.Prefab); }
+                if (container.Allows(entry.Prefab)) { fits.Add(entry.Prefab); }
             }
         }
 
@@ -214,7 +208,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
             ItemPrefabCatalog.Packages().Select(package => new PickerToggle(
-                RichString.Rich(ItemDisplay.AccentMarkup(package.Label, package.Package)),
+                RichString.Rich(Labels.AccentMarkup(package.Label, package.Package)),
                 () => _packages.Contains(package.Package),
                 selected => SetPackage(package.Package, selected))));
 

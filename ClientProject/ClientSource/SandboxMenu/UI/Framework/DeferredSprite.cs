@@ -24,9 +24,8 @@ internal sealed class DeferredSprite : IDisposable
         // couple of DIP down and to the right, in black. Both are boxes inside the one the caller hands over — moving
         // that box moves both — and the shadow is built first, so the icon is drawn over it.
         //
-        // That box carries a component of its own (the throbber below), because the host walks the rect children of a
-        // component and reads the component of each without a null check: a box holding nothing but other boxes breaks
-        // every such walk — taking the window out of the update list, a list box clamping its children, and more.
+        // The box carries a component of its own: the host walks the rect children of a component and reads the component
+        // of each without a null check, so a box holding nothing but other boxes breaks every such walk.
         _shadow = new GUIImage(
             new RectTransform(Vector2.One, transform, Anchor.Center)
             {
@@ -37,9 +36,7 @@ internal sealed class DeferredSprite : IDisposable
         {
             CanBeFocused = false,
 
-            // An image takes its parent's state and draws with the colour of that state, so a shadow the mouse points
-            // at — or a shadow whose row is hovered — would be drawn in the icon's own colours instead. Pinning the
-            // state to none leaves both images with the one colour they are given.
+            // An image takes its parent's state and draws in that state's colour, so the state is pinned to none.
             OverrideState = GUIComponent.ComponentState.None,
             Color = Theme.IconShadow
         };

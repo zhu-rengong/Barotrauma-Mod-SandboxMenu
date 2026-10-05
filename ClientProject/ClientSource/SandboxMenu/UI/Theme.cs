@@ -3,8 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// The menu's own palette and sizes, all of them in DIP: the framework a view is built by knows none of them, so the
-// numbers live here and the ones markup names (row, pad, …) are handed over as tokens at startup (UiBootstrap).
+// The menu's palette and sizes, in DIP; the ones markup names are handed over as tokens at startup (UiBootstrap).
 internal static class Theme
 {
     public static Color Text => UiMetrics.Text;
@@ -41,8 +40,7 @@ internal static class Theme
 
     public const float TileSize = 46f;
 
-    // The slot an item icon sits in, drawn the way the game draws one in a character's inventory: a dark fill inside a
-    // light frame, and the icon over a black shadow of itself.
+    // The slot an item icon sits in, with the colours the game draws one in.
     public const float SlotPadding = 3f;
 
     public const float IconShadowOffset = 2f;

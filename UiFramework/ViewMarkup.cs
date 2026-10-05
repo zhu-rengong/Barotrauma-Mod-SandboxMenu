@@ -13,9 +13,7 @@ public static class ViewMarkup
         _ => RichString.Rich(value.ToString() ?? string.Empty)
     };
 
-    // A key hint behind a label ("Spawn  F1"): the host draws rich text, so the hint is a colour run rather than a
-    // second block, and the caller names the template because its colour depends on what it is drawn on. The
-    // templates are the mod's own text keys and arrive at startup; without them no hint is drawn.
+    // The mod's own text keys, handed over at startup; without them no hint is drawn.
     public static string? HintKey { get; set; }
 
     public static string? DarkHintKey { get; set; }
@@ -56,9 +54,7 @@ public static class ViewMarkup
     public static Alignment AlignmentOf(string? name, Alignment fallback)
         => name is not null && Enum.TryParse(name, ignoreCase: true, out Alignment alignment) ? alignment : fallback;
 
-    // A colour in markup: one of the names the theme itself answers to, or anything the game reads a colour from — a
-    // colour name, #RRGGBB, #AARRGGBB, "gui.<name>", "faction.<id>" or components. A value the game cannot read comes
-    // back as white, which is what the game falls back to itself.
+    // A theme name or anything the game itself reads a colour from; what it cannot read comes back as white.
     public static Color ColorOf(string? name, Color fallback)
     {
         if (name is not { Length: > 0 }) { return fallback; }

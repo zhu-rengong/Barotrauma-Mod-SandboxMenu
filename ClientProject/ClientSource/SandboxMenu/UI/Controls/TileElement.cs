@@ -29,9 +29,8 @@ public sealed class TileElement : ViewElement, IDisposable
         _tile.SlotIcon = _icon.Transform;
         _tile.SlotOnly = true;
 
-        // The glow a slot wears when the game fills it is drawn from a control's own Draw, and that runs under the slot
-        // the row paints; so the glow is given a box of its own, over the slot, with nothing else in it and no colour of
-        // its own — a colour would be painted as a plain rectangle, and the flash is all this box is for.
+        // A flash is drawn from a control's own Draw, which runs under the slot the row paints, so the glow gets a box of
+        // its own over the slot — with no colour of its own, since a colour would be painted as a plain rectangle.
         _glow = new GUIFrame(new RectTransform(Vector2.One, Control.RectTransform, Anchor.Center), null, null)
         {
             CanBeFocused = false,
@@ -46,9 +45,8 @@ public sealed class TileElement : ViewElement, IDisposable
         // different fraction of each side so that it comes out square, and the slot is drawn around the box.
         Control.RectTransform.SizeChanged += LayoutSlot;
 
-        // The slot swells while the mouse is on the tile, the way a slot does in the inventory when an item leaves it or
-        // arrives in it: the box grows over a moment and settles back the same way. The icon and the shadow sit inside
-        // the box, so they come along, and the slot is taken from the box, so it grows with them.
+        // The slot swells while the mouse is on the tile: the box grows over a moment and settles back, and the icon, its
+        // shadow and the slot the row derives from the box come along with it.
         //
         // The animation rides on the row's own update: a row is updated every frame anyway, while only the rows the
         // list has built exist at all — a list of a thousand items still holds a screenful of rows.
@@ -95,9 +93,8 @@ public sealed class TileElement : ViewElement, IDisposable
         {
             _view.Dispatch(() => value?.Execute(null));
 
-            // What the right button does is done there and then, so the slot says so the way the game's own slots do when
-            // an item leaves or arrives: a glow at the frame that comes and goes. It is not the swell — the mouse is on
-            // the tile anyway, and the swell answers the mouse, not the click.
+            // What the right button does is done there and then, so the slot wears the glow the game's own slots wear when
+            // an item leaves or arrives — not the swell, which answers the mouse and not the click.
             _glow.Flash(Theme.Accent, Theme.FlashSeconds);
 
             return false;

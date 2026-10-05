@@ -3,9 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// A dialog: the view markup builds the window's frame and everything in it, and what is left here is the lifecycle a
-// view cannot own — being put in and taken out of the host's update list, being kept on screen, and handing the input
-// to the dialog on top.
+// What is left after markup builds the window: being put in and taken out of the host's update list, being kept on
+// screen, and handing the input to the dialog on top.
 internal sealed class MarkupWindow : IDialogWindow
 {
     private static int _instances;

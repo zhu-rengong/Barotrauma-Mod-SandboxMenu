@@ -3,8 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI.Framework;
 
-// A menu row styles itself: the host's GUIButton frame is taken apart into a flat row with a text label, and the row
-// paints its own fill and selection bar — no state leaves the host a colour, so no skin sprite is drawn.
+// The host's button frame is taken apart into a flat row with a text label: the row paints its own fill and bar.
 internal sealed class RowControl : GUIButton
 {
     private const string BaseStyle = "GUIButton";
@@ -12,9 +11,8 @@ internal sealed class RowControl : GUIButton
     // Which edge the selection mark sits on: a tree row marks its left, a function tab underlines its bottom.
     internal Anchor SelectedBar { get; set; } = Anchor.CenterLeft;
 
-    // The icon the row frames, if it has one: the slot it sits in is worked out at draw time from the icon's own rect,
-    // because a list recycles its rows and moves them to a new cell — a box remembered from when the row was built
-    // would stay where the row used to be while the icon went with the row.
+    // Read at draw time from the icon's own rect: a list moves a recycled row to a new cell, so a box remembered from
+    // when the row was built would stay where the row used to be.
     internal RectTransform? SlotIcon { get; set; }
 
     // A tile is nothing but its slot, so that is where its state is drawn: the highlight then takes the slot's square
@@ -26,16 +24,15 @@ internal sealed class RowControl : GUIButton
     // A row that answers no click keeps no highlight either: the list hands it the hover state all the same.
     internal bool Highlight { get; set; } = true;
 
-    // What the row animates for as long as it is on screen, asked with the frame's own time. The update pass reaches a
-    // row anyway, so an animation costs nothing extra and runs for the rows the list has built, never for the items it
-    // has not.
+    // Rides on the row's own update, so it runs for the rows the list has built and never for the items it has not.
     internal Action<float>? Animate { get; set; }
 
     internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment)
         : base(rectT, text, alignment, BaseStyle)
     {
-        // Every state colour stays transparent: what the host draws for a state is the skin's own graphic — a button bar
-        // with a gradient in it, or the square slot's glow — and a row paints the fill below instead.
+        // The host draws the skin's own graphic for a state, and a row paints its own fill instead, so no state colour is
+        // left on the button. The state reaches the children but their own colours do not, so the frame the host built
+        // for the button is cleared the same way.
         Color = Color.Transparent;
         HoverColor = Color.Transparent;
         PressedColor = Color.Transparent;

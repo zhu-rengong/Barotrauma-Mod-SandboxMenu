@@ -27,8 +27,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         _view = context.View;
         _button = button;
 
-        // No skin means the host's plain button, which is drawn light: its key hint has to be darker to be read.
-        // Both templates are the mod's, handed over at startup.
+        // A skin-less button is drawn light, so its key hint has to be the darker of the two templates.
         _hintKey = context.Skin is "" ? ViewMarkup.DarkHintKey : ViewMarkup.HintKey;
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
