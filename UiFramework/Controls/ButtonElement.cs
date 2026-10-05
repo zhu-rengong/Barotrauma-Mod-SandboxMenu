@@ -175,17 +175,15 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         ApplyToolTip();
     }
 
-    // A button that may not shrink its text keeps it against its left edge: the host centres such a text on the whole
-    // rect, so it would run over the button on both sides before a clip could take it.
+    // The padding is the same on both sides whatever the alignment: a text that is not scalable is still centred, and
+    // padding that differed across the label would sit it off-centre. What does not fit is clipped all the same.
     private void ApplyAlignment()
     {
-        GUITextBlock block = _button.TextBlock;
-        block.TextAlignment = _scalable ? _alignment : Alignment.Left;
-
-        if (_scalable) { return; }
-
         float pad = UiTokens.Dip("pad", 6f);
-        block.Padding = new Vector4(UiMetrics.Dip(_indent > 0f ? _indent : pad), 0f, UiMetrics.Dip(pad), 0f);
+        float indent = _indent > 0f ? _indent : 0f;
+
+        _button.TextBlock.TextAlignment = _alignment;
+        _button.TextBlock.Padding = new Vector4(UiMetrics.Dip(indent + pad), 0f, UiMetrics.Dip(pad), 0f);
     }
 
     private void ApplyToolTip()

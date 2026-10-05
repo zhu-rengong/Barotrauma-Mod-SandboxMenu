@@ -2,16 +2,38 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 {
-    public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked)
+    public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked, Action<string> onSelf)
     {
         Entry = entry;
         Display = entry.Display;
         PickCommand = new RelayCommand(() => onPicked(entry.Display.Identifier));
+
+        // The right mouse button asks the same question about the same item, but the answer goes somewhere else: onto
+        // the character. It is asked for at the click, so a browser opened without that errand does nothing.
+        SelfCommand = new RelayCommand(() => onSelf(entry.Display.Identifier));
     }
 
     public ItemPrefabEntry Entry { get; }
 
     public RelayCommand PickCommand { get; }
+
+    public RelayCommand SelfCommand { get; }
+
+    // The item's own hint says what the item is; the browser adds a line about what its buttons do, once per list that
+    // shows the item, so the line is there whether it is read from a tile or from a row. That line is the one thing in
+    // the tooltip a player has to notice, so it is written in the call-out colour rather than the tooltip's own.
+    public RichString SelfToolTip => WithSelfHint(ToolTip);
+
+    public RichString TileSelfToolTip => WithSelfHint(TileToolTip);
+
+    private static RichString WithSelfHint(RichString text)
+    {
+        RichString hint = RichString.ColorizeText(TextManager.Get("sandboxmenu.browser.selfhint"), Theme.Callout);
+
+        // The two are nested markup, so they are joined as such and parsed again: joining them with `+` lands on a
+        // LocalizedString, and the implicit way back is RichString.Plain, which drops every tag the tooltip carries.
+        return RichString.Rich(text.NestedStr + "\n" + hint.NestedStr);
+    }
 }
 
 internal sealed class ItemBrowserViewModel : Notifiable
@@ -22,6 +44,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     private IReadOnlyList<ItemPickerRowViewModel> _visible = [];
     private Action<string> _onPicked = static _ => { };
+    private Action<string>? _onSelf;
     private string _query = string.Empty;
     private MapEntityCategory _categories;
     private float _scroll;
@@ -29,6 +52,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private ContainerRules? _container;
     private string? _parent;
     private bool _containerOnly;
+    private bool _hideHidden = true;
     private HashSet<ItemPrefab> _fits = new(ReferenceEqualityComparer.Instance);
 
     public ItemBrowserViewModel(IDialogHost host)
@@ -40,12 +64,17 @@ internal sealed class ItemBrowserViewModel : Notifiable
         PickPackagesCommand = new RelayCommand(PickPackages);
         PickCategoriesCommand = new RelayCommand(PickCategories);
 
-        _rows = [.. ItemPrefabCatalog.All().Select(entry => new ItemPickerRowViewModel(entry, Picked))];
+        _rows = [.. ItemPrefabCatalog.All().Select(entry => new ItemPickerRowViewModel(entry, Picked, UseOnSelf))];
 
         ApplyFilter();
     }
 
     internal void PickInto(Action<string> onPicked) => _onPicked = onPicked;
+
+    // What the right mouse button does with a picked item, when whoever opened the browser has somewhere to put it.
+    internal void UseOnSelf(Action<string>? onSelf) => _onSelf = onSelf;
+
+    private void UseOnSelf(string identifier) => _onSelf?.Invoke(identifier);
 
     // The list's scroll position, bound two-way: writing it is how the list is sent back to the top, and the list
     // reports the player's scrolling back through it.
@@ -92,6 +121,22 @@ internal sealed class ItemBrowserViewModel : Notifiable
         }
     }
 
+    public LocalizedString HiddenFilterLabel => TextManager.Get("sandboxmenu.filter.hide.hidden");
+
+    // Ticked by the tick box in the filter row, and ticked from the start: what the menus themselves leave out stays
+    // out of the list until the tick is taken off.
+    public bool HideHidden
+    {
+        get => _hideHidden;
+        set
+        {
+            if (_hideHidden == value) { return; }
+
+            _hideHidden = value;
+            ApplyFilter();
+        }
+    }
+
     public RelayCommand PickPackagesCommand { get; }
 
     public RelayCommand PickCategoriesCommand { get; }
@@ -120,6 +165,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     private bool Shows(ItemPrefabEntry entry, ItemFilter filter, string query)
         => (!_containerOnly || _fits.Contains(entry.Display.Prefab))
+            && (!_hideHidden || !entry.Display.Prefab.HideInMenus)
             && (query.Length == 0 || entry.Matches(query))
             && filter.Allows(entry);
 
@@ -168,7 +214,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
             ItemPrefabCatalog.Packages().Select(package => new PickerToggle(
-                package.Label,
+                RichString.Rich(ItemDisplay.AccentMarkup(package.Label, package.Package)),
                 () => _packages.Contains(package.Package),
                 selected => SetPackage(package.Package, selected))));
 
@@ -178,7 +224,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
             ItemPrefabCatalog.CategoriesIn(_packages).Select(category => new PickerToggle(
                 CategoryName(category),
                 () => _categories.HasFlag(category),
-                selected => SetCategory(category, selected))));
+                selected => SetCategory(category, selected),
+                CategoryIcon(category))));
 
     private static LocalizedString CategoryName(MapEntityCategory category)
     {
@@ -186,6 +233,15 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
         return string.IsNullOrEmpty(name.Value) ? category.ToString() : name;
     }
+
+    // The icon is the one the game's own category buttons wear, so a category reads here the way it reads in the
+    // fabricator; a category the game has no button style for simply has no icon.
+    private static Sprite? CategoryIcon(MapEntityCategory category)
+        => GUIStyle.GetComponentStyle(new Identifier("CategoryButton." + category))
+            is { } style && style.Sprites.TryGetValue(GUIComponent.ComponentState.None, out List<UISprite>? sprites)
+            && sprites.Count > 0
+                ? sprites[0].Sprite
+                : null;
 
     private void SetPackage(ContentPackage package, bool selected)
     {

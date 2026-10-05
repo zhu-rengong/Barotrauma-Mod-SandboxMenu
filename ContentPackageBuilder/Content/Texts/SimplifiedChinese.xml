@@ -71,8 +71,10 @@
   <sandboxmenu.filter.summary.all>[name]：全部</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]：已选 [count] 项</sandboxmenu.filter.summary.some>
   <sandboxmenu.filter.container.only>只显示可放入</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.hide.hidden>跳过隐藏项</sandboxmenu.filter.hide.hidden>
   <sandboxmenu.filter.editable>仅可编辑</sandboxmenu.filter.editable>
   <sandboxmenu.filter.saveable>仅可保存</sandboxmenu.filter.saveable>
+  <sandboxmenu.browser.selfhint>[鼠标右键] 生成至角色物品栏，并应用生成参数。</sandboxmenu.browser.selfhint>
   <sandboxmenu.browse>选择物品</sandboxmenu.browse>
   <sandboxmenu.browse.component>选择组件</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>选择属性</sandboxmenu.browse.property>

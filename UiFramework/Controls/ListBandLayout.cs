@@ -80,10 +80,19 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
 
         int spacing = _listBox.Spacing;
-        int viewport = _listBox.Content.Rect.Height;
-        int width = _listBox.Content.Rect.Width;
 
-        if (width <= 0 || viewport <= 0)
+        // Room the view keeps inside the list, all four sides of it: the grid is laid out narrower than the list and its
+        // left end starts that much further in, which is what makes the tiles stand clear of both edges. The host's list
+        // box has no padding of its own, so a bare `Padding` beside a list is this element's own.
+        Insets padding = Insets.Parse(list.Node?.Text("Padding"));
+
+        // The host reads its bar against the height the content was given, so the scroll position has to be read with
+        // that same figure; the padding is the room the parts keep inside it.
+        int viewport = _listBox.Content.Rect.Height;
+        int room = Math.Max(0, viewport - padding.Vertical);
+        int width = Math.Max(1, _listBox.Content.Rect.Width - padding.Horizontal);
+
+        if (width <= 0 || room <= 0)
         {
             _signature = 0;
             return;
@@ -108,7 +117,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         list.RowHeight = height;
 
-        bool tiles = _geometry.Measure(width, viewport, spacing, height, count, list.DetailRows);
+        bool tiles = _geometry.Measure(width, room, spacing, height, count, list.DetailRows);
         int rows = tiles ? _geometry.DetailRowsOneBand : list.DetailRows;
         int stride = Math.Max(1, height + spacing);
         int steps = Math.Max(0, count - rows);
@@ -144,16 +153,30 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         // The detail rows take what is left once each band has the height its own items call for, rounded off: a band
         // that fills one row hands over one row, and a band that fills two keeps two, so the grids stay as full as
         // they were and only the rounding half row is made up out of the bands.
+        // The rows are cut to what the bands leave rather than rounded to it: a row taken by rounding comes out of the
+        // bands' own height, and a band short of its whole height squares off its cells — the gaps between the tiles
+        // then differ across and down. What is left over goes to the tail instead.
         int shown = bands == 0
             ? Math.Min(count - window, _geometry.MaxRows)
-            : Math.Clamp((int)MathF.Round((viewport - gaps - wantTop - wantBottom + spacing) / (float)stride), list.DetailRows, _geometry.MaxRows);
+            : Math.Clamp((int)MathF.Floor((room - gaps - wantTop - wantBottom + spacing) / (float)stride), list.DetailRows, _geometry.MaxRows);
 
         shown = Math.Min(shown, count - window);
 
-        int leftover = viewport - gaps - (shown * stride - spacing);
+        int leftover = room - gaps - (shown * stride - spacing);
         int weight = Math.Max(1, usedTop + usedBottom);
-        int topHeight = topTiles ? Math.Max(minTop, leftover * usedTop / weight) : 0;
-        int bottomHeight = bottomTiles ? leftover - topHeight : 0;
+
+        // A band stops at the height its cells ask for: a cell is as tall as it is wide, and room beyond that would only
+        // stretch one row away from the next. What a band cannot take — the bottom one has nothing left to show when the
+        // list is scrolled to its end — goes to the tail instead of being spent on the grid.
+        int topHeight = topTiles ? Math.Clamp(leftover * usedTop / weight, minTop, wantTop) : 0;
+        int bottomHeight = bottomTiles ? Math.Clamp(leftover - topHeight, minBottom, wantBottom) : 0;
+
+        // A band the split left short of its own height takes what the other one does not need: a band at exactly its
+        // own height is a whole number of square cells, which is what keeps the gaps between the tiles equal.
+        if (topTiles && topHeight < wantTop && bottomTiles && bottomHeight >= wantBottom)
+        {
+            topHeight = Math.Clamp(leftover - bottomHeight, minTop, wantTop);
+        }
 
         if (bottomTiles && bottomHeight < minBottom)
         {
@@ -177,10 +200,10 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         // list, and the tail takes the rest of the viewport so the bar stays where it is.
         pad = steps == 0 ? 0 : Math.Max(0, scroll - spacing);
 
-        // One stride of the content is one item of the list. The tail is what keeps the content as long as the scroll
-        // bar expects, and the pad is held to what the tail can take: a pad that asks for more would push the host's
-        // own length up, and the scroll position is read back from that length. Where it is held back, the pinned
-        // parts move along with the scroll for the last few pixels of the range instead.
+        // One stride of the content is one item of the list, and the length counts the whole viewport rather than the
+        // padded room: the padding rides on top of the length, so the bar's own range still ends on the last step while
+        // the room it keeps shows as the tail. The pad is held to what the tail can take — a pad that asks for more
+        // would push the host's own length up, and the scroll position is read back from that length.
         int content = viewport + steps * stride;
         int budget = Math.Max(0, content - spacing * children - topShape.Height - bottomShape.Height - shown * height);
 
@@ -188,7 +211,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         tail = budget - pad;
 
         int signature = HashCode.Combine(
-            HashCode.Combine(window, count, viewport, width, spacing),
+            HashCode.Combine(window, count, room, width, spacing),
             HashCode.Combine(height, pad, tail, shown, topTiles ? 1 : 0),
             HashCode.Combine(bottomTiles ? 1 : 0, topShape.GetHashCode(), bottomShape.GetHashCode()));
 
@@ -208,6 +231,12 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
     {
         EnsureDetailRows(shown);
 
+        // Room the detail rows keep inside the list, the same the bands keep: the tiles stand inside the grid the padding
+        // leaves, and a row has to stand clear of the list's own edge the same way.
+        RectTransform content = _listBox.Content.RectTransform;
+        int contentWidth = content.Rect.Width;
+        int width = Math.Max(1, contentWidth - Insets.Parse(list.Node?.Text("Padding")).Horizontal);
+
         for (int i = 0; i < _slots.Count; i++)
         {
             object item = list.Index[window + i];
@@ -217,11 +246,25 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
                 if (_slots[i] is { } stale) { rowPool.Keep(stale); }
 
                 _slots[i] = rowPool.Take(item);
-                continue;
             }
 
-            row.Element.Control.Visible = true;
+            if (_slots[i] is not { } live) { continue; }
+
+            live.Element.Control.Visible = true;
+            Inset(live.Element.Control, width, contentWidth);
         }
+    }
+
+    // The host puts every child of the content at its left edge, so a row carries the room itself: it is centred on the
+    // content with its width taken in, and that is a placement the host leaves alone.
+    private static void Inset(GUIComponent row, int width, int contentWidth)
+    {
+        if (contentWidth <= 0) { return; }
+
+        RectTransform rect = row.RectTransform;
+
+        rect.SetPosition(Anchor.TopCenter, Pivot.TopCenter);
+        rect.RelativeSize = new Vector2(width / (float)contentWidth, rect.RelativeSize.Y);
     }
 
     private void RefreshTiles(int count, int window, int shown, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
@@ -314,8 +357,15 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         GUIFrame padFrame = _pad ??= CreateFrame();
         GUIFrame tailFrame = _tail ??= CreateFrame();
 
-        SizeFrame(padFrame, width, pad);
-        SizeFrame(tailFrame, width, tail);
+        // The padding rides on the pad, and so does the half gap the parts are pinned with above the viewport's top edge:
+        // the pin sits that much above the top, so without it the list would eat into the padding by exactly as much and
+        // a tile growing upwards would be clipped by the remainder. What the pad takes comes back off the tail, which
+        // keeps the content as long as the scroll bar expects it to be.
+        int inset = Insets.Parse(list.Node?.Text("Padding")).Top;
+        int offset = inset > 0 ? inset + _listBox.Spacing : 0;
+
+        SizeFrame(padFrame, width, pad + offset);
+        SizeFrame(tailFrame, width, Math.Max(0, tail - offset));
 
         padFrame.Visible = true;
         tailFrame.Visible = true;
@@ -391,7 +441,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             transform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
             transform.RelativeSize = new Vector2(_geometry.CellWidth / (float)bandWidth, cellHeight / (float)bandHeight);
             transform.AbsoluteOffset = new Point(
-                column * (_geometry.CellWidth + _listBox.Spacing),
+                Insets.Parse(list.Node?.Text("Padding")).Left + column * (_geometry.CellWidth + _listBox.Spacing),
                 row * (cellHeight + _listBox.Spacing));
         }
     }

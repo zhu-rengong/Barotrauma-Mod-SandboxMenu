@@ -49,23 +49,25 @@ internal sealed class ListBandGeometry
         MaxRows = Math.Max(detailRows, (viewport - spacing - MinCell) / stride);
         Usable = viewport >= 3 * MinCell;
 
-        // The rows one band alone leaves for the detail rows: it sets the scroll range and with it which sides
-        // have items at all, while what the rows are laid out as is worked out per frame from what each band shows.
-        int items = Math.Max(0, count - detailRows);
-        int used = Math.Max(1, Math.Min(NominalTileRows, (items + Columns - 1) / Columns));
+        // The rows the end of the scroll leaves for the detail rows, where the top band is the only one on screen: it
+        // takes its whole nominal height and the rest of the viewport goes to the rows. This is the same sum the frame
+        // works out for that state, and the scroll range ends on it, so the last items come to rest in the rows instead
+        // of staying behind in the bottom band.
+        int endTop = NominalTileRows * (CellWidth + spacing) - spacing;
 
-        DetailRowsOneBand = Math.Clamp(detailRows + NominalTileRows + (NominalTileRows - used), detailRows, MaxRows);
+        DetailRowsOneBand = Math.Clamp((int)MathF.Floor((viewport - endTop) / (float)stride), detailRows, MaxRows);
 
         return Usable;
     }
 
-    // The rows a band of this height holds at the cell width the grid has, capped by the rows the items fill:
-    // fewer rows means taller cells, which keeps a band with little to show filling its own space.
+    // The rows a band of this height holds, in whole cells: a cell is as wide as the grid makes it and as tall as it is
+    // wide, so two tiles keep the same gap across as they keep down whatever height the band comes out at. What a band
+    // cannot use — the part of a row its height rounds off — is left empty on the side away from the seam.
     internal BandShape ShapeOf(int height, int used)
     {
-        int rows = GridRows(height, _spacing, CellWidth, used);
+        int rows = Math.Clamp((height + _spacing) / (CellWidth + _spacing), 1, used);
 
-        return new BandShape(height, rows, Math.Max(1, (height - (rows - 1) * _spacing) / rows), Usable ? Columns * rows : 0);
+        return new BandShape(height, rows, CellWidth, Usable ? Columns * rows : 0);
     }
 
     private static int GridRows(int band, int spacing, int cellWidth, int cap)

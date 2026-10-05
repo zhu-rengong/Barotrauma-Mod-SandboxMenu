@@ -8,8 +8,8 @@ $osMap = @{
     "osx-x64"   = [BuildOS]::Mac
 }
 
-$platforms = [BuildOS]::All
-$targets = [BuildTarget]::All
+$platforms = [BuildOS]::Windows
+$targets = [BuildTarget]::Client
 $config = [BuildConfiguration]::Release
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

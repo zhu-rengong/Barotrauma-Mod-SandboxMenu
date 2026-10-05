@@ -3,10 +3,13 @@
 <Stack Orientation="Vertical">
 
   <!-- Every entry the picker was given has a row here; the search text below hides the ones it is not looking for,
-       so a row keeps its tick box and its tick instead of being built again on every keystroke. -->
+       so a row keeps its tick box and its tick instead of being built again on every keystroke. A row is one control
+       of its own — its tick box, the icon a category is shown by, and its label — so the list sizes the row to what it
+       draws. -->
   <Stack.Resources>
     <DataTemplate DataType="ToggleRowViewModel">
-      <Tick Selected="{Binding Selected, Mode=TwoWay}" Text="{Binding Label}" Visible="{Binding Visible}" Width="1" Height="0.07" />
+      <Tick Selected="{Binding Selected, Mode=TwoWay}" Text="{Binding Label}" Icon="{Binding Icon}"
+            Visible="{Binding Visible}" Width="1" Height="0.07" />
     </DataTemplate>
   </Stack.Resources>
 

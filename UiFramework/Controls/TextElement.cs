@@ -24,6 +24,11 @@ internal sealed class TextElement : ViewElement
         _block.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", UiTokens.Dip("pad", 6f))), 0f, 0f, 0f);
         _block.CanBeFocused = false;
 
+        // A text that is a list row is handed the row's state, and the host's default text-block style carries a hover
+        // bar of its own: a body of text is not a control and must not dress up as one.
+        _block.HoverColor = Microsoft.Xna.Framework.Color.Transparent;
+        _block.SelectedColor = Microsoft.Xna.Framework.Color.Transparent;
+
         if (ViewMarkup.ToBool(context.Text("Wrap"), false))
         {
             int wrappedWidth = -1;

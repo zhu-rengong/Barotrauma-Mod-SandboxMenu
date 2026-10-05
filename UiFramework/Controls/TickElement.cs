@@ -5,6 +5,7 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
 {
     private readonly GUITickBox _tick;
     private Action<object?>? _changed;
+    private GUIImage? _icon;
 
     public TickElement(ElementContext context)
         : base(new GUITickBox(
@@ -21,6 +22,12 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
             _changed?.Invoke(tickBox.Selected);
             return true;
         };
+
+        // The host works a tick box out again after every resize — the label's width, and the width the mouse answers on.
+        // Both are taken back here, and the host subscribes while it builds the box, so a handler added after that runs
+        // on the sizes it has just worked out.
+        _tick.RectTransform.SizeChanged += Fit;
+        _tick.RectTransform.ScaleChanged += Fit;
     }
 
     [ElementProperty(KeyText = true)]
@@ -30,6 +37,22 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         {
             _tick.TextBlock.Text = value;
             _tick.TextBlock.TextScale = UiMetrics.TextScale;
+        }
+    }
+
+    // The icon a row is shown by: a square as tall as the tick box, drawn right beside it.
+    [ElementProperty]
+    public Sprite? Icon
+    {
+        set
+        {
+            if (_icon is null && value is null) { return; }
+
+            _icon ??= CreateIcon();
+            _icon.Sprite = value;
+            _icon.Visible = value is not null;
+
+            Fit();
         }
     }
 
@@ -45,7 +68,50 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
 
     public void Dispose()
     {
+        _tick.RectTransform.SizeChanged -= Fit;
+        _tick.RectTransform.ScaleChanged -= Fit;
         _tick.OnSelected = null;
         _changed = null;
+    }
+
+    private GUIImage CreateIcon()
+    {
+        GUIImage icon = new(
+            new RectTransform(Vector2.One, _tick.layoutGroup.RectTransform, Anchor.CenterLeft, null, null, null, ScaleBasis.BothHeight)
+            {
+                IsFixedSize = true
+            },
+            style: null,
+            scaleToFit: GUIImage.ScalingMode.ScaleToFitSmallestExtent)
+        {
+            CanBeFocused = false,
+
+            // An image takes the state of whatever it hangs under and draws in that state's colour, so the icon keeps
+            // the one colour it is given.
+            OverrideState = GUIComponent.ComponentState.None,
+            Color = Color.White
+        };
+
+        // The host's group holds the tick box and then the label, so the icon goes between the two of them.
+        icon.RectTransform.RepositionChildInHierarchy(1);
+
+        return icon;
+    }
+
+    private void Fit()
+    {
+        int width = _tick.Rect.Width;
+
+        if (width <= 0) { return; }
+
+        // The host measures a tick box by the box and the label, and the mouse only answers within that measure: a row
+        // answers all of itself, the way a row of a list does.
+        _tick.ContentWidth = width;
+
+        if (_icon is null) { return; }
+
+        int taken = _tick.box.Rect.Width + (_icon.Visible ? _icon.RectTransform.Rect.Height : 0);
+
+        _tick.TextBlock.RectTransform.RelativeSize = new Vector2(Math.Max(0f, width - taken) / width, 1f);
     }
 }

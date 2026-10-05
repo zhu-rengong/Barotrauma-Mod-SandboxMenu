@@ -8,7 +8,9 @@ internal interface IDropTarget : UiFramework.Data.IItemDropTarget
 
 internal interface IDialogHost
 {
-    void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null);
+    // The second errand a browser can carry: what the right mouse button does with the item. A caller that has nowhere
+    // to put it leaves it out and the browser offers the left mouse button alone.
+    void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null, Action<string>? onSelf = null);
 
     void ShowOptions(LocalizedString title, IEnumerable<PickerOption> options, bool filterable = false);
 
@@ -27,4 +29,5 @@ internal sealed record MenuAction(string Label, Action Invoke, LocalizedString? 
 
 internal sealed record PickerOption(LocalizedString Label, Action Picked, bool Editable = true, bool Saveable = true);
 
-internal sealed record PickerToggle(LocalizedString Label, Func<bool> IsTicked, Action<bool> Toggled);
+// The label is rich text because a package carries its own accent colour, and the icon is what a category is shown by.
+internal sealed record PickerToggle(RichString Label, Func<bool> IsTicked, Action<bool> Toggled, Sprite? Icon = null);

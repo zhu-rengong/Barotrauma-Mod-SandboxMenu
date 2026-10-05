@@ -60,7 +60,9 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiTokens.Dip("gap", 4f)));
 
-        _listBox.Padding = new Vector4(UiMetrics.Dip(context.Metric("Padding", 0f)));
+        // The bands of a banded list are placed inside the content and keep the room themselves, so the host's own inset
+        // stays out of it; a plain list keeps the inset the host's way.
+        if (_detailRows == 0) { _listBox.Padding = Insets.Parse(context.Text("Padding")).ToVector4(); }
 
         if (Windowed) { _view.EveryFrame(UpdateWindow); }
 

@@ -2,7 +2,9 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class ToggleRowViewModel(PickerToggle option) : PickerRow
 {
-    public LocalizedString Label { get; } = option.Label;
+    public RichString Label { get; } = option.Label;
+
+    public Sprite? Icon { get; } = option.Icon;
 
     public bool Selected
     {

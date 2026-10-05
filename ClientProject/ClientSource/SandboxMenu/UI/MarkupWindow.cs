@@ -134,7 +134,11 @@ internal sealed class MarkupWindow : IDialogWindow
     {
         component.AutoUpdate = enabled;
 
-        foreach (RectTransform child in component.RectTransform.Children) { SetAutoUpdate(child.GUIComponent, enabled); }
+        // A rect can hold no component at all: the host does that itself in places, so the walk skips them.
+        foreach (RectTransform child in component.RectTransform.Children)
+        {
+            if (child.GUIComponent is { } control) { SetAutoUpdate(control, enabled); }
+        }
     }
 
     private void KeepOnScreen()

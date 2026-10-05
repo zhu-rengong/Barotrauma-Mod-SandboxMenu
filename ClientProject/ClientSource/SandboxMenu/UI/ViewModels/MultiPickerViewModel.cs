@@ -62,7 +62,7 @@ internal sealed class MultiPickerViewModel : Notifiable
         {
             ToggleRowViewModel row = Options[i];
 
-            row.Visible = filter.Length == 0 || row.Label.Value.Contains(filter, StringComparison.OrdinalIgnoreCase);
+            row.Visible = filter.Length == 0 || row.Label.Contains(filter, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

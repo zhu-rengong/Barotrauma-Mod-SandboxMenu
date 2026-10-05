@@ -56,13 +56,25 @@ public static class ViewMarkup
     public static Alignment AlignmentOf(string? name, Alignment fallback)
         => name is not null && Enum.TryParse(name, ignoreCase: true, out Alignment alignment) ? alignment : fallback;
 
-    public static Color ColorOf(string? name, Color fallback) => name?.ToLowerInvariant() switch
+    // A colour in markup: one of the names the theme itself answers to, or anything the game reads a colour from — a
+    // colour name, #RRGGBB, #AARRGGBB, "gui.<name>", "faction.<id>" or components. A value the game cannot read comes
+    // back as white, which is what the game falls back to itself.
+    public static Color ColorOf(string? name, Color fallback)
     {
-        "bright" => UiMetrics.Text,
-        "dim" => UiMetrics.TextDim,
-        "accent" => UiMetrics.Accent,
-        "danger" => UiMetrics.Danger,
-        "disabled" => UiMetrics.TextDisabled,
-        _ => fallback
-    };
+        if (name is not { Length: > 0 }) { return fallback; }
+
+        string text = name.Trim();
+
+        Color? themed = text.ToLowerInvariant() switch
+        {
+            "bright" => UiMetrics.Text,
+            "dim" => UiMetrics.TextDim,
+            "accent" => UiMetrics.Accent,
+            "danger" => UiMetrics.Danger,
+            "disabled" => UiMetrics.TextDisabled,
+            _ => null
+        };
+
+        return themed ?? XMLExtensions.ParseColor(text, errorMessages: false);
+    }
 }

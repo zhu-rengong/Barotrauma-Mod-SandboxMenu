@@ -48,7 +48,7 @@ internal sealed class StackElement : ViewElement
             shown++;
 
             if (Share(child) is { } weight) { shares += weight; }
-            else { taken += MainAxis(child); }
+            else { taken += MainAxis(child) + Margin(child); }
         }
 
         if (shares > 0f)
@@ -57,7 +57,9 @@ internal sealed class StackElement : ViewElement
 
             foreach (ViewElement child in _children)
             {
-                if (child.Control.Visible && Share(child) is { } weight) { SetMainAxis(child, available * weight / shares); }
+                if (!child.Control.Visible || Share(child) is not { } weight) { continue; }
+
+                SetMainAxis(child, Math.Max(0f, available * weight / shares - Margin(child)));
             }
         }
 
@@ -67,6 +69,20 @@ internal sealed class StackElement : ViewElement
 
     private float? Share(ViewElement child)
         => Length.TryWeight(child.Node?.Text(_horizontal ? "Width" : "Height"), out float weight) ? weight : null;
+
+    // The room a margin keeps outside the child, as a fraction of the stack's own extent: the host lays every child out
+    // in the share it is handed, so the margin has to come off that share. The child sits centred in what is left.
+    private float Margin(ViewElement child)
+    {
+        if (child.Node?.Text("Margin") is not { Length: > 0 } text) { return 0f; }
+
+        int extent = _horizontal ? Control.Rect.Width : Control.Rect.Height;
+        if (extent <= 0) { return 0f; }
+
+        Insets margin = Insets.Parse(text);
+
+        return (_horizontal ? margin.Horizontal : margin.Vertical) / (float)extent;
+    }
 
     private float MainAxis(ViewElement child)
     {

@@ -87,7 +87,13 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 item.Identifier = identifier;
                 editor.Rebuild();
                 editor.NotifyEdited();
-            }), container)));
+            }), container, identifier => FrameActions.Post(() =>
+            {
+                item.Identifier = identifier;
+                editor.Rebuild();
+                editor.NotifyEdited();
+                menu.GiveToCharacter(item);
+            }))));
 
         _rows.Add(preview);
     }

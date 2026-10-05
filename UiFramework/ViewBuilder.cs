@@ -172,8 +172,59 @@ internal static class ViewBuilder
 
     private static void ApplyAttributes(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
     {
+        // Padding is room kept inside the element, and the element itself is what knows where its content goes: a text
+        // block takes it on the spot.
+        static void GivePadding(ViewElement target, Insets padding)
+        {
+            if (padding.IsEmpty) { return; }
+
+            if (target.Control is GUITextBlock block) { block.Padding = padding.ToVector4(); }
+        }
+
+        // A margin is room kept outside the element, which has to come off the rect the element was given: that is exact
+        // while the room around it is known — the content of a window is sized from its own numbers — and is left to the
+        // container that lays the element out otherwise, where a Stack folds it into the share it gives instead.
+        static void GiveMargin(ViewContext view, MarkupNode node, ViewElement element, Insets margin)
+        {
+            if (margin.IsEmpty) { return; }
+
+            RectTransform rect = element.Control.RectTransform;
+
+            if (rect.Parent is not { } parent || parent.Rect.Width <= 0 || parent.Rect.Height <= 0)
+            {
+                if (element.Control.Parent is not GUILayoutGroup)
+                {
+                    view.Diagnostics.Report($"a margin on <{node.Name}> cannot be taken off here", node);
+                }
+
+                return;
+            }
+
+            float width = parent.Rect.Width;
+            float height = parent.Rect.Height;
+            Vector2 size = rect.RelativeSize;
+
+            rect.RelativeSize = new Vector2(
+                Math.Max(0f, size.X - margin.Horizontal / width),
+                Math.Max(0f, size.Y - margin.Vertical / height));
+
+            rect.AbsoluteOffset += new Point((margin.Left - margin.Right) / 2, (margin.Top - margin.Bottom) / 2);
+        }
+
         foreach (MarkupAttribute attribute in node.Attributes)
         {
+            if (string.Equals(attribute.Name, "Padding", StringComparison.OrdinalIgnoreCase))
+            {
+                GivePadding(element, Insets.Parse(node.Text(attribute.Name)));
+                continue;
+            }
+
+            if (string.Equals(attribute.Name, "Margin", StringComparison.OrdinalIgnoreCase))
+            {
+                GiveMargin(view, node, element, Insets.Parse(node.Text(attribute.Name)));
+                continue;
+            }
+
             if (attribute.Name.Contains('.', StringComparison.Ordinal) || IsStructural(attribute.Name)) { continue; }
 
             if (!metadata.Properties.TryGetValue(attribute.Name, out PropertyMetadata? property))
@@ -302,7 +353,7 @@ internal static class ViewBuilder
     }
 
     private static bool IsStructural(string name)
-        => name is "Name" or "Skin" or "Align" or "Width" or "Height" or "LabelWidth" or "Orientation" or "ChildAnchor" or "Spacing" or "RelativeSpacing" or "Stretch" or "Draggable" or "BackgroundMenu" or "Virtual" or "Clear" or "Integer" or "ItemTemplate" or "TileTemplate" or "Rows" or "Columns" or "Gap" or "Padding" or "Font";
+        => name is "Name" or "Skin" or "Align" or "Width" or "Height" or "LabelWidth" or "Orientation" or "ChildAnchor" or "Spacing" or "RelativeSpacing" or "Stretch" or "Draggable" or "BackgroundMenu" or "Virtual" or "Clear" or "Integer" or "ItemTemplate" or "TileTemplate" or "Rows" or "Columns" or "Gap" or "Padding" or "Margin" or "Font";
 
     private sealed class PlaceholderElement : ViewElement
     {

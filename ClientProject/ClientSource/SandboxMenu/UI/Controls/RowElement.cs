@@ -12,6 +12,11 @@ public sealed class RowElement : ViewElement, IDisposable
     private RichString? _shortcut;
     private float _scale;
 
+    // The box the icon is drawn in and whether it sits in a slot of its own: both are the view's call, so a list that
+    // shows items can size and frame them the way an inventory does without touching the lists that do not.
+    private float _iconBox = Theme.IconBox;
+    private bool _iconSlot;
+
     [ElementProperty]
     public float FontSize
     {
@@ -63,9 +68,7 @@ public sealed class RowElement : ViewElement, IDisposable
             if (!_hasCommand)
             {
                 _row.CanBeSelected = false;
-                _row.HoverColor = Color.Transparent;
-                _row.PressedColor = Color.Transparent;
-                _row.SelectedColor = Color.Transparent;
+                _row.Highlight = false;
                 _row.HoverCursor = CursorState.Default;
             }
         });
@@ -113,9 +116,35 @@ public sealed class RowElement : ViewElement, IDisposable
     {
         set
         {
+            // A row bound to an item that has no icon keeps no box either: a box would hold the label off the left edge
+            // as if an icon were drawn in it.
+            if (_icon is null && value is null) { return; }
             if (_icon is null) { BuildIcon(); }
 
             _icon!.Set(value);
+        }
+    }
+
+    // How big the icon is drawn, in DIP, and whether it sits in a slot of its own. Both are the view's call, so a list
+    // that shows items can size and frame them the way an inventory does without touching the lists that do not.
+    [ElementProperty]
+    public float IconSize
+    {
+        set
+        {
+            _iconBox = value;
+            ResizeIcon();
+            ForceLayout();
+        }
+    }
+
+    [ElementProperty]
+    public bool IconSlot
+    {
+        set
+        {
+            _iconSlot = value;
+            ForceLayout();
         }
     }
 
@@ -205,23 +234,40 @@ public sealed class RowElement : ViewElement, IDisposable
 
     private void ApplyAll()
     {
-        int left = UiMetrics.DipInt(_indent + (_icon is null ? 0f : Theme.IconBox + Theme.IconGap));
+        float inset = _iconSlot ? Theme.SlotPadding : 0f;
+        int left = UiMetrics.DipInt(_indent + (_icon is null ? 0f : _iconBox + 2f * inset + Theme.IconGap));
         int right = UiMetrics.DipInt(Theme.Pad);
+
+        if (_icon is not null)
+        {
+            _icon.Transform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent + inset), 0);
+
+            // The slot is the icon's own box, so the row only has to name the icon it frames.
+            _row.SlotIcon = _iconSlot ? _icon.Transform : null;
+        }
+        else { _row.SlotIcon = null; }
 
         _row.TextBlock.Padding = new Vector4(left, 0f, right, _subText is null ? 0f : _row.Rect.Height * Theme.SubTextRatio);
         if (_subText is not null) { _subText.Padding = new Vector4(left, 0f, right, 0f); }
-        if (_icon is not null) { _icon.Image.RectTransform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent), 0); }
     }
 
     private void BuildIcon()
     {
-        int box = UiMetrics.DipInt(Theme.IconBox);
+        int box = UiMetrics.DipInt(_iconBox);
 
         _icon = new DeferredSprite(
             new RectTransform(new Point(box, box), Control.RectTransform, Anchor.CenterLeft, null, ScaleBasis.Normal, isFixedSize: true),
             GUIImage.ScalingMode.ScaleToFitSmallestExtent);
 
         ForceLayout();
+    }
+
+    private void ResizeIcon()
+    {
+        if (_icon is null) { return; }
+
+        int box = UiMetrics.DipInt(_iconBox);
+        _icon.Transform.NonScaledSize = new Point(box, box);
     }
 
     private void BuildSubText()
@@ -235,7 +281,13 @@ public sealed class RowElement : ViewElement, IDisposable
             AutoScaleHorizontal = false,
             OverflowClip = true,
             CanBeFocused = false,
-            TextScale = UiMetrics.TextScale
+            TextScale = UiMetrics.TextScale,
+
+            // The host hands every child the row's state, and the default text-block style carries a hover bar of its
+            // own (the one the mod lists wear): the row paints the highlight, so the subtext must not draw one over its
+            // half of it.
+            HoverColor = Color.Transparent,
+            SelectedColor = Color.Transparent
         };
 
         _row.RectTransform.SizeChanged += ApplyLayout;

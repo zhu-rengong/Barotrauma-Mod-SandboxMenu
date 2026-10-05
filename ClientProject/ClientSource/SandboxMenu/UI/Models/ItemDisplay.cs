@@ -106,18 +106,13 @@ internal sealed class ItemDisplay
         }
     }
 
-    private LocalizedString PackageText
-    {
-        get
-        {
-            if (_prefab.ContentPackage is { } package)
-            {
-                return "\n‖color:" + package.GetAccentColor().ToStringHex() + "‖" + package.Name + "‖color:end‖";
-            }
+    // The package's own accent colour, spelled the one way the mod spells it: an item hint wears it, and so does the
+    // package filter.
+    internal static LocalizedString AccentMarkup(LocalizedString text, ContentPackage package)
+        => "‖color:" + package.GetAccentColor().ToStringHex() + "‖" + text + "‖color:end‖";
 
-            return LocalizedString.EmptyString;
-        }
-    }
+    private LocalizedString PackageText
+        => _prefab.ContentPackage is { } package ? "\n" + AccentMarkup(package.Name, package) : LocalizedString.EmptyString;
 
     private LocalizedString ToolTipText
     {

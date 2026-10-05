@@ -29,6 +29,8 @@ internal sealed class MenuHost : IDialogHost
     private MarkupWindow? _browser;
     private ItemBrowserViewModel? _browserModel;
 
+    private MarkupWindow? _multiPicker;
+
     private int _popupGrace;
     private bool _pressedInsidePopup;
     private bool _screenshotQueued;
@@ -256,7 +258,7 @@ internal sealed class MenuHost : IDialogHost
         }
     }
 
-    public void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null)
+    public void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null, Action<string>? onSelf = null)
     {
         if (_browser is null || _browserModel is null)
         {
@@ -265,6 +267,7 @@ internal sealed class MenuHost : IDialogHost
         }
 
         _browserModel.UseParent(container);
+        _browserModel.UseOnSelf(onSelf);
 
         _browserModel.PickInto(identifier =>
         {
@@ -277,9 +280,17 @@ internal sealed class MenuHost : IDialogHost
 
     public void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options)
     {
-        MarkupWindow popup = new("MultiPicker.xml", DialogOrder + 1, new MultiPickerViewModel(title, options));
+        // A picker that is already open is closed before the new one takes its place, the way every other dialog here
+        // reopens: the button that opened it stays live under it, so a second click must not stack a second list.
+        if (_multiPicker is { IsOpen: true } previous)
+        {
+            _popups.Remove(previous);
+            ClosePopup(previous);
+        }
 
-        ShowPopup(popup, keepOpen: true);
+        _multiPicker = new MarkupWindow("MultiPicker.xml", DialogOrder + 1, new MultiPickerViewModel(title, options));
+
+        ShowPopup(_multiPicker, keepOpen: true);
     }
 
     public void ShowOptions(LocalizedString title, IEnumerable<PickerOption> options, bool filterable = false)

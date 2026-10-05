@@ -71,8 +71,10 @@
   <sandboxmenu.filter.summary.all>[name]: all</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]: [count] picked</sandboxmenu.filter.summary.some>
   <sandboxmenu.filter.container.only>Fitting only</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.hide.hidden>Skip hidden items</sandboxmenu.filter.hide.hidden>
   <sandboxmenu.filter.editable>Editable only</sandboxmenu.filter.editable>
   <sandboxmenu.filter.saveable>Saveable only</sandboxmenu.filter.saveable>
+  <sandboxmenu.browser.selfhint>[Right-click] Spawn into the character's inventory and apply spawn parameters.</sandboxmenu.browser.selfhint>
   <sandboxmenu.browse>Select item</sandboxmenu.browse>
   <sandboxmenu.browse.component>Select component</sandboxmenu.browse.component>
   <sandboxmenu.browse.property>Select property</sandboxmenu.browse.property>

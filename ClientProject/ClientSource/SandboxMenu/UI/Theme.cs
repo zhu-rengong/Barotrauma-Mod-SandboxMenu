@@ -15,6 +15,9 @@ internal static class Theme
 
     public static Color TextDisabled => UiMetrics.TextDisabled;
 
+    // The colour a line that has to be noticed is written in rather than just read.
+    public static Color Callout => GUIStyle.Orange;
+
     public const float SelectedBarWidth = 3f;
 
     public const float TreeIndentStep = 14f;
@@ -36,7 +39,29 @@ internal static class Theme
 
     public const float IconGap = 6f;
 
-    public const float TileSize = 36f;
+    public const float TileSize = 46f;
+
+    // The slot an item icon sits in, drawn the way the game draws one in a character's inventory: a dark fill inside a
+    // light frame, and the icon over a black shadow of itself.
+    public const float SlotPadding = 3f;
+
+    public const float IconShadowOffset = 2f;
+
+    public static readonly Color SlotFill = new(49, 56, 49, 220);
+
+    public static readonly Color SlotLine = new(122, 137, 152, 110);
+
+    // The game draws a slot icon's shadow as black at 0.6, a couple of pixels down and to the right.
+    public static readonly Color IconShadow = new(0, 0, 0, 153);
+
+    // How much bigger the slot grows while the mouse is on it, and how long that takes either way.
+    public const float IconSwell = 0.36f;
+
+    public const float IconSwellSeconds = 0.12f;
+
+    // The whole come and go of the glow a slot wears when the menu fills it. The game's own slot highlight is a tenth of
+    // a second in and four tenths out.
+    public const float FlashSeconds = 0.5f;
 
     public const float SubTextRatio = 0.5f;
 

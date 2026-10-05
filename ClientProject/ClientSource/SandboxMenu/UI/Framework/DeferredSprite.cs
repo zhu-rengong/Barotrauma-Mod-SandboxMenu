@@ -6,32 +6,60 @@ namespace SandboxMenu.UI.Framework;
 // until it has loaded once, and a recycled row would otherwise reach its blocking Texture getter on the draw thread.
 internal sealed class DeferredSprite : IDisposable
 {
+    private readonly RectTransform _transform;
+    private readonly GUIImage _shadow;
     private readonly GUIImage _image;
     private readonly GUICustomComponent _throbber;
     private readonly bool _fit;
     private Sprite? _sprite;
     private Task? _load;
+    private bool _waiting;
 
     internal DeferredSprite(RectTransform transform, GUIImage.ScalingMode mode)
     {
+        _transform = transform;
         _fit = mode != GUIImage.ScalingMode.None;
 
-        _image = new GUIImage(transform, style: null, scaleToFit: mode)
+        // The icon casts a shadow of itself, the way the game draws one in an inventory slot: the same sprite again, a
+        // couple of DIP down and to the right, in black. Both are boxes inside the one the caller hands over — moving
+        // that box moves both — and the shadow is built first, so the icon is drawn over it.
+        //
+        // That box carries a component of its own (the throbber below), because the host walks the rect children of a
+        // component and reads the component of each without a null check: a box holding nothing but other boxes breaks
+        // every such walk — taking the window out of the update list, a list box clamping its children, and more.
+        _shadow = new GUIImage(
+            new RectTransform(Vector2.One, transform, Anchor.Center)
+            {
+                AbsoluteOffset = new Point(UiMetrics.DipInt(Theme.IconShadowOffset), UiMetrics.DipInt(Theme.IconShadowOffset))
+            },
+            style: null,
+            scaleToFit: mode)
+        {
+            CanBeFocused = false,
+
+            // An image takes its parent's state and draws with the colour of that state, so a shadow the mouse points
+            // at — or a shadow whose row is hovered — would be drawn in the icon's own colours instead. Pinning the
+            // state to none leaves both images with the one colour they are given.
+            OverrideState = GUIComponent.ComponentState.None,
+            Color = Theme.IconShadow
+        };
+
+        _image = new GUIImage(new RectTransform(Vector2.One, transform, Anchor.Center), style: null, scaleToFit: mode)
+        {
+            CanBeFocused = false,
+            OverrideState = GUIComponent.ComponentState.None,
+            Color = Color.White
+        };
+
+        _throbber = new GUICustomComponent(transform, DrawThrobber, Load)
         {
             CanBeFocused = false
         };
 
-        _throbber = new GUICustomComponent(
-            new RectTransform(Vector2.One, transform, Anchor.Center),
-            DrawThrobber,
-            Load)
-        {
-            CanBeFocused = false,
-            Visible = false
-        };
-
-        if (_fit) { _image.RectTransform.SizeChanged += Fit; }
+        if (_fit) { _transform.SizeChanged += Fit; }
     }
+
+    internal RectTransform Transform => _transform;
 
     internal GUIImage Image => _image;
 
@@ -51,7 +79,8 @@ internal sealed class DeferredSprite : IDisposable
         // Anything the image holds while a sprite loads would be drawn, and a lazy one would be loaded by the
         // image itself the moment it is drawn; so it holds nothing and the throbber stands in for it.
         _image.Sprite = null;
-        _throbber.Visible = true;
+        _shadow.Sprite = null;
+        _waiting = true;
     }
 
     // Runs while the throbber is up, which is exactly while this icon is unloaded: an icon that has loaded
@@ -67,7 +96,7 @@ internal sealed class DeferredSprite : IDisposable
             // A load that ended without the sprite (a missing or broken file) leaves nothing to show.
             if (!sprite.Loaded)
             {
-                component.Visible = false;
+                _waiting = false;
                 return;
             }
         }
@@ -87,8 +116,10 @@ internal sealed class DeferredSprite : IDisposable
     private void Show(Sprite? sprite)
     {
         _load = null;
-        _throbber.Visible = false;
+        _waiting = false;
         _image.Sprite = sprite;
+        _shadow.Sprite = sprite;
+        Fit();
     }
 
     private void Fit()
@@ -100,10 +131,15 @@ internal sealed class DeferredSprite : IDisposable
         if (source.Width <= 0 || source.Height <= 0 || rect.Width <= 0 || rect.Height <= 0) { return; }
 
         _image.Scale = Math.Min((float)rect.Width / source.Width, (float)rect.Height / source.Height);
+        _shadow.Scale = _image.Scale;
     }
 
-    private static void DrawThrobber(SpriteBatch spriteBatch, GUICustomComponent component)
+    // This is a component of the box the caller handed over, so it draws in the icon's own place and stands in for the
+    // sprite while it is on its way.
+    private void DrawThrobber(SpriteBatch spriteBatch, GUICustomComponent component)
     {
+        if (!_waiting) { return; }
+
         GUISpriteSheet sheet = GUIStyle.GenericThrobber;
         Vector2 frame = sheet.FrameSize.ToVector2();
         Rectangle rect = component.Rect;
@@ -122,11 +158,12 @@ internal sealed class DeferredSprite : IDisposable
 
     public void Dispose()
     {
-        if (_fit) { _image.RectTransform.SizeChanged -= Fit; }
+        if (_fit) { _transform.SizeChanged -= Fit; }
 
         _sprite = null;
         _load = null;
         _image.Sprite = null;
+        _shadow.Sprite = null;
     }
 
     // One decode in flight at a time: the host caches textures by file, so a racing decode of the same file is built
