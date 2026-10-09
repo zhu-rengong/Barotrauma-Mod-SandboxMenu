@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>ContentPackageBuilder</RootNamespace>
+    <AssemblyName>ContentPackageBuilder</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Content\**" />
+    <None Remove="Content\**" />
+  </ItemGroup>
+</Project>

@@ -1,19 +1,19 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class ItemPreviewRow : ItemRowViewModel
+internal sealed class ItemPreviewRowViewModel : ItemRowViewModel
 {
     private string _fallbackTitle = string.Empty;
     private LocalizedString _fallbackSubText = LocalizedString.EmptyString;
 
-    private ItemPreviewRow() => Show(string.Empty);
+    private ItemPreviewRowViewModel() => Show(string.Empty);
 
     public override RichString Title => Display is null ? _fallbackTitle : base.Title;
 
     public override RichString SubText => Display is null ? RichString.Rich(_fallbackSubText) : base.SubText;
 
-    internal static ItemPreviewRow For(string identifier)
+    internal static ItemPreviewRowViewModel For(string identifier)
     {
-        ItemPreviewRow row = new();
+        ItemPreviewRowViewModel row = new();
         row.Show(identifier);
         return row;
     }

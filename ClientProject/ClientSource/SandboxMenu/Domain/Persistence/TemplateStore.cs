@@ -17,52 +17,64 @@ internal static class TemplateStore
     public static bool Exists(string name) => File.Exists(PathFor(name));
 
     public static IReadOnlyList<string> ListPresets()
-        => Guard.Try<IReadOnlyList<string>>(
-            static () =>
-            {
-                if (!Directory.Exists(Folder)) { return []; }
+    {
+        try
+        {
+            if (!Directory.Exists(Folder)) { return []; }
 
-                return
-                [
-                    .. Directory.EnumerateFiles(Folder, "*" + Extension)
-                        .Select(Path.GetFileNameWithoutExtension)
-                        .Where(name => !string.IsNullOrEmpty(name))
-                        .Select(name => name!)
-                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                ];
-            },
-            []);
+            return
+            [
+                .. Directory.EnumerateFiles(Folder, "*" + Extension)
+                    .Select(Path.GetFileNameWithoutExtension)
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Select(name => name!)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            ];
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Listing the presets failed: {e}");
+            return [];
+        }
+    }
 
     public static bool TryLoad(string name, out SpawnSet? set)
     {
-        set = Guard.Try<SpawnSet?>(
-            () =>
-            {
-                string path = PathFor(name);
-                if (!File.Exists(path)) { return null; }
+        try
+        {
+            string path = PathFor(name);
 
-                return XMLExtensions.TryLoadXml(path) is { Root: { } root } ? SpawnSet.FromXml(root) : null;
-            },
-            null,
-            $"Failed to load preset '{name}'");
+            set = File.Exists(path) && XMLExtensions.TryLoadXml(path) is { Root: { } root }
+                ? SpawnSet.FromXml(root)
+                : null;
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Failed to load preset '{name}': {e}");
+            set = null;
+        }
 
         return set is not null;
     }
 
     public static bool Save(SpawnSet set)
-        => Guard.Try<bool>(
-            () =>
-            {
-                Directory.CreateDirectory(Folder);
+    {
+        try
+        {
+            Directory.CreateDirectory(Folder);
 
-                string path = PathFor(set.Name);
-                DropOtherSpelling(path);
+            string path = PathFor(set.Name);
+            DropOtherSpelling(path);
 
-                SafeXML.SaveSafe(new XDocument(set.ToXml()), path, throwExceptions: true);
-                return true;
-            },
-            false,
-            $"Failed to save preset '{set.Name}'");
+            SafeXML.SaveSafe(new XDocument(set.ToXml()), path, throwExceptions: true);
+            return true;
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Failed to save preset '{set.Name}': {e}");
+            return false;
+        }
+    }
 
     internal static bool ReachesTemplate(SpawnSet set, string name)
         => Reaches(set.Entries, name, new HashSet<string>(StringComparer.OrdinalIgnoreCase));

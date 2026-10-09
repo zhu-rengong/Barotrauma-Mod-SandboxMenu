@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
@@ -33,15 +34,16 @@ internal sealed class ItemEntry : SpawnEntry
         XElement element = new("Item", new XAttribute("identifier", Identifier));
         WriteCommon(element);
 
-        XmlValue.WriteRange(element, "stacks", Stacks);
-        XmlValue.WriteBool(element, "fillInventory", FillInventory);
-        XmlValue.WriteInt(element, "quality", Quality);
-        XmlValue.WriteString(element, "tags", Tags);
-        XmlValue.WriteBool(element, "equip", Equip);
-        XmlValue.WriteString(element, "equipSlots", SpawnSlots.ToXml(EquipSlots));
-        XmlValue.WriteInt(element, "slotIndex", SlotIndex);
-        XmlValue.WriteBool(element, "install", Install);
-        XmlValue.WriteBool(element, "inheritChannel", InheritChannel);
+        WriteRange(element, "stacks", Stacks);
+
+        if (FillInventory) { element.SetAttributeValue("fillInventory", "true"); }
+        if (Quality is { } quality) { element.SetAttributeValue("quality", quality.ToString(CultureInfo.InvariantCulture)); }
+        if (!string.IsNullOrEmpty(Tags)) { element.SetAttributeValue("tags", Tags); }
+        if (Equip) { element.SetAttributeValue("equip", "true"); }
+        if (SpawnSlots.ToXml(EquipSlots) is { Length: > 0 } slots) { element.SetAttributeValue("equipSlots", slots); }
+        if (SlotIndex is { } slotIndex) { element.SetAttributeValue("slotIndex", slotIndex.ToString(CultureInfo.InvariantCulture)); }
+        if (Install) { element.SetAttributeValue("install", "true"); }
+        if (InheritChannel) { element.SetAttributeValue("inheritChannel", "true"); }
 
         XElement? properties = null;
 
@@ -77,7 +79,7 @@ internal sealed class ItemEntry : SpawnEntry
         };
         entry.ReadCommon(element);
 
-        entry.Stacks = XmlValue.ReadRange(element, "stacks");
+        entry.Stacks = ReadRange(element, "stacks");
         entry.Quality = element.Attribute("quality") is null ? null : element.GetAttributeInt("quality", 0);
         entry.SlotIndex = element.Attribute("slotIndex") is null ? null : element.GetAttributeInt("slotIndex", 0);
 

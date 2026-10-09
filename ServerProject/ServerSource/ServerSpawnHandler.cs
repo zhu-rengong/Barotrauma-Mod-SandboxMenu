@@ -9,7 +9,16 @@ internal static class ServerSpawnHandler
     private const string CooldownField = $"{Plugin.ModPrefix}.spawncooldown";
 
     internal static void Handle(SpawnRequest request, Client client)
-        => Guard.Run(() => Respond(request, client));
+    {
+        try
+        {
+            Respond(request, client);
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Handling a spawn request failed: {e}");
+        }
+    }
 
     private static void Respond(SpawnRequest request, Client client)
     {
@@ -17,7 +26,7 @@ internal static class ServerSpawnHandler
 
         if (!IsAllowed(client))
         {
-            Log.Info($"{client.Name} asked to spawn items without the permission to do so.");
+            DebugConsole.NewMessage($"{client.Name} asked to spawn items without the permission to do so.");
             Reply(client, request.RequestId, SpawnStatus.Denied);
             return;
         }
@@ -48,7 +57,7 @@ internal static class ServerSpawnHandler
 
         if (request.CharacterId != character.ID)
         {
-            Log.Info($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
+            DebugConsole.NewMessage($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
         }
 
         SpawnTarget? target = (SpawnTargetKind)request.Target switch

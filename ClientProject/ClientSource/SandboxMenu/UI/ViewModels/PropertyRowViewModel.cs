@@ -2,9 +2,7 @@ using System.Globalization;
 
 namespace SandboxMenu.UI.ViewModels;
 
-// One property override: the two pickers that name it and the editor its value's type asks for. Every editor reads
-// and writes the string the override stores, so presets, the spawn path and the network payload keep their format.
-internal sealed class PropertyRow(
+internal sealed class PropertyRowViewModel(
     EntryEditorViewModel editor,
     int index,
     PropertyOverride target,
@@ -33,8 +31,6 @@ internal sealed class PropertyRow(
 
     internal PropertyOption? Descriptor => _property;
 
-    // A name whose metadata cannot be read (the item or the component is not known right now) is shown by the stored
-    // name itself, so the row never claims to name nothing while it holds one.
     public RichString PropertyLabel => _property switch
     {
         { } declared => RichString.Rich($"{declared.Name} ({declared.TypeName})"),
@@ -60,8 +56,6 @@ internal sealed class PropertyRow(
 
     public bool IsEnum => Kind is PropertyKind.Enum or PropertyKind.Flags;
 
-    // The host's number input reads a null range as "no limit", and hides the step buttons of an unbounded float, so
-    // "no bound" is handed over as the sentinel of the family the value belongs to.
     public float Min => _property?.Range?.Min ?? (Integral ? int.MinValue : float.MinValue);
 
     public float Max => _property?.Range?.Max ?? (Integral ? int.MaxValue : float.MaxValue);
@@ -76,9 +70,6 @@ internal sealed class PropertyRow(
         set => SetOwned(PropertyKind.Text, value ?? string.Empty);
     }
 
-    // A float is written as the value is, not padded out to a fixed number of decimals: the box is a plain text one
-    // and what it holds goes through here. Text that does not read as a number is left where it is, so a half-typed
-    // "51." is not thrown away under the caret.
     public string FloatText
     {
         get => _target.Value;
@@ -103,8 +94,6 @@ internal sealed class PropertyRow(
         set => SetOwned(PropertyKind.Bool, value ? "True" : "False");
     }
 
-    // What the box shows once an edit is over is the value that stands: a number is written the way it is held, and
-    // text that was not taken gives way to the value it left behind.
     public Action CommitEdit => Refresh;
 
     public string VectorXText
@@ -162,8 +151,6 @@ internal sealed class PropertyRow(
 
     internal void SetComponent(OverrideTarget target, PropertyOption? property)
     {
-        // The same property name on the new component, but only as the kind the row was editing: a value typed for one
-        // editor means nothing to another.
         PropertyOption? kept = property is { } declared && declared.Kind == Kind ? declared : null;
 
         _componentLabel = target.Label;
@@ -171,8 +158,6 @@ internal sealed class PropertyRow(
         _target.ComponentName = target.ComponentName;
         _target.ComponentIndex = Math.Max(1, target.ComponentIndex);
 
-        // A property the new component does not declare (or declares as something else) is dropped with the old
-        // component: the row is back to picking one, and an override that names nothing is the one a preset leaves out.
         if (kept is null) { _target.PropertyName = string.Empty; }
 
         _editor.NotifyEdited();
@@ -207,8 +192,6 @@ internal sealed class PropertyRow(
 
         if (on) { members.Add(member); }
 
-        // Taking every flag away leaves nothing for the host to parse, so the value goes back to zero: a numeric name
-        // Enum.Parse takes, or the enum's own "None" when it declares one.
         SetValue(members.Count > 0
             ? string.Join(", ", members)
             : _property?.Values.Any(value => string.Equals(value, "None", StringComparison.OrdinalIgnoreCase)) == true ? "None" : "0");
@@ -226,8 +209,6 @@ internal sealed class PropertyRow(
 
     private Point ReadPoint() => XMLExtensions.ParsePoint(_target.Value, false);
 
-    // An editor only writes the value its own type owns: the editors of the other types are bound all the same, and
-    // would otherwise push their own reading of the value back over the one that was just edited.
     private void SetOwned(PropertyKind kind, string value)
     {
         if (Kind != kind) { return; }
@@ -235,7 +216,6 @@ internal sealed class PropertyRow(
         SetValue(value);
     }
 
-    // Either component may be left out: the box that did not change hands its own reading over untouched.
     private void SetVectorText(string? x, string? y)
     {
         if (Kind != PropertyKind.Vector2) { return; }
@@ -263,7 +243,5 @@ internal sealed class PropertyRow(
         Refresh();
     }
 
-    // One raise is what the row needs: a binding re-reads its own path when a source it is hooked to reports a change,
-    // no matter which property the report names.
     private void Refresh() => Raise();
 }

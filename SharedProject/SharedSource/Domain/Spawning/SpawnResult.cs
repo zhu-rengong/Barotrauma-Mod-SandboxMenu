@@ -11,6 +11,6 @@ internal sealed class SpawnResult
     internal void Report(string message)
     {
         _problems.Add(message);
-        Log.Warn(message);
+        DebugConsole.AddWarning(message);
     }
 }

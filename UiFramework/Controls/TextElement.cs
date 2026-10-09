@@ -21,14 +21,12 @@ internal sealed class TextElement : ViewElement
         _font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _font);
 
-        // Markup asks for room on every side of a text; without it the text keeps the pad token at its left only.
         _block.Padding = context.Padding.IsEmpty
             ? new Vector4(UiMetrics.Dip(UiTokens.Dip("pad", 6f)), 0f, 0f, 0f)
             : context.Padding.ToVector4();
 
         _block.CanBeFocused = false;
 
-        // The host's default text-block style carries a hover bar: a body of text is not a control.
         _block.HoverColor = Microsoft.Xna.Framework.Color.Transparent;
         _block.SelectedColor = Microsoft.Xna.Framework.Color.Transparent;
 

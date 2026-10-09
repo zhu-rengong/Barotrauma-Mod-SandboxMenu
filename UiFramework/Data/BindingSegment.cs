@@ -2,7 +2,6 @@ using System.Collections;
 
 namespace UiFramework.Data;
 
-// One step of a binding path: the member to read or write and the indices applied to what it gives.
 internal readonly record struct BindingSegment(string Name, object[] Indices)
 {
     internal object? Read(object source)

@@ -2,8 +2,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// Renders what the menu is showing — the windows it was given — onto an offscreen target and out as a PNG; the
-// queue itself stays with the menu, which serves it after the frame's GUI update has run through.
 internal static class ScreenshotWriter
 {
     internal static void Write(IReadOnlyList<IDialogWindow> drawn, Action<LocalizedString> report)
@@ -19,9 +17,6 @@ internal static class ScreenshotWriter
 
         GraphicsDevice device = GameMain.Instance.GraphicsDevice;
 
-        // The host renders at its own virtual resolution and keeps the device's viewport on that, so a render target of
-        // the captured area has to be given a viewport of its own: without it the window — which sits in the middle of
-        // the canvas — is squeezed into a corner of the image.
         Viewport previousViewport = device.Viewport;
         Rectangle previousScissor = device.ScissorRectangle;
 
@@ -39,8 +34,6 @@ internal static class ScreenshotWriter
                 device.ScissorRectangle = new Rectangle(0, 0, target.Width, target.Height);
                 device.Clear(Color.Transparent);
 
-                // Deferred with the host's own GUI sampler: BackToFront would re-sort the menu's components. The windows
-                // are shifted into place themselves (see DrawInto) because parts of the host's GUI restart the batch.
                 batch.Begin(SpriteSortMode.Deferred, BlendState.NonPremultiplied, GUI.SamplerState, null, null, null);
 
                 try
@@ -70,17 +63,15 @@ internal static class ScreenshotWriter
             }
 
             report(TextManager.GetWithVariable("sandboxmenu.status.screenshot", "[name]", name));
-            Log.Info($"Saved a screenshot of the menu to '{path}'");
+            DebugConsole.NewMessage($"Saved a screenshot of the menu to '{path}'");
         }
         catch (Exception e)
         {
-            Log.Warn("Saving a screenshot of the menu failed", e);
+            DebugConsole.AddWarning($"Saving a screenshot of the menu failed: {e}");
             report(TextManager.Get("sandboxmenu.status.screenshotfailed"));
         }
     }
 
-    // The host draws its pointer in the screen pass, which a screenshot does not take part in, so it is drawn on top
-    // of the windows here, in whatever state the menu is showing right now.
     private static void DrawCursor(SpriteBatch spriteBatch, Point shift)
     {
         if (!GameMain.WindowActive || GUI.HideCursor || !GUI.MouseCursorSprites.Prefabs.Any()) { return; }

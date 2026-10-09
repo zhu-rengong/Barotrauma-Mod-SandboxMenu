@@ -14,12 +14,6 @@ internal static class ClientSpawnDispatcher
     private static int _resultQueued;
     private static int _resultProblems;
 
-    static ClientSpawnDispatcher() => ModLifetime.Unloading += () =>
-    {
-        _nextRequestId = 0;
-        Forget();
-    };
-
     internal static bool IsMultiplayerClient => GameMain.NetworkMember is { IsClient: true };
 
     internal static SpawnRefusal? TrySendIntoInventory(IReadOnlyList<SpawnEntry> entries)
@@ -32,7 +26,7 @@ internal static class ClientSpawnDispatcher
     {
         if (_waitingFor == 0 || response.RequestId != _waitingFor) { return; }
 
-        foreach (string problem in response.Problems ?? []) { Log.Warn(problem); }
+        foreach (string problem in response.Problems ?? []) { DebugConsole.AddWarning(problem); }
 
         _result = (SpawnStatus)response.Status;
         _resultQueued = response.Queued;
@@ -81,7 +75,7 @@ internal static class ClientSpawnDispatcher
         }
         catch (Exception e)
         {
-            Log.Warn("Sending the spawn request failed", e);
+            DebugConsole.AddWarning($"Sending the spawn request failed: {e}");
             return SpawnRefusal.NotSent;
         }
 

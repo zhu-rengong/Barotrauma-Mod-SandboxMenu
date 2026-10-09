@@ -1,18 +1,52 @@
 namespace SandboxMenu.UI.Framework;
 
-// Menu work that must not run inside the handler that asked for it is posted here and drained with the menu's
-// own update; a command that runs where it is asked for goes through Run, which is where its failure ends.
 internal static class FrameActions
 {
-    private static readonly FrameQueue _frame = new();
+    private const int MaxPasses = 8;
 
-    static FrameActions() => ModLifetime.Unloading += _frame.Clear;
+    private static readonly Queue<Action> _posted = [];
+    private static readonly List<Action> _pass = [];
 
-    internal static void Post(Action action) => _frame.Post(action);
+    private static bool _stopped;
 
-    internal static void Run(Action action) => Guard.Run(action, "Running a menu command failed");
+    internal static void Post(Action action) => _posted.Enqueue(action);
 
-    internal static void Clear() => _frame.Clear();
+    internal static void Run(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Running a menu command failed: {e}");
+        }
+    }
 
-    internal static void Drain() => _frame.Drain();
+    internal static void Clear()
+    {
+        _posted.Clear();
+        _stopped = true;
+    }
+
+    internal static void Drain()
+    {
+        _stopped = false;
+
+        for (int pass = 0; pass < MaxPasses && _posted.Count > 0; pass++)
+        {
+            _pass.AddRange(_posted);
+            _posted.Clear();
+
+            try
+            {
+                for (int i = 0; i < _pass.Count && !_stopped; i++) { Run(_pass[i]); }
+            }
+            finally
+            {
+                _pass.Clear();
+                _stopped = false;
+            }
+        }
+    }
 }

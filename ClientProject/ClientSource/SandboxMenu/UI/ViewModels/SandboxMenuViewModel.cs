@@ -2,16 +2,13 @@ using Microsoft.Xna.Framework;
 
 namespace SandboxMenu.UI.ViewModels;
 
-// The main window itself: the function tabs on the title band and one view model per function. Each function's area
-// binds against its own view model, so what a new function brings stays out of the others. The list under a function
-// asks the window for what it needs to drag, and the window hands that to the function that owns the list.
-internal sealed class SandboxMenuViewModel : IDropTarget, IListBackground
+internal sealed class SandboxMenuViewModel : IItemDropTarget, IListBackground
 {
-    internal SandboxMenuViewModel(IDialogHost host) => Spawn = new SpawnMenuViewModel(host);
+    internal SandboxMenuViewModel(IDialogHost host) => Spawn = new SpawnPanelViewModel(host);
 
     public FunctionSelectorViewModel Functions { get; } = new();
 
-    public SpawnMenuViewModel Spawn { get; }
+    public SpawnPanelViewModel Spawn { get; }
 
     public bool CanDrag(object item) => Spawn.CanDrag(item);
 

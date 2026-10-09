@@ -1,8 +1,5 @@
 namespace UiFramework.Controls;
 
-// A windowed list keeps only the rows around the viewport and stands in for the rest with two spacers, so the
-// host list box lays out tens of children: the spacer heights keep its own total size — and with it the
-// scrollbar range — the same as an unwindowed list.
 internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool)
 {
     private const int Overscan = 4;
@@ -70,7 +67,6 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
         int stride = height + spacing;
         float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - viewport) * _listBox.BarScroll : 0f;
 
-        // While the wheel spins the list scrolls faster than rows could be shown, so the margin only covers the viewport.
         int margin = Math.Abs(scrolled - _scrolled) > Overscan * stride ? 1 : Overscan;
 
         _scrolled = scrolled;

@@ -12,8 +12,6 @@ public sealed class ResourceDictionary
         else { _values[key] = value; }
     }
 
-    // Reads a <ResourceDictionary> node: the styles and templates it declares, plus whatever the dictionaries it
-    // merges in carry. Entries declared here win over the ones they merge.
     internal static ResourceDictionary Read(MarkupNode root, Action<string>? report = null)
         => Read(root, root.View, report, []);
 
@@ -63,7 +61,6 @@ public sealed class ResourceDictionary
             return;
         }
 
-        // A dictionary that merges itself back in would otherwise read forever.
         if (!merged.Add(file)) { return; }
 
         ResourceDictionary read = Read(MarkupSource.Load(file), file, report, merged);

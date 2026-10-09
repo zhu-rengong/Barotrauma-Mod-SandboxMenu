@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class MenuOptionViewModel(MenuAction action, Action onInvoked)
+internal sealed class ContextOptionViewModel(MenuCommand action, Action onInvoked)
 {
     public LocalizedString Label => TextManager.Get(action.Label);
 

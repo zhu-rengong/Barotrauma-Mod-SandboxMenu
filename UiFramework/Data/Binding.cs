@@ -3,8 +3,6 @@ using System.Globalization;
 
 namespace UiFramework.Data;
 
-// What a binding is: the source and path it reads, the callbacks that apply and report, and everything the markup
-// may set on the way. The binding keeps it and re-points the source when its row is recycled.
 internal sealed class BindingDefinition
 {
     internal required object? Source { get; set; }

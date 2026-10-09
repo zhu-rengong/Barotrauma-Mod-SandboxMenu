@@ -9,11 +9,8 @@ public abstract class ViewElement(GUIComponent control)
 
     internal MarkupNode? Node { get; set; }
 
-    // The view the element was built in: what a behaviour offered by markup acts through.
     public ViewContext? Context { get; internal set; }
 
-    // The keys this element answers to, and the element that decides which of them are live: a key declared inside
-    // a hidden area stands back with it.
     internal List<Input.KeyBinding>? Bindings { get; set; }
 
     public object? DataContext { get; set; }
@@ -34,7 +31,6 @@ public abstract class ViewElement(GUIComponent control)
         }
     }
 
-    // Marks a region as the window's drag handle: the shell is what knows how the host moves a window.
     [ElementProperty]
     public bool Drag
     {

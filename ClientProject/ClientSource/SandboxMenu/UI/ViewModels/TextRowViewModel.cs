@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class TextRow(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply) : RowViewModel(label)
+internal sealed class TextRowViewModel(EntryEditorViewModel editor, LocalizedString label, string text, Action<string> apply) : RowViewModel(label)
 {
     private readonly EntryEditorViewModel _editor = editor;
     private readonly Action<string> _apply = apply;

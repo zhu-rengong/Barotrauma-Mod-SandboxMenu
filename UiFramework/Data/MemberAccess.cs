@@ -3,17 +3,11 @@ using System.Reflection;
 
 namespace UiFramework.Data;
 
-// The compiled reader and writer for one member, cached by declaring type and name: a path segment asks for its
-// member every frame its binding is live, and compiling the access once is what keeps that off the list's back.
 internal static class MemberAccess
 {
     private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
     private static readonly Dictionary<(Type Type, string Name), Accessors> _cache = [];
-
-    static MemberAccess() => UiLifetime.Unloading += Clear;
-
-    internal static void Clear() => _cache.Clear();
 
     internal static Accessors For(Type type, string name)
     {

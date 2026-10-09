@@ -1,7 +1,5 @@
 namespace UiFramework;
 
-// What an element is handed while it is built: the node it came from, the transform it sits in and the view it
-// belongs to. The node itself stays inside the framework; the helpers below are what an element author uses.
 public sealed class ElementContext
 {
     internal ElementContext(MarkupNode node, RectTransform parent, ViewContext view)

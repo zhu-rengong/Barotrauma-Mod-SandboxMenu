@@ -3,7 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// The menu's palette and sizes, in DIP; the ones markup names are handed over as tokens at startup (UiBootstrap).
 internal static class Theme
 {
     public static Color Text => UiMetrics.Text;
@@ -14,8 +13,7 @@ internal static class Theme
 
     public static Color TextDisabled => UiMetrics.TextDisabled;
 
-    // The colour a line that has to be noticed is written in rather than just read.
-    public static Color Callout => GUIStyle.EquipmentSlotIconColor;
+    public static Color Callout => Color.LightGray * 0.7f;
 
     public const float SelectedBarWidth = 3f;
 
@@ -25,7 +23,6 @@ internal static class Theme
 
     public const float Gap = 4f;
 
-    // Fractions of the row a control sits in.
     public const float RowHeight = 0.075f;
 
     public const float SectionHeight = 0.085f;
@@ -40,7 +37,6 @@ internal static class Theme
 
     public const float TileSize = 46f;
 
-    // The slot an item icon sits in, with the colours the game draws one in.
     public const float SlotPadding = 3f;
 
     public const float IconShadowOffset = 2f;
@@ -49,16 +45,12 @@ internal static class Theme
 
     public static readonly Color SlotLine = new(122, 137, 152, 110);
 
-    // The game draws a slot icon's shadow as black at 0.6, a couple of pixels down and to the right.
     public static readonly Color IconShadow = new(0, 0, 0, 153);
 
-    // How much bigger the slot grows while the mouse is on it, and how long that takes either way.
     public const float IconSwell = 0.36f;
 
     public const float IconSwellSeconds = 0.12f;
 
-    // The whole come and go of the glow a slot wears when the menu fills it. The game's own slot highlight is a tenth of
-    // a second in and four tenths out.
     public const float FlashSeconds = 0.5f;
 
     public const float SubTextRatio = 0.5f;
@@ -90,6 +82,21 @@ internal static class Theme
 
     public static void Fill(SpriteBatch spriteBatch, Rectangle rect, Color color)
         => GUI.DrawRectangle(spriteBatch, rect, color, true);
+
+    internal static void ApplyLabel(GUITextBlock block, Color color)
+    {
+        block.TextColor = color;
+        block.HoverTextColor = color;
+        block.SelectedTextColor = color;
+        block.PressedColor = color;
+        block.DisabledTextColor = TextDisabled;
+
+        block.PressedTextColor = color;
+        block.HoverSelectedTextColor = color;
+    }
+
+    internal static LocalizedString AccentMarkup(LocalizedString text, ContentPackage package)
+        => "‖color:" + package.GetAccentColor().ToStringHex() + "‖" + text + "‖color:end‖";
 
     public static void Outline(SpriteBatch spriteBatch, Rectangle rect, Color color, float? thickness = null)
         => GUI.DrawRectangle(

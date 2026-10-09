@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace UiFramework.Controls;
 
-// Dragging a row out of the list and the drop indicator that shows where it would land, plus the menu a right
-// click on the empty part of the list opens.
 internal sealed class ListDrag(ListBoxElement list)
 {
     private const float Threshold = 6f;
@@ -34,8 +32,6 @@ internal sealed class ListDrag(ListBoxElement list)
         _background = dataContext as IListBackground;
     }
 
-    // A list inside a hidden function area keeps the rect it had and its drag code runs off the view's own frame
-    // actions rather than the host's update list, so the element chain is what knows the area went away.
     private bool IsShown()
     {
         for (ViewElement? element = list; element is not null; element = element.Parent)
@@ -50,7 +46,6 @@ internal sealed class ListDrag(ListBoxElement list)
     {
         if (_view.IsInputBlocked()) { return; }
 
-        // An in-flight drag is let go even if its list was just switched away, so it always tidies up after itself.
         if (IsDragging) { ContinueDrag(PlayerInput.MousePosition); return; }
 
         if (!IsShown() || _target is null) { return; }
@@ -94,8 +89,6 @@ internal sealed class ListDrag(ListBoxElement list)
 
         Vector2 mouse = PlayerInput.MousePosition;
 
-        // The menu belongs to the list: without this the click would be read anywhere on the screen, as "not on an
-        // item" is also true for every point outside the list.
         if (!_listBox.Rect.Contains(mouse.ToPoint())) { return; }
         if (ItemAt(mouse) is not null) { return; }
 

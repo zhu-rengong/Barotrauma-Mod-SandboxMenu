@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackground
+internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBackground
 {
     private readonly IDialogHost _host;
     private readonly SpawnSetTree _tree;
@@ -15,7 +15,7 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
     private LocalizedString _status = LocalizedString.EmptyString;
     private bool _treeRefreshQueued;
 
-    internal SpawnMenuViewModel(IDialogHost host)
+    internal SpawnPanelViewModel(IDialogHost host)
     {
         _host = host;
         _tree = new SpawnSetTree(this, Set);
@@ -85,12 +85,10 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public RelayCommand SpawnIntoInventoryCommand { get; }
 
-    // The item picked in the browser goes onto the character without the set itself being touched.
     internal void GiveToCharacter(ItemEntry entry) => _requests.Give([entry]);
 
     public RelayCommand SpawnAtCursorCommand { get; }
 
-    // The keys the menu answers to; which of them are live is decided by the markup that declares them.
     public RelayCommand StepUpCommand { get; }
 
     public RelayCommand StepDownCommand { get; }
@@ -107,7 +105,6 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
 
     public RelayCommand AddChildCommand { get; }
 
-    // The key the give button shows behind its label.
     public LocalizedString GiveShortcut => Plugin.GiveKey.ToString();
 
     public LocalizedString Status
@@ -137,7 +134,6 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
         {
             _tree.Rebuild();
 
-            // A preset that was just loaded opens on its first entry, with the editor showing it.
             if (Entries.Count > 0) { Select(Entries[0]); }
             else { Editor.Clear(); }
         });
@@ -199,37 +195,37 @@ internal sealed class SpawnMenuViewModel : Notifiable, IDropTarget, IListBackgro
     {
         if (row is not null) { Select(row); }
 
-        List<MenuAction> actions = [];
+        List<MenuCommand> actions = [];
 
         if (row is null)
         {
-            actions.Add(new MenuAction("sandboxmenu.additem", () => _treeEditor.Add(new ItemEntry(), null), TextManager.Get("sandboxmenu.shortcut.add")));
-            actions.Add(new MenuAction("sandboxmenu.addref", () => _treeEditor.Add(new ReferenceEntry(), null)));
+            actions.Add(new MenuCommand("sandboxmenu.additem", () => _treeEditor.Add(new ItemEntry(), null), TextManager.Get("sandboxmenu.shortcut.add")));
+            actions.Add(new MenuCommand("sandboxmenu.addref", () => _treeEditor.Add(new ReferenceEntry(), null)));
         }
         else
         {
-            actions.Add(new MenuAction("sandboxmenu.additem", () => _treeEditor.Add(new ItemEntry(), row), TextManager.Get("sandboxmenu.shortcut.add")));
-            actions.Add(new MenuAction("sandboxmenu.addref", () => _treeEditor.Add(new ReferenceEntry(), row)));
+            actions.Add(new MenuCommand("sandboxmenu.additem", () => _treeEditor.Add(new ItemEntry(), row), TextManager.Get("sandboxmenu.shortcut.add")));
+            actions.Add(new MenuCommand("sandboxmenu.addref", () => _treeEditor.Add(new ReferenceEntry(), row)));
 
             if (row.Entry is ItemEntry)
             {
-                actions.Add(new MenuAction("sandboxmenu.addchild", () => _treeEditor.AddChild(row), TextManager.Get("sandboxmenu.shortcut.addchild")));
+                actions.Add(new MenuCommand("sandboxmenu.addchild", () => _treeEditor.AddChild(row), TextManager.Get("sandboxmenu.shortcut.addchild")));
             }
 
-            actions.Add(new MenuAction("sandboxmenu.duplicate", () => _treeEditor.Duplicate(row)));
+            actions.Add(new MenuCommand("sandboxmenu.duplicate", () => _treeEditor.Duplicate(row)));
 
-            actions.Add(new MenuAction("sandboxmenu.focusidentifier", FocusIdentifier, TextManager.Get("sandboxmenu.shortcut.enter")));
+            actions.Add(new MenuCommand("sandboxmenu.focusidentifier", FocusIdentifier, TextManager.Get("sandboxmenu.shortcut.enter")));
 
-            actions.Add(new MenuAction("sandboxmenu.give", () => _requests.Give([row.Entry])));
-            actions.Add(new MenuAction("sandboxmenu.spawnatcursor", () => _requests.AtCursor([row.Entry])));
+            actions.Add(new MenuCommand("sandboxmenu.give", () => _requests.Give([row.Entry])));
+            actions.Add(new MenuCommand("sandboxmenu.spawnatcursor", () => _requests.AtCursor([row.Entry])));
 
-            actions.Add(new MenuAction("sandboxmenu.delete", () => _treeEditor.Delete(row), TextManager.Get("sandboxmenu.shortcut.delete")));
+            actions.Add(new MenuCommand("sandboxmenu.delete", () => _treeEditor.Delete(row), TextManager.Get("sandboxmenu.shortcut.delete")));
 
-            actions.Add(new MenuAction("sandboxmenu.previous", () => _treeEditor.Step(row, -1), TextManager.Get("sandboxmenu.shortcut.up")));
-            actions.Add(new MenuAction("sandboxmenu.next", () => _treeEditor.Step(row, 1), TextManager.Get("sandboxmenu.shortcut.down")));
+            actions.Add(new MenuCommand("sandboxmenu.previous", () => _treeEditor.Step(row, -1), TextManager.Get("sandboxmenu.shortcut.up")));
+            actions.Add(new MenuCommand("sandboxmenu.next", () => _treeEditor.Step(row, 1), TextManager.Get("sandboxmenu.shortcut.down")));
 
-            actions.Add(new MenuAction("sandboxmenu.moveup", () => _treeEditor.Move(row, -1), TextManager.Get("sandboxmenu.shortcut.moveup")));
-            actions.Add(new MenuAction("sandboxmenu.movedown", () => _treeEditor.Move(row, 1), TextManager.Get("sandboxmenu.shortcut.movedown")));
+            actions.Add(new MenuCommand("sandboxmenu.moveup", () => _treeEditor.Move(row, -1), TextManager.Get("sandboxmenu.shortcut.moveup")));
+            actions.Add(new MenuCommand("sandboxmenu.movedown", () => _treeEditor.Move(row, 1), TextManager.Get("sandboxmenu.shortcut.movedown")));
         }
 
         _host.ShowContextMenu(actions, position);

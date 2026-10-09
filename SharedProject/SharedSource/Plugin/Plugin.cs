@@ -8,14 +8,6 @@ public sealed partial class Plugin : IBarotraumaPlugin
     private static ISettingsService? _settingsService;
     private static IGameNetwork? _network;
 
-    static Plugin() => ModLifetime.Unloading += () =>
-    {
-        _debugConsole = null;
-        _settingsService = null;
-        _network = null;
-    };
-
-    // GetService recognises the plugin through Assembly.GetCallingAssembly(): keep the call in this assembly.
     internal static IDebugConsole DebugConsoleService => _debugConsole ??= PluginServiceProvider.GetService<IDebugConsole>();
 
     internal static ISettingsService SettingsService => _settingsService ??= PluginServiceProvider.GetService<ISettingsService>();
@@ -30,17 +22,19 @@ public sealed partial class Plugin : IBarotraumaPlugin
 #endif
         ServerOptions.Register(SettingsService);
 
-        Setup();
+        InitProjSpecific();
     }
 
     public void OnContentLoaded()
     {
     }
 
-    public void Dispose() => Teardown();
+    public void Dispose()
+    {
+        DisposeProjSpecific();
+    }
 
-    // What the client and the server each add on top of the plugin; both are carried by the project that needs them.
-    internal partial void Setup();
+    partial void InitProjSpecific();
 
-    internal partial void Teardown();
+    partial void DisposeProjSpecific();
 }

@@ -25,8 +25,6 @@ internal readonly record struct Length(LengthKind Kind, float Value)
 
     internal static Length Percent(float fraction) => new(LengthKind.Percent, fraction);
 
-    // A share is written "N*": the element gets N parts of what the other children leave, weighted by the shares
-    // next to it. "*" is the same as "1*".
     internal static bool TryWeight(string? text, out float weight)
     {
         string trimmed = text?.Trim() ?? string.Empty;

@@ -1,8 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-// The give and spawn commands: hand the entries to the character's inventory or drop them where the player picks,
-// on the client of a multiplayer game by asking the host. Outcomes land on the menu's status line.
-internal sealed class SpawnRequests(SpawnMenuViewModel menu, SpawnSet set)
+internal sealed class SpawnRequests(SpawnPanelViewModel menu, SpawnSet set)
 {
     internal void Give() => Give(set.Entries);
 

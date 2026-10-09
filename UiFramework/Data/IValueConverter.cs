@@ -27,15 +27,6 @@ internal static class ValueConverters
         ["Join"] = new JoinConverter()
     };
 
-    static ValueConverters() => UiLifetime.Unloading += Clear;
-
-    internal static void Clear()
-    {
-        _single.Clear();
-        _multi.Clear();
-    }
-
-    // What markup can name in a Converter: the framework's own, plus whatever the mod registers at startup.
     internal static void Register(string name, IValueConverter converter) => _single[name] = converter;
 
     internal static void RegisterMulti(string name, IMultiValueConverter converter) => _multi[name] = converter;
@@ -52,7 +43,6 @@ internal sealed class InverseBoolConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter) => value is not true;
 }
 
-// A fraction shown as the whole number it is a fraction of: a saturation of 0.36 reads as 36.
 internal sealed class PercentConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter)

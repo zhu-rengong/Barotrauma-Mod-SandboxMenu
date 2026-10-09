@@ -2,9 +2,7 @@ using System.Diagnostics;
 
 namespace SandboxMenu.UI.ViewModels;
 
-// The preset commands behind the toolbar: save what the menu holds, list the stored presets, reload one from disk
-// or open its file. Every outcome is reported through the menu's status line.
-internal sealed class PresetFiles(SpawnMenuViewModel menu, SpawnSet set)
+internal sealed class PresetFiles(SpawnPanelViewModel menu, SpawnSet set)
 {
     internal void Save()
     {
@@ -83,7 +81,7 @@ internal sealed class PresetFiles(SpawnMenuViewModel menu, SpawnSet set)
         }
         catch (Exception e)
         {
-            Log.Warn($"Failed to open the preset file '{path}'", e);
+            DebugConsole.AddWarning($"Failed to open the preset file '{path}': {e}");
             menu.Report(TextManager.GetWithVariable("sandboxmenu.status.presetopenfailed", "[name]", name));
         }
     }

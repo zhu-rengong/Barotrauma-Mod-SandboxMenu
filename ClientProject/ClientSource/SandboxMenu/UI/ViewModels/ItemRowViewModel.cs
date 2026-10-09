@@ -4,7 +4,6 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
 {
     private ItemDisplay? _display;
 
-    // A display holds the prefab it was made for; rows let go of them when the content packages change.
     internal void Release() => Display = null;
 
     public ItemDisplay? Display
@@ -22,8 +21,6 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
         }
     }
 
-    // A hint is built from state the game changes without telling anyone — who is being played, above all — and a
-    // bound control only takes its value again when the row says it changed.
     internal void RefreshHints()
     {
         Raise(nameof(ToolTip));
@@ -38,7 +35,5 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
 
     public virtual RichString ToolTip => Display?.ToolTip ?? string.Empty;
 
-    // Tiles show the icon alone, so they take the hint that spells out what a row shows: name with the identifier
-    // and the tags, then the notes of the item hint.
     public virtual RichString TileToolTip => Display?.TileToolTip ?? string.Empty;
 }

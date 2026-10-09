@@ -45,17 +45,13 @@ internal static class PropertyEditService
 
         if (target is not ISerializableEntity serializable
             || serializable.SerializableProperties is null
-            || !serializable.SerializableProperties.TryGetValue(Identifiers.Of(propertyOverride.PropertyName), out SerializableProperty? property))
+            || !serializable.SerializableProperties.TryGetValue(propertyOverride.PropertyName.ToIdentifier(), out SerializableProperty? property))
         {
             return $"Not found serializable property '{propertyOverride.PropertyName}' ({propertyOverride})";
         }
 
         object? before = property.GetValue(target);
 
-        // A write that cannot change anything is left out. That is not only tidiness: some setters turn an empty
-        // string into null (Item.DescriptionTag does), and the host's change-property network event cannot carry a
-        // null — the server throws while writing it and the clients are dropped for the desync that follows. A value
-        // the property already holds, or the one it holds by declaration, never needs to go anywhere.
         if (string.Equals(propertyOverride.Value, PropertyDefaults.Format(before), StringComparison.Ordinal)
             || string.Equals(propertyOverride.Value, DeclaredOf(item, propertyOverride, property), StringComparison.Ordinal))
         {
@@ -64,9 +60,6 @@ internal static class PropertyEditService
 
         if (!property.TrySetValue(target, propertyOverride.Value)) { return $"Failed to set '{propertyOverride}'"; }
 
-        // What the write left behind has to be something the network can carry. The event the setter queues reads the
-        // property when it goes out rather than now, so putting the old value back here means it leaves carrying that
-        // instead of failing on the server.
         if (property.GetValue(target) is null && before is not null && GameMain.NetworkMember is not null)
         {
             property.SetValue(target, before);
@@ -77,8 +70,6 @@ internal static class PropertyEditService
         return null;
     }
 
-    // What the property carries by declaration: the same value the property picker shows behind its label, so a row
-    // reading "= 50,11" and a write of 50,11 agree on what changes nothing.
     private static string DeclaredOf(Item item, PropertyOverride propertyOverride, SerializableProperty property)
         => PropertyDefaults.DeclaredValue(
             property,

@@ -2,9 +2,6 @@ using UiFramework.Layout;
 
 namespace UiFramework.Controls;
 
-// The rows and tiles a list builds from its templates, and the two ways they come back: a windowed list recycles
-// whatever template it needs, a plain list keeps a row per item. Either way the components stay and the bindings
-// are only re-pointed, which is what keeps scrolling cheap.
 internal sealed class ListRowPool
 {
     private const int Limit = 240;
@@ -66,8 +63,6 @@ internal sealed class ListRowPool
 
         row.Control.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
 
-        // A fresh row is laid out on the spot: waiting for its first update would show it for a frame with its
-        // labels and controls still sitting at their default places.
         LayoutFlush.Apply(row.Control);
 
         row.Parent = _owner;
@@ -81,8 +76,6 @@ internal sealed class ListRowPool
             ? TakeRecycled(template, item) ?? Build(item, template)
             : ReportMissingRowTemplate(item);
 
-    // A pooled tile comes back detached, so it has to be hung on its band again before it is placed: a detached
-    // control would stay in the host's update list (it is visible) and keep drawing itself at its old place.
     internal BuiltRow? TakeTile(GUIFrame band, object item)
     {
         if (TileTemplate(item) is not { } template)
@@ -122,7 +115,6 @@ internal sealed class ListRowPool
         return template;
     }
 
-    // A recycled row keeps its components and only re-points its bindings, which is what keeps scrolling cheap.
     internal static BuiltRow Reuse(BuiltRow row, object item)
     {
         row.Element.DataContext = item;

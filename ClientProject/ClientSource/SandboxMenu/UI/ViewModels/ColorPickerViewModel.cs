@@ -1,8 +1,5 @@
 namespace SandboxMenu.UI.ViewModels;
 
-// The colour a picker window is working on. The picker reports whole colours and each field reports a single number,
-// so the colour is kept as hue, saturation, brightness and alpha: a field only rewrites the part it stands for, and
-// the other fields follow whatever moved.
 internal sealed class ColorPickerViewModel : Notifiable
 {
     private readonly Action<Color> _onPicked;
@@ -22,8 +19,6 @@ internal sealed class ColorPickerViewModel : Notifiable
         Apply(current, deriveHsv: true, report: false);
     }
 
-    // What the picker element calls for every colour dragged out of it. The picker carries no alpha of its own, so the
-    // one the field holds is what goes back on.
     public Action<Color> Picked { get; }
 
     public Color Color => Compose();
@@ -70,8 +65,6 @@ internal sealed class ColorPickerViewModel : Notifiable
         set => FromField(() => _alpha = ToByte(value), deriveHsv: false);
     }
 
-    // Typed colours are taken as they are written, but only while what is written looks like one: a half-finished
-    // "#F" would otherwise land on some colour the player never asked for. The text itself is left as typed.
     public string Hex
     {
         get => _hex;
@@ -84,8 +77,6 @@ internal sealed class ColorPickerViewModel : Notifiable
         }
     }
 
-    // Once the edit is over the box shows the colour that stands: what was typed and not taken gives way to it, and a
-    // colour is written the one way the host reads.
     public Action Commit => Refresh;
 
     private void FromField(Action change, bool deriveHsv)
@@ -124,9 +115,6 @@ internal sealed class ColorPickerViewModel : Notifiable
         return new Color(rgb.R, rgb.G, rgb.B, _alpha);
     }
 
-    // One raise is what the window needs: a binding re-reads its own path when the source it is hooked to reports a
-    // change. The fields are kept from writing back while that runs, or every value pushed into a field would be read
-    // as an edit and set the rest off in turn.
     private void Refresh()
     {
         _updating = true;

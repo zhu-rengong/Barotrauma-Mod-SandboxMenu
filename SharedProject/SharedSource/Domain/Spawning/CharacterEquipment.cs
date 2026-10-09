@@ -2,8 +2,6 @@ using Barotrauma.Items.Components;
 
 namespace SandboxMenu.Domain.Spawning;
 
-// What a spawned item asks of the character it belongs to: which slot it goes into, and where its wifi channel
-// comes from.
 internal static class CharacterEquipment
 {
     internal static void Equip(Character character, Item item, InvSlotType[]? allowedSlots)

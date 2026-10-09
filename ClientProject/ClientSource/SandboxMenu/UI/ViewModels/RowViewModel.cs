@@ -17,20 +17,20 @@ internal abstract class RowViewModel(LocalizedString label, bool labelActive = t
     }
 }
 
-internal sealed class SectionRow(LocalizedString title) : RowViewModel(title)
+internal sealed class SectionRowViewModel(LocalizedString title) : RowViewModel(title)
 {
 }
 
-internal sealed class HintRow(LocalizedString text) : RowViewModel(text)
+internal sealed class HintRowViewModel(LocalizedString text) : RowViewModel(text)
 {
 }
 
-internal sealed class ButtonRow(LocalizedString label, Action onInvoke) : RowViewModel(label)
+internal sealed class ButtonRowViewModel(LocalizedString label, Action onInvoke) : RowViewModel(label)
 {
     public RelayCommand InvokeCommand { get; } = new RelayCommand(onInvoke);
 }
 
-internal sealed class TickRow(LocalizedString label, bool value, Action<bool> apply, Action after) : RowViewModel(label)
+internal sealed class TickRowViewModel(LocalizedString label, bool value, Action<bool> apply, Action after) : RowViewModel(label)
 {
     private readonly Action<bool> _apply = apply;
     private readonly Action _after = after;

@@ -4,8 +4,33 @@ using UiFramework.Styling;
 
 namespace UiFramework;
 
-// One loaded view: the tree it built, the text it was given, and the building scopes that own everything hanging
-// off it.
+public sealed class NameScope
+{
+    private readonly Dictionary<string, ViewElement> _elements = new(StringComparer.Ordinal);
+
+    internal void Add(string name, ViewElement element, MarkupDiagnostics diagnostics, MarkupNode node)
+    {
+        if (_elements.TryAdd(name, element)) { return; }
+
+        diagnostics.Report($"the name '{name}' is used twice", node);
+    }
+
+    public ViewElement? Find(string name) => _elements.GetValueOrDefault(name);
+}
+
+internal sealed class ViewCommand(Action execute) : ICommand
+{
+    public event EventHandler? CanExecuteChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public bool CanExecute(object? parameter) => true;
+
+    public void Execute(object? parameter) => execute();
+}
+
 public sealed class ViewContext : IDisposable
 {
     private readonly List<ViewScope> _scopes = [];
@@ -40,7 +65,6 @@ public sealed class ViewContext : IDisposable
 
     internal ViewElement? Root { get; set; }
 
-    // What the view was built as, for a shell that has to hold on to it (its window frame, its size).
     public ViewElement? RootElement => Root;
 
     public Action<string>? DiagnosticSink
@@ -55,16 +79,12 @@ public sealed class ViewContext : IDisposable
 
     public Func<bool> IsInputBlocked { get; set; } = static () => false;
 
-    // What closing this view means, and how a region of it is turned into a drag handle that moves the window: both
-    // are the shell's, and markup asks for them by name (CloseView / Drag) rather than reaching for controls after
-    // the tree has been built.
     public Action? Close { get; set; }
 
     public Action<RectTransform, RectTransform>? MakeDraggable { get; set; }
 
     public ICommand CloseCommand => _closeCommand ??= new ViewCommand(() => Close?.Invoke());
 
-    // The window this view was built in, when it starts with one: the drag handle moves that frame.
     internal Controls.WindowElement? Window { get; set; }
 
     internal void AttachDrag(RectTransform region)
@@ -86,8 +106,6 @@ public sealed class ViewContext : IDisposable
 
     internal void FocusOnOpen(Action focus) => _focusOnOpen.Add(focus);
 
-    // A focus asked for while the view is up waits for the click in flight to end: a text box clears itself when
-    // the click lands somewhere else and would take the keyboard right back.
     public void FocusAfterClick(Action focus) => FocusOnClickEnd(focus);
 
     public void RequestFocus()
@@ -95,21 +113,8 @@ public sealed class ViewContext : IDisposable
         for (int i = 0; i < _focusOnOpen.Count; i++) { FocusOnClickEnd(_focusOnOpen[i]); }
     }
 
-    private void FocusOnClickEnd(Action focus) => Once(() =>
-    {
-        if (PlayerInput.PrimaryMouseButtonClicked() || PlayerInput.SecondaryMouseButtonClicked())
-        {
-            FocusOnClickEnd(focus);
-            return;
-        }
-
-        UiGuard.Run(focus);
-    });
-
     internal void RegisterInput(Input.KeyBinding binding) => _inputs.Add(binding);
 
-    // Runs the keys the view declares: the ones whose area is in sight, and where a key is spelled twice the more
-    // specific modifier wins over the plain one (the arrows walk the list; the arrows with Alt move the entry).
     public void RunInputBindings()
     {
         for (int i = 0; i < _inputs.Count; i++)
@@ -122,18 +127,6 @@ public sealed class ViewContext : IDisposable
 
             UiGuard.Run(binding.Fire);
         }
-    }
-
-    private bool Outranked(Input.KeyBinding binding)
-    {
-        foreach (Input.KeyBinding other in _inputs)
-        {
-            if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
-            if (!other.Owner.Control.Visible || !other.Held() || !other.Pressed()) { continue; }
-            if (other.Keys.Intersect(binding.Keys).Any()) { return true; }
-        }
-
-        return false;
     }
 
     public void RunFrameActions()
@@ -206,6 +199,29 @@ public sealed class ViewContext : IDisposable
         _inputs.Clear();
         Window = null;
         Root = null;
+    }
+
+    private void FocusOnClickEnd(Action focus) => Once(() =>
+    {
+        if (PlayerInput.PrimaryMouseButtonClicked() || PlayerInput.SecondaryMouseButtonClicked())
+        {
+            FocusOnClickEnd(focus);
+            return;
+        }
+
+        UiGuard.Run(focus);
+    });
+
+    private bool Outranked(Input.KeyBinding binding)
+    {
+        foreach (Input.KeyBinding other in _inputs)
+        {
+            if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
+            if (!other.Owner.Control.Visible || !other.Held() || !other.Pressed()) { continue; }
+            if (other.Keys.Intersect(binding.Keys).Any()) { return true; }
+        }
+
+        return false;
     }
 
     private static void Detach(GUIComponent control)

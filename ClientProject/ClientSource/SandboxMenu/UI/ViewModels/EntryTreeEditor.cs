@@ -1,8 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-// Everything that changes the spawn set behind the tree: adding, duplicating, deleting, moving and dropping entries,
-// and which row the tree shows as selected afterwards.
-internal sealed class EntryTreeEditor(SpawnMenuViewModel menu)
+internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
 {
     private readonly SpawnSet _set = menu.Set;
     private readonly SpawnSetTree _tree = menu.Tree;
@@ -56,7 +54,6 @@ internal sealed class EntryTreeEditor(SpawnMenuViewModel menu)
 
         row.Owner.RemoveAt(index);
 
-        // The entry that took its place, or the item it was stored in once it was the last one of its kind.
         SpawnEntry? next = row.Owner.Count > 0
             ? row.Owner[Math.Min(index, row.Owner.Count - 1)]
             : row.Container;
@@ -70,7 +67,6 @@ internal sealed class EntryTreeEditor(SpawnMenuViewModel menu)
         });
     }
 
-    // The order is the spawn order, so moving is how an entry is put before or after its neighbours.
     internal void Move(TreeEntryViewModel row, int direction)
     {
         List<SpawnEntry> owner = row.Owner;
@@ -89,7 +85,6 @@ internal sealed class EntryTreeEditor(SpawnMenuViewModel menu)
         if (menu.SelectedEntry is { } selected) { Move(selected, direction); }
     }
 
-    // Previous and next walk the list as it is shown, so they cross levels; moving stays inside one list.
     internal void Step(TreeEntryViewModel row, int direction)
     {
         int index = _tree.Rows.IndexOf(row);

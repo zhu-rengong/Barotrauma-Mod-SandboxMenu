@@ -4,7 +4,7 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class OptionsPickerViewModel : Notifiable
 {
-    private readonly List<(PickerOption Option, PickerRowViewModel Row)> _rows = [];
+    private readonly List<(PickerOption Option, OptionRowViewModel Row)> _rows = [];
 
     private LocalizedString _title = LocalizedString.EmptyString;
     private string _query = string.Empty;
@@ -16,8 +16,6 @@ internal sealed class OptionsPickerViewModel : Notifiable
         Title = title;
         ShowFilters = filterable;
 
-        // A saveable property is what a spawn carries over on its own; a multiplayer client also gets the editable
-        // ones — what the host would let a client send.
         _onlySaveable = filterable;
         _onlyEditable = filterable && ClientSpawnDispatcher.IsMultiplayerClient;
 
@@ -25,7 +23,7 @@ internal sealed class OptionsPickerViewModel : Notifiable
         {
             PickerOption picked = option;
 
-            _rows.Add((picked, new PickerRowViewModel(picked.Label, () => onPicked(picked))));
+            _rows.Add((picked, new OptionRowViewModel(picked.Label, () => onPicked(picked))));
         }
 
         ApplyFilter();
@@ -37,8 +35,6 @@ internal sealed class OptionsPickerViewModel : Notifiable
         private set => Set(ref _title, value);
     }
 
-    // The property picker can be cut down to what the host's own editors offer or save; other option lists have
-    // nothing to go by and leave the filter row out.
     public bool ShowFilters { get; }
 
     public LocalizedString EditableFilterLabel => TextManager.Get("sandboxmenu.filter.editable");
@@ -72,16 +68,14 @@ internal sealed class OptionsPickerViewModel : Notifiable
         }
     }
 
-    public ObservableCollection<PickerRowViewModel> Options { get; } = [];
+    public ObservableCollection<OptionRowViewModel> Options { get; } = [];
 
-    // The list is handed the rows that pass rather than hiding the rest: a hidden row keeps its place in the host's
-    // list box and would leave a gap behind.
     private void ApplyFilter()
     {
         string filter = _query.Trim();
         Options.Clear();
 
-        foreach ((PickerOption option, PickerRowViewModel row) in _rows)
+        foreach ((PickerOption option, OptionRowViewModel row) in _rows)
         {
             if (_onlyEditable && !option.Editable) { continue; }
             if (_onlySaveable && !option.Saveable) { continue; }

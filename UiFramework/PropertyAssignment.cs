@@ -14,8 +14,6 @@ internal sealed class PropertyAssignment(
 
     internal ViewElement Element { get; } = element;
 
-    // What the value is written to, when it is not the element the assignment was read from: the command of a key
-    // binding is resolved against the element that declares it but belongs to the binding.
     private object Target { get; } = target ?? element;
 
     internal void SetText(string text)

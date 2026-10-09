@@ -4,7 +4,6 @@ namespace SandboxMenu.UI.Models;
 
 internal sealed class ItemDisplay
 {
-    // Built once per prefab: the browser holds one of these for every item, and a hint is asked for on every scroll step.
     private static readonly Dictionary<ItemPrefab, ItemDisplay> _cache = new(ReferenceEqualityComparer.Instance);
 
     private readonly ItemPrefab _prefab;
@@ -14,12 +13,6 @@ internal sealed class ItemDisplay
 
     private LocalizedString? _tileToolTipText;
     private RichString? _tileToolTip;
-
-    static ItemDisplay()
-    {
-        ModLifetime.Unloading += _cache.Clear;
-        ContentReload.Invalidated += _cache.Clear;
-    }
 
     private ItemDisplay(ItemPrefab prefab, string identifier, LocalizedString name, LocalizedString? description, string tags, Sprite? icon)
     {
@@ -50,8 +43,6 @@ internal sealed class ItemDisplay
 
     public RichString ToolTip => RichString.Rich(ToolTipText + SkillHints + PackageText);
 
-    // Held on the display because tiles ask for it on every scroll step; the skill part depends on whoever is controlled
-    // and joins the held text every time.
     public RichString TileToolTip
     {
         get
@@ -85,12 +76,8 @@ internal sealed class ItemDisplay
 
             if (_description is { } description) { text += "\n" + description; }
 
-            // What wearing the item changes, from the prefab's own wearable modifiers, the way the game lists it in its
-            // item hint: the host builds this part, so the wording, the order and the colors stay the game's own.
             if (_prefab.wearableDamageModifiers.Count > 0 || _prefab.wearableSkillModifiers.Count > 0)
             {
-                // The host puts a break before each entry unless the text is blank, so a note-less item needs one
-                // seeded here; a lone break still counts as blank, so an empty description is not broken twice.
                 if (text.IsNullOrWhiteSpace()) { text = "\n"; }
 
                 Wearable.AddTooltipInfo(_prefab.wearableDamageModifiers, _prefab.wearableSkillModifiers, ref text);
@@ -100,7 +87,6 @@ internal sealed class ItemDisplay
         }
     }
 
-    // The requirements the game weighs against whoever is controlled, listed the way its own item hint does.
     private LocalizedString SkillHints
     {
         get
@@ -115,7 +101,7 @@ internal sealed class ItemDisplay
     }
 
     private LocalizedString PackageText
-        => _prefab.ContentPackage is { } package ? "\n" + Labels.AccentMarkup(package.Name, package) : LocalizedString.EmptyString;
+        => _prefab.ContentPackage is { } package ? "\n" + Theme.AccentMarkup(package.Name, package) : LocalizedString.EmptyString;
 
     private LocalizedString ToolTipText
     {

@@ -1,6 +1,5 @@
 namespace UiFramework.Controls;
 
-// Worked out per frame, so it keeps only what a size, a row height and a list length fix for good.
 internal sealed class ListBandGeometry
 {
     private int _width = -1;
@@ -17,7 +16,6 @@ internal sealed class ListBandGeometry
 
     internal int MaxRows { get; private set; }
 
-    // The tile rows one side nominates for itself, and the detail rows left when only one side holds tiles.
     internal int NominalTileRows { get; private set; } = 1;
 
     internal int DetailRowsOneBand { get; private set; }
@@ -48,8 +46,6 @@ internal sealed class ListBandGeometry
         MaxRows = Math.Max(detailRows, (viewport - spacing - MinCell) / stride);
         Usable = viewport >= 3 * MinCell;
 
-        // The sum the frame works out where the top band is the only one on screen: it has to match, or the last items
-        // stay behind in the bottom band instead of coming to rest in the rows.
         int endTop = NominalTileRows * (CellWidth + spacing) - spacing;
 
         DetailRowsOneBand = Math.Clamp((int)MathF.Floor((viewport - endTop) / (float)stride), detailRows, MaxRows);
@@ -57,8 +53,6 @@ internal sealed class ListBandGeometry
         return Usable;
     }
 
-    // The rows a band of this height holds, in whole cells: a cell is as tall as it is wide, so the gap across matches
-    // the gap down whatever height the band comes out at.
     internal BandShape ShapeOf(int height, int used)
     {
         int rows = Math.Clamp((height + _spacing) / (CellWidth + _spacing), 1, used);

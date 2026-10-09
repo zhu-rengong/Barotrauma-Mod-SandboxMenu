@@ -1,7 +1,5 @@
 namespace UiFramework;
 
-// Everything one built part of a view owns — its bindings, its components, its frame actions — let go of together.
-// A recycled list row hands its scope back to the pool and takes it up again, which is what keeps scrolling cheap.
 internal sealed class ViewScope(List<ViewScope> live) : IDisposable
 {
     private readonly List<IDisposable> _owned = [];

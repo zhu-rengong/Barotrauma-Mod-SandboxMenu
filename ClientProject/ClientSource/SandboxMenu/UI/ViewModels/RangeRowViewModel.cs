@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class RangeRow(EntryEditorViewModel editor, LocalizedString label, ValueRange? value, float fallback, float limit, Action<ValueRange?> apply)
+internal sealed class RangeRowViewModel(EntryEditorViewModel editor, LocalizedString label, ValueRange? value, float fallback, float limit, Action<ValueRange?> apply)
     : RowViewModel(label, value.HasValue)
 {
     private readonly EntryEditorViewModel _editor = editor;

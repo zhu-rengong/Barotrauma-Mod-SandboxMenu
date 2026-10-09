@@ -55,7 +55,6 @@ internal sealed class KeySetting : BaseSetting<KeyBind>
             textColor: UiMetrics.Text,
             textAlignment: Alignment.CenterLeft);
 
-        // The key box looks like the one the game's own controls tab puts next to a binding.
         _button = new GUIButton(
             new RectTransform(new Vector2(0.4f, 0.8f), layout.RectTransform),
             PendingValue.ToString(),
@@ -77,29 +76,6 @@ internal sealed class KeySetting : BaseSetting<KeyBind>
         {
             CanBeFocused = false
         };
-    }
-
-    internal void Detach()
-    {
-        if (_button is { } button)
-        {
-            button.OnClicked = null;
-            button.OnAddedToGUIUpdateList = null;
-            _button = null;
-        }
-
-        if (_capture is { } capture)
-        {
-            capture.OnUpdate = null;
-            _capture = null;
-        }
-
-        if (MainUI is { } row)
-        {
-            row.RemoveFromGUIUpdateList();
-            row.RectTransform.Parent = null;
-            MainUI = null;
-        }
     }
 
     private void UpdateCapture(float deltaTime, GUICustomComponent component)

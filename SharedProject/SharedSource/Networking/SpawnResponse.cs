@@ -11,8 +11,6 @@ public enum SpawnStatus
     Throttled = 6
 }
 
-// The status travels as a byte for the same reason as the request's target: the host must never cache a closed
-// generic over this assembly's enum type in NetSerializableProperties.TypeBehaviors.
 public readonly record struct SpawnResponse(
     [property: NetworkSerialize] uint RequestId,
     [property: NetworkSerialize] byte Status,

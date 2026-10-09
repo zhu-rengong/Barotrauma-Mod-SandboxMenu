@@ -2,7 +2,6 @@ using System.Globalization;
 
 namespace UiFramework;
 
-// The values markup writes in words: rich text and key hints, fonts, colours, anchors and alignments.
 public static class ViewMarkup
 {
     public static RichString ToRichText(object? value) => value switch
@@ -13,7 +12,6 @@ public static class ViewMarkup
         _ => RichString.Rich(value.ToString() ?? string.Empty)
     };
 
-    // The mod's own text keys, handed over at startup; without them no hint is drawn.
     public static string? HintKey { get; set; }
 
     public static string? DarkHintKey { get; set; }
@@ -54,7 +52,6 @@ public static class ViewMarkup
     public static Alignment AlignmentOf(string? name, Alignment fallback)
         => name is not null && Enum.TryParse(name, ignoreCase: true, out Alignment alignment) ? alignment : fallback;
 
-    // A theme name or anything the game itself reads a colour from; what it cannot read comes back as white.
     public static Color ColorOf(string? name, Color fallback)
     {
         if (name is not { Length: > 0 }) { return fallback; }

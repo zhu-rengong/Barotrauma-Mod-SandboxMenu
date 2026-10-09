@@ -2,8 +2,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace UiFramework;
 
-// What a dialog window needs to be drawn twice: once by the game's own draw pass, once into a screenshot, which
-// cannot wait for it. Also the two placements a window is kept at: inside the canvas, and at a clicked point.
 public static class WindowDraw
 {
     public static Point Fit(Point size, Rectangle canvas)
@@ -30,8 +28,6 @@ public static class WindowDraw
         {
             transform.ScreenSpaceOffset = original;
 
-            // DrawManually takes a component off the automatic draw pass so that it is not drawn twice; this draw is
-            // only a copy, so the window has to go back on it.
             RestoreAutoDraw(root);
         }
     }

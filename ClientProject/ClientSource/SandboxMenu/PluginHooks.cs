@@ -14,34 +14,50 @@ internal static class PluginHooks
 
     internal static void AddToGUIUpdateList(GameMode mode)
     {
-        if (Screen.Selected != GameMain.GameScreen) { return; }
+        try
+        {
+            if (Screen.Selected != GameMain.GameScreen) { return; }
+            if (MenuWindow.Current is not { IsOpen: true } menu) { return; }
 
-        if (MenuHost.Current is not { IsOpen: true } menu) { return; }
-
-        Guard.Run(menu.AddToUpdateList);
+            menu.AddToUpdateList();
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Updating the sandbox menu failed: {e}");
+        }
     }
 
     internal static void GameModeDraw(GameMode mode, SpriteBatch spriteBatch)
     {
-        if (Screen.Selected != GameMain.GameScreen) { return; }
+        try
+        {
+            if (Screen.Selected != GameMain.GameScreen) { return; }
 
-        Guard.Run(spriteBatch, SpawnPointPicker.DrawHint);
+            SpawnPointPicker.DrawHint(spriteBatch);
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Drawing the spawn point hint failed: {e}");
+        }
     }
 
     internal static void PostUpdate(float deltaTime)
     {
-        Guard.Run(ContentReload.Poll);
+        try
+        {
+            ContentReload.Poll();
+            MenuWindow.Current?.ServePendingScreenshot();
 
-        // A queued screenshot is served here, once the frame's GUI update has run through and no batch is open.
-        Guard.Run(() => MenuHost.Current?.ServePendingScreenshot());
+            if (Screen.Selected != GameMain.GameScreen) { return; }
 
-        if (Screen.Selected != GameMain.GameScreen) { return; }
-
-        Guard.Run(HandleHotkeys);
+            HandleHotkeys();
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"The sandbox menu's post-update failed: {e}");
+        }
     }
 
-    // The host's escape hook: returning true keeps the game from opening its own pause menu. The picker is still up
-    // here and is what escape closes, in its own update right after.
     internal static bool HandleEscapeKey()
     {
         if (Screen.Selected != GameMain.GameScreen) { return false; }
@@ -49,7 +65,7 @@ internal static class PluginHooks
 
         if (SpawnPointPicker.IsActive) { return true; }
 
-        return MenuHost.Current?.HandleEscape() ?? false;
+        return MenuWindow.Current?.HandleEscape() ?? false;
     }
 
     private static void HandleHotkeys()
@@ -62,18 +78,17 @@ internal static class PluginHooks
 
         if (DebugConsole.IsOpen || GUI.SettingsMenuOpen || GUI.PauseMenuOpen) { return; }
 
-        // A text box takes the keyboard while it is selected, so the hotkeys stand back; the menu's own keys work it out.
         if (GUI.KeyboardDispatcher.Subscriber is null)
         {
             if (Plugin.ToggleKey.IsHit())
             {
-                MenuHost.Instance.Toggle();
+                MenuWindow.Instance.Toggle();
                 return;
             }
 
-            if (Plugin.GiveKey.IsHit()) { MenuHost.Instance.SpawnIntoInventory(); }
+            if (Plugin.GiveKey.IsHit()) { MenuWindow.Instance.SpawnIntoInventory(); }
         }
 
-        MenuHost.Current?.HandleKeys();
+        MenuWindow.Current?.HandleKeys();
     }
 }

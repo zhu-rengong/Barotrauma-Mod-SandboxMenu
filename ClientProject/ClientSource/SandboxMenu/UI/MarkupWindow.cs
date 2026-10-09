@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-// What is left after markup builds the window: being put in and taken out of the host's update list, being kept on
-// screen, and handing the input to the dialog on top.
 internal sealed class MarkupWindow : IDialogWindow
 {
     private static int _instances;
@@ -22,7 +20,7 @@ internal sealed class MarkupWindow : IDialogWindow
     {
         _order = updateOrder;
 
-        _view = ViewLoader.Load(markupFile, viewModel, Configure, message => Log.Warn($"#{_id} {message}"), GUI.Canvas);
+        _view = ViewLoader.Load(markupFile, viewModel, Configure, message => DebugConsole.AddWarning($"#{_id} {message}"), GUI.Canvas);
 
         if (_view.RootElement is not IViewWindow chrome)
         {
@@ -37,14 +35,6 @@ internal sealed class MarkupWindow : IDialogWindow
 
     public static bool InputBlocked { get; set; }
 
-    static MarkupWindow() => ModLifetime.Unloading += () =>
-    {
-        InputBlocked = false;
-        _instances = 0;
-    };
-
-    // Handed to the view before it is built: what markup asks for by name (CloseView, Drag) arrives here rather
-    // than being wired up to controls looked up afterwards.
     private void Configure(ViewContext view)
     {
         view.Dispatch = FrameActions.Run;
@@ -60,7 +50,15 @@ internal sealed class MarkupWindow : IDialogWindow
         if (_closing) { return; }
 
         _closing = true;
-        Guard.Run(() => Closing?.Invoke(), $"Handing over the state of window #{_id} failed");
+
+        try
+        {
+            Closing?.Invoke();
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Handing over the state of window #{_id} failed: {e}");
+        }
     }
 
     public Rectangle Rect => _frame.Rect;
@@ -111,7 +109,6 @@ internal sealed class MarkupWindow : IDialogWindow
         _view.RunFrameActions();
     }
 
-    // The keys the view declares; the shell decides when they are asked for.
     internal void RunInputBindings() => _view.RunInputBindings();
 
     public void Dispose()
@@ -125,15 +122,12 @@ internal sealed class MarkupWindow : IDialogWindow
         _view.Dispose();
     }
 
-    // A dialog on top takes the input: the window under it stays drawn but is kept out of the update pass, so a click
-    // that lands inside the dialog never also reaches the controls of the window behind it.
     internal void SetInteractive(bool interactive) => SetAutoUpdate(_frame, interactive);
 
     private static void SetAutoUpdate(GUIComponent component, bool enabled)
     {
         component.AutoUpdate = enabled;
 
-        // A rect can hold no component at all: the host does that itself in places, so the walk skips them.
         foreach (RectTransform child in component.RectTransform.Children)
         {
             if (child.GUIComponent is { } control) { SetAutoUpdate(control, enabled); }

@@ -3,23 +3,19 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-internal sealed class MenuHost : IDialogHost
+internal sealed class MenuWindow : IDialogHost
 {
     private const int WindowOrder = 10;
     private const int DialogOrder = 30;
     private const int PopupOrder = 60;
 
-    private static MenuHost? _instance;
+    private static MenuWindow? _instance;
 
-    static MenuHost()
-    {
-        ModLifetime.Unloading += () => _instance = null;
-        ContentReload.Invalidated += ReleaseContent;
-    }
+    public static MenuWindow Instance => _instance ??= new MenuWindow();
 
-    public static MenuHost Instance => _instance ??= new MenuHost();
+    public static MenuWindow? Current => _instance;
 
-    public static MenuHost? Current => _instance;
+    internal static readonly RebuildSignal ResolutionChanged = new();
 
     private readonly SandboxMenuViewModel _viewModel;
     private readonly List<IDialogWindow> _popups = [];
@@ -34,9 +30,9 @@ internal sealed class MenuHost : IDialogHost
     private int _popupGrace;
     private bool _pressedInsidePopup;
     private bool _screenshotQueued;
-    private Character? _hintedFor;
+    private WeakReference<Character>? _hintedFor;
 
-    private MenuHost() => _viewModel = new SandboxMenuViewModel(this);
+    private MenuWindow() => _viewModel = new SandboxMenuViewModel(this);
 
     public bool IsOpen => _window?.IsOpen == true;
 
@@ -50,17 +46,13 @@ internal sealed class MenuHost : IDialogHost
     {
         HandleNotices();
 
-        // The window's size is written in its own markup, where the view it holds is written.
         _window ??= new MarkupWindow("MainWindow.xml", WindowOrder, _viewModel);
 
-        // The window is kept between openings, so the key hints it shows are refreshed against the settings.
         _viewModel.Spawn.RefreshShortcuts();
 
         _window.Open();
     }
 
-    // Escape steps back one layer at a time: the dialog on top first (a picker opened from the browser, then the
-    // browser itself), and only then the menu.
     internal bool HandleEscape()
     {
         if (CloseTopPopup()) { return true; }
@@ -86,8 +78,6 @@ internal sealed class MenuHost : IDialogHost
         return false;
     }
 
-    // The menu's own keys are declared by the view that answers to them, so all that is left is the shell's part of
-    // it: while no dialog is up, the window runs whatever keys are live in what it is showing.
     internal void HandleKeys()
     {
         if (!IsOpen || AnyPopupOpen()) { return; }
@@ -97,8 +87,6 @@ internal sealed class MenuHost : IDialogHost
 
     internal void SpawnIntoInventory() => _viewModel.Spawn.SpawnIntoInventoryCommand.Execute(null);
 
-    // The capture is queued, not taken where the console runs it: the host lays its layout groups and lists out in
-    // their own update, so a capture taken before that pass is served at the end of the frame instead.
     internal void CaptureScreenshot() => _screenshotQueued = true;
 
     internal void ServePendingScreenshot()
@@ -145,8 +133,6 @@ internal sealed class MenuHost : IDialogHost
         }
 
         _instance = null;
-
-        ModLifetime.Unload();
     }
 
     public void AddToUpdateList()
@@ -160,21 +146,19 @@ internal sealed class MenuHost : IDialogHost
 
     private void HandleNotices()
     {
-        if (ContentReload.TakeRebuild()) { _viewModel.Spawn.ContentChanged(); }
+        if (ContentReload.TakeRebuild())
+        {
+            ReleaseCachedContent();
+            _viewModel.Spawn.ContentChanged();
+        }
 
         if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
         {
             _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
         }
 
-        if (!ScreenReload.TakeRebuild()) { return; }
-
-        DropWindows();
+        if (ResolutionChanged.Take()) { DropWindows(); }
     }
-
-    // Subscribed to ContentReload: what the menu holds from the old packages has to go even while the menu is
-    // closed, or the plugin of a package that is being unloaded stays referenced.
-    internal static void ReleaseContent() => _instance?.ReleaseCachedContent();
 
     private void ReleaseCachedContent()
     {
@@ -204,8 +188,6 @@ internal sealed class MenuHost : IDialogHost
         else { DismissPopupsOnOutsideClick(); }
     }
 
-    // A click that began inside a dialog is not a click outside it, wherever the button ends up coming loose: dragging
-    // from the colour picker onto the window behind it used to close the picker.
     private void TrackPopupPress()
     {
         if (!PlayerInput.PrimaryMouseButtonDown() && !PlayerInput.SecondaryMouseButtonDown()) { return; }
@@ -234,13 +216,14 @@ internal sealed class MenuHost : IDialogHost
         }
     }
 
-    // The game reports nothing when whoever is being played changes, and the hints are weighed against that character,
-    // so the rows are told to take their hints again once a frame.
     private void RefreshHints()
     {
-        if (ReferenceEquals(_hintedFor, Character.Controlled)) { return; }
+        Character? controlled = Character.Controlled;
 
-        _hintedFor = Character.Controlled;
+        if (_hintedFor is { } hinted && hinted.TryGetTarget(out Character? last) && ReferenceEquals(last, controlled)) { return; }
+        if (_hintedFor is null && controlled is null) { return; }
+
+        _hintedFor = controlled is null ? null : new WeakReference<Character>(controlled);
 
         _viewModel.Spawn.RefreshHints();
         _browserModel?.RefreshHints();
@@ -248,7 +231,6 @@ internal sealed class MenuHost : IDialogHost
 
     private void RegisterViews()
     {
-        // The dialog on top is what takes input; the menu stays drawn underneath it but stops being updated.
         _window?.SetInteractive(!AnyPopupOpen());
         _window?.Register();
 
@@ -280,8 +262,6 @@ internal sealed class MenuHost : IDialogHost
 
     public void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options)
     {
-        // A picker that is already open is closed before the new one takes its place, the way every other dialog here
-        // reopens: the button that opened it stays live under it, so a second click must not stack a second list.
         if (_multiPicker is { IsOpen: true } previous)
         {
             _popups.Remove(previous);
@@ -307,7 +287,7 @@ internal sealed class MenuHost : IDialogHost
     public void ShowColorPicker(Color current, Action<Color> onPicked)
         => ShowPopup(new MarkupWindow("ColorPicker.xml", DialogOrder, new ColorPickerViewModel(current, onPicked)));
 
-    public void ShowContextMenu(IEnumerable<MenuAction> actions, Vector2? position = null)
+    public void ShowContextMenu(IEnumerable<MenuCommand> actions, Vector2? position = null)
     {
         ContextMenuViewModel viewModel = new(actions, ClosePopups);
         MarkupWindow popup = new("ContextMenu.xml", PopupOrder, viewModel);
@@ -349,7 +329,7 @@ internal sealed class MenuHost : IDialogHost
         }
         catch (Exception e)
         {
-            Log.Warn("Disposing a popup failed", e);
+            DebugConsole.AddWarning($"Disposing a popup failed: {e}");
         }
     }
 

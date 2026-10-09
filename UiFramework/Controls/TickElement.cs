@@ -17,8 +17,6 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         _tick.TextBlock.TextScale = UiMetrics.TextScale;
         _tick.TextBlock.Padding = new Vector4(UiMetrics.Dip(4f), 0f, 0f, 0f);
 
-        // The host draws a tick box's label whole however wide it is, so a label too wide for its share would be drawn
-        // outside the control: it is clipped instead, and the hint on hover says it whole.
         _tick.TextBlock.OverflowClip = true;
 
         _tick.OnSelected = tickBox =>
@@ -27,8 +25,6 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
             return true;
         };
 
-        // The host works a tick box's label width and hit width out again after every resize, and subscribes while it
-        // builds the box, so a handler added here runs on the sizes it has just worked out.
         _tick.RectTransform.SizeChanged += Fit;
         _tick.RectTransform.ScaleChanged += Fit;
     }
@@ -44,7 +40,6 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         }
     }
 
-    // The icon a row is shown by: a square as tall as the tick box, drawn right beside it.
     [ElementProperty]
     public Sprite? Icon
     {
@@ -90,13 +85,10 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         {
             CanBeFocused = false,
 
-            // An image takes the state of whatever it hangs under and draws in that state's colour, so the icon keeps
-            // the one colour it is given.
             OverrideState = GUIComponent.ComponentState.None,
             Color = Color.White
         };
 
-        // The host's group holds the tick box and then the label, so the icon goes between the two of them.
         icon.RectTransform.RepositionChildInHierarchy(1);
 
         return icon;
@@ -108,8 +100,6 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
 
         if (width <= 0) { return; }
 
-        // The host measures a tick box by the box and the label, and the mouse only answers within that measure: a row
-        // answers all of itself, the way a row of a list does.
         _tick.ContentWidth = width;
 
         if (_icon is null) { return; }

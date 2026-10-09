@@ -2,13 +2,8 @@ using System.Globalization;
 
 namespace SandboxMenu.Domain.Editing;
 
-// One rule for what a property carries by declaration, shared by the picker that shows it and the write that skips a
-// value which would change nothing: the value the prefab itself writes for the property, or the [Serialize] default
-// when the prefab writes none at all.
 internal static class PropertyDefaults
 {
-    // The element a target's properties are declared on: the item's own root for the item itself, or the component
-    // element the override names by index.
     internal static ContentXElement? ElementOf(ItemPrefab? prefab, string componentName, int componentIndex)
     {
         if (prefab?.ConfigElement is not { } root) { return null; }
@@ -33,7 +28,6 @@ internal static class PropertyDefaults
                 ? Format(serialize.DefaultValue)
                 : string.Empty;
 
-    // A value written the one way both the picker and the preset files write it.
     internal static string Format(object? value) => value switch
     {
         null => string.Empty,

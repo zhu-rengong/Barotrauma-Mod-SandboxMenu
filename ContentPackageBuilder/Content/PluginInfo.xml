@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Both halves need the package installed: the game loads the client assembly on a client and the server assembly
-     on a dedicated server (which is what the game's own host mode runs), and it finds them by target. With a server
-     target present this defaults to being synced anyway, which is spelled out here so a change to the default
-     cannot quietly break multiplayer. The markup framework is a client-only extra assembly: it is named here so it
-     is loaded into the same plugin context as the client assembly and unloads with it. -->
 <PluginInfos notsyncedinmultiplayer="false">
   <MainAssemblyInfo assemblypath="%ModDir%/bin/Windows/SandboxMenuClient.dll" platforms="Windows" targets="Client" />
   <MainAssemblyInfo assemblypath="%ModDir%/bin/Linux/SandboxMenuClient.dll" platforms="Linux" targets="Client" />

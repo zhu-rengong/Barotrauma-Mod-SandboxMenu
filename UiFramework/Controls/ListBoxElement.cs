@@ -50,7 +50,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
             ? Math.Max(0, rows)
             : 0;
 
-        // Without a tile template the bands would share the rows' recycled slots, so the list drops them.
         if (_detailRows > 0 && string.IsNullOrWhiteSpace(tileKey))
         {
             _detailRows = 0;
@@ -63,7 +62,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         _padding = context.Padding;
 
-        // A banded list's parts keep the room inside the content themselves, so the host's own inset stays out of it.
         if (_detailRows == 0) { _listBox.Padding = _padding.ToVector4(); }
 
         if (Windowed) { _view.EveryFrame(UpdateWindow); }
@@ -82,8 +80,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     internal bool Windowed { get; private set; }
 
-    // Rows and the item snapshot are the list's own: every layout swaps rows through them, and the drag code and
-    // the empty check read what the window writes.
     internal GUIListBox ListBox => _listBox;
 
     internal ViewContext View => _view;
@@ -125,8 +121,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         set => _rowPool.RowTemplateKey = value;
     }
 
-    // How far the list is scrolled, 0 at the top: what a view model writes to bring a refilled list back to its
-    // first item, and what a two-way binding reports back when the player scrolls it.
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public float Scroll
     {
@@ -142,7 +136,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         _view.EveryFrame(ReportScroll);
     }
 
-    // Written back from the frame the player scrolled in, which is where the host moves its bar.
     private void ReportScroll()
     {
         if (_reportScroll is not { } report) { return; }
@@ -198,8 +191,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         else if (Extends()) { Append(); }
         else { RebuildAll(); }
 
-        // A row is as tall as the host lays it out, which is not known before the host has placed the first one, so a
-        // list that came out empty although it has items asks for one more pass on the next frame.
         bool empty = _detailRows > 0 ? _bands.IsEmpty : _rows.Count == 0;
 
         if (empty && HasItems() && !_retriedEmpty)
@@ -214,8 +205,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         InvalidateLayout();
 
-        // The host list puts its children in place on its next update; asking for it here means the rebuilt rows are
-        // already where they belong when the frame is drawn.
         _listBox.RecalculateChildren();
     }
 

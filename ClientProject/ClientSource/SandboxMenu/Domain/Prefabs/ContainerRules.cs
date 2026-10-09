@@ -2,8 +2,6 @@ using System.Collections.Immutable;
 
 namespace SandboxMenu.Domain.Prefabs;
 
-// What an entry can hold is decided by the <containable> entries of its first ItemContainer, the one that takes the
-// nested items when the set is spawned; null means the item has no container, so there is nothing to filter by.
 internal sealed class ContainerRules
 {
     private readonly ImmutableArray<RelatedItem> _containable;

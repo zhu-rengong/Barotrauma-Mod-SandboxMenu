@@ -27,7 +27,6 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         _view = context.View;
         _button = button;
 
-        // A skin-less button is drawn light, so its key hint has to be the darker of the two templates.
         _hintKey = context.Skin is "" ? ViewMarkup.DarkHintKey : ViewMarkup.HintKey;
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), button.TextBlock.Font);
 
@@ -78,8 +77,6 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     [ElementProperty]
     public ICommand? Command { set => SetCommand(value); }
 
-    // Closes the view this button sits in: what every window's close button declares instead of being wired up by
-    // name once the tree is built.
     [ElementProperty]
     public bool CloseView
     {
@@ -163,8 +160,6 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         ApplyToolTip();
     }
 
-    // A button that may not shrink its text is the one whose text may not fit: what does not fit is clipped, and the
-    // whole of it is shown on hover instead.
     private void SetScale(bool scalable)
     {
         _scalable = scalable;
@@ -174,8 +169,6 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
         ApplyToolTip();
     }
 
-    // The padding is the same on both sides whatever the alignment: a text that is not scalable is still centred, and
-    // padding that differed across the label would sit it off-centre. What does not fit is clipped all the same.
     private void ApplyAlignment()
     {
         float pad = UiTokens.Dip("pad", 6f);

@@ -104,7 +104,6 @@ public sealed class RowElement : ViewElement, IDisposable
 
     private void ApplyText()
     {
-        // A row draws its own dark fill, so the hint keeps the light dim colour.
         _row.TextBlock.Text = ViewMarkup.WithShortcut(_text, _shortcut, ViewMarkup.HintKey);
         _row.TextBlock.TextScale = _scale;
     }
@@ -114,8 +113,6 @@ public sealed class RowElement : ViewElement, IDisposable
     {
         set
         {
-            // A row bound to an item that has no icon keeps no box either: a box would hold the label off the left edge
-            // as if an icon were drawn in it.
             if (_icon is null && value is null) { return; }
             if (_icon is null) { BuildIcon(); }
 
@@ -123,7 +120,6 @@ public sealed class RowElement : ViewElement, IDisposable
         }
     }
 
-    // The box the icon is drawn in and whether it sits in a slot of its own: both are the view's call.
     [ElementProperty]
     public float IconSize
     {
@@ -169,8 +165,6 @@ public sealed class RowElement : ViewElement, IDisposable
         }
     }
 
-    // The depth a tree row sits at, turned into the DIP it is drawn at: the view model holds the depth, the view
-    // decides how deep that looks.
     [ElementProperty]
     public int IndentLevel
     {
@@ -178,7 +172,7 @@ public sealed class RowElement : ViewElement, IDisposable
     }
 
     [ElementProperty]
-    public string TextColor { set => Labels.Apply(_row.TextBlock, ViewMarkup.ColorOf(value, UiMetrics.Text)); }
+    public string TextColor { set => Theme.ApplyLabel(_row.TextBlock, ViewMarkup.ColorOf(value, UiMetrics.Text)); }
 
     [ElementProperty]
     public bool Selected { set => _row.Selected = value; }
@@ -239,7 +233,6 @@ public sealed class RowElement : ViewElement, IDisposable
         {
             _icon.Transform.AbsoluteOffset = new Point(UiMetrics.DipInt(_indent + inset), 0);
 
-            // The slot is the icon's own box, so the row only has to name the icon it frames.
             _row.SlotIcon = _iconSlot ? _icon.Transform : null;
         }
         else { _row.SlotIcon = null; }
@@ -280,8 +273,6 @@ public sealed class RowElement : ViewElement, IDisposable
             CanBeFocused = false,
             TextScale = UiMetrics.TextScale,
 
-            // The host hands every child the row's state and a text block carries a hover bar of its own, which is what
-            // the row paints instead.
             HoverColor = Color.Transparent,
             SelectedColor = Color.Transparent
         };

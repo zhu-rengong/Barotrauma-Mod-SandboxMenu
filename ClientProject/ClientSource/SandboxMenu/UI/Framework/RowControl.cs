@@ -3,36 +3,25 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI.Framework;
 
-// The host's button frame is taken apart into a flat row with a text label: the row paints its own fill and bar.
 internal sealed class RowControl : GUIButton
 {
     private const string BaseStyle = "GUIButton";
 
-    // Which edge the selection mark sits on: a tree row marks its left, a function tab underlines its bottom.
     internal Anchor SelectedBar { get; set; } = Anchor.CenterLeft;
 
-    // Read at draw time from the icon's own rect: a list moves a recycled row to a new cell, so a box remembered from
-    // when the row was built would stay where the row used to be.
     internal RectTransform? SlotIcon { get; set; }
 
-    // A tile is nothing but its slot, so that is where its state is drawn: the highlight then takes the slot's square
-    // instead of the shape of the cell the tile fills.
     internal bool SlotOnly { get; set; }
 
     internal bool Hovered => State is GUIComponent.ComponentState.Hover or GUIComponent.ComponentState.Pressed;
 
-    // A row that answers no click keeps no highlight either: the list hands it the hover state all the same.
     internal bool Highlight { get; set; } = true;
 
-    // Rides on the row's own update, so it runs for the rows the list has built and never for the items it has not.
     internal Action<float>? Animate { get; set; }
 
     internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment)
         : base(rectT, text, alignment, BaseStyle)
     {
-        // The host draws the skin's own graphic for a state, and a row paints its own fill instead, so no state colour is
-        // left on the button. The state reaches the children but their own colours do not, so the frame the host built
-        // for the button is cleared the same way.
         Color = Color.Transparent;
         HoverColor = Color.Transparent;
         PressedColor = Color.Transparent;
@@ -53,7 +42,7 @@ internal sealed class RowControl : GUIButton
             break;
         }
 
-        Labels.Apply(TextBlock, Theme.Text);
+        Theme.ApplyLabel(TextBlock, Theme.Text);
     }
 
     public override void Update(float deltaTime)
@@ -92,12 +81,10 @@ internal sealed class RowControl : GUIButton
         }
         catch (Exception e)
         {
-            Log.Warn("Painting a list row failed", e);
+            DebugConsole.AddWarning($"Painting a list row failed: {e}");
         }
     }
 
-    // What a row shows for a state, in the menu's own palette: hover is the standard lift, pressed is the same fill
-    // brighter, and a marked row takes the selected tint.
     private static Color FillOf(GUIComponent.ComponentState state) => state switch
     {
         GUIComponent.ComponentState.Hover or GUIComponent.ComponentState.HoverSelected => Theme.RowHover,
@@ -106,8 +93,6 @@ internal sealed class RowControl : GUIButton
         _ => Color.Transparent
     };
 
-    // The slot is the icon's own box with the padding around it, so it sits exactly on the icon however the list moved
-    // it, and an icon whose sprite is smaller than its box keeps the slot at one size.
     private Rectangle? SlotBox()
     {
         if (SlotIcon is not { } icon) { return null; }

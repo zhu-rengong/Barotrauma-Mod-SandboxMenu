@@ -29,7 +29,7 @@ public sealed class ColorSwatchElement : ViewElement, IDisposable
         set
         {
             _button.Swatch = value;
-            Labels.Apply(_button.TextBlock, SwatchButton.Contrast(value));
+            Theme.ApplyLabel(_button.TextBlock, SwatchButton.Contrast(value));
         }
     }
 

@@ -1,10 +1,7 @@
 using System.Globalization;
 
-// A layout vocabulary the elements and the builder both spell out, so it lives in the framework's own namespace.
 namespace UiFramework;
 
-// One figure per side, in DIP: one value for all four, two for the vertical and the horizontal, or the four the way CSS
-// spells them out — top, right, bottom, left.
 internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 {
     internal static Insets None { get; } = new(0, 0, 0, 0);
@@ -15,7 +12,6 @@ internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 
     internal int Vertical => Top + Bottom;
 
-    // The order the host keeps padding in: x and z are the horizontal sides, y and w the vertical ones.
     internal Vector4 ToVector4() => new(Left, Top, Right, Bottom);
 
     internal static Insets Parse(string? text)

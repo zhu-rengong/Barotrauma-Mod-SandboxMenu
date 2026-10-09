@@ -71,7 +71,7 @@ internal sealed class SpawnExecutor(
     {
         if (string.IsNullOrWhiteSpace(entry.Identifier)) { return; }
 
-        ItemPrefab? prefab = ItemPrefab.Find(null, Identifiers.Of(entry.Identifier));
+        ItemPrefab? prefab = ItemPrefab.Find(null, entry.Identifier.ToIdentifier());
         if (prefab is null)
         {
             _result.Report($"Item prefab '{entry.Identifier}' was not found.");
@@ -188,9 +188,17 @@ internal sealed class SpawnExecutor(
         return false;
     }
 
-    // Finished on the host's own pass, possibly after the mod is gone: a failure of ours must not travel there.
     private void Settle(Item item, ItemEntry entry)
-        => Guard.Run(() => AfterSpawned(item, entry));
+    {
+        try
+        {
+            AfterSpawned(item, entry);
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Finishing a spawned item failed: {e}");
+        }
+    }
 
     private void AfterSpawned(Item item, ItemEntry entry)
     {

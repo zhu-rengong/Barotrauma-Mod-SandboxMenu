@@ -3,7 +3,7 @@
 <Stack Orientation="Vertical" Spacing="2">
 
   <Stack.Resources>
-    <DataTemplate DataType="MenuOptionViewModel">
+    <DataTemplate DataType="ContextOptionViewModel">
       <Row Text="{Binding Label}" Command="{Binding InvokeCommand}" Shortcut="{Binding Shortcut}" Width="1"
            Height="0.14" />
     </DataTemplate>

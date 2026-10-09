@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Globalization;
 using Barotrauma.Items.Components;
@@ -7,7 +6,6 @@ namespace SandboxMenu.UI.Models;
 
 internal readonly record struct OverrideTarget(string ComponentName, int ComponentIndex, LocalizedString Label);
 
-// Which editor a property asks for. Anything the host's own editors do not treat specially lands in Text.
 internal enum PropertyKind
 {
     Float,
@@ -18,14 +16,10 @@ internal enum PropertyKind
     Point,
     Color,
 
-    // A single value out of a list, and several of them: the host's own editors draw the first as a dropdown and the
-    // second as a set of tick boxes.
     Enum,
     Flags
 }
 
-// What a number editor takes from the property's [Editable] attribute, the same values the host's editors pass on:
-// an attribute that carries no bounds hands over the sentinels, which the host reads as "no limit" too.
 internal readonly record struct NumericRange(float Min, float Max, int Decimals, float Step);
 
 internal sealed record PropertyOption(
@@ -41,27 +35,9 @@ internal sealed record PropertyOption(
     public string Label => $"{Name} ({TypeName}) = {DefaultValue}";
 }
 
-// A property and what the picker knows about it: the two travel together because the default the option shows
-// depends on the property's own [Serialize] attribute (see PropertyDefaults).
-internal readonly record struct DeclaredProperty(PropertyOption Option, SerializableProperty Property);
-
 internal static class PropertyOverrideCatalog
 {
-    private static readonly Dictionary<Type, ImmutableArray<DeclaredProperty>> _propertyCache = [];
-
-    private static FrozenDictionary<string, Type>? _componentTypes;
-
-    static PropertyOverrideCatalog()
-    {
-        ModLifetime.Unloading += Clear;
-        ContentReload.Invalidated += Clear;
-    }
-
-    internal static void Clear()
-    {
-        _propertyCache.Clear();
-        _componentTypes = null;
-    }
+    private static readonly Dictionary<string, ImmutableArray<PropertyOption>> _propertyCache = new(StringComparer.OrdinalIgnoreCase);
 
     internal static IReadOnlyList<OverrideTarget> Targets(string identifier) =>
         DescribeTargets((identifier ?? string.Empty).Trim());
@@ -71,15 +47,13 @@ internal static class PropertyOverrideCatalog
         ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
         if (target.Type is not { } type) { return []; }
 
-        ImmutableArray<DeclaredProperty> declared = Declared(type);
+        ImmutableArray<PropertyOption> declared = Declared(type);
 
         return target.Element is not { } element
-            ? [.. declared.Select(entry => entry.Option)]
-            : [.. declared.Select(entry => AsDeclaredBy(entry, element))];
+            ? declared
+            : [.. declared.Select(option => AsDeclaredBy(option, element))];
     }
 
-    // The metadata of the property an override already names, so a row loaded from a preset can put up the editor
-    // its type asks for instead of a plain text box.
     internal static PropertyOption? Describe(string identifier, string componentName, int componentIndex, string propertyName)
     {
         if (string.IsNullOrWhiteSpace(propertyName)) { return null; }
@@ -87,11 +61,11 @@ internal static class PropertyOverrideCatalog
         ResolvedTarget target = Resolve(identifier, componentName, componentIndex);
         if (target.Type is not { } type) { return null; }
 
-        foreach (DeclaredProperty entry in Declared(type))
+        foreach (PropertyOption option in Declared(type))
         {
-            if (!string.Equals(entry.Option.Name, propertyName, StringComparison.OrdinalIgnoreCase)) { continue; }
+            if (!string.Equals(option.Name, propertyName, StringComparison.OrdinalIgnoreCase)) { continue; }
 
-            return target.Element is { } element ? AsDeclaredBy(entry, element) : entry.Option;
+            return target.Element is { } element ? AsDeclaredBy(option, element) : option;
         }
 
         return null;
@@ -112,20 +86,18 @@ internal static class PropertyOverrideCatalog
         return string.IsNullOrEmpty(componentName) ? ItemItself.Label : componentName;
     }
 
-    private static ImmutableArray<DeclaredProperty> Declared(Type type)
+    private static ImmutableArray<PropertyOption> Declared(Type type)
     {
-        if (_propertyCache.TryGetValue(type, out ImmutableArray<DeclaredProperty> declared)) { return declared; }
+        if (_propertyCache.TryGetValue(type.Name, out ImmutableArray<PropertyOption> cached)) { return cached; }
 
-        declared = [.. DescribeProperties(type)];
-        _propertyCache[type] = declared;
+        ImmutableArray<PropertyOption> built = [.. DescribeProperties(type)];
+        _propertyCache[type.Name] = built;
 
-        return declared;
+        return built;
     }
 
-    // The value the prefab itself writes for this property, or the [Serialize] default when it writes none: the same
-    // rule the write path uses to tell a value that changes nothing (PropertyDefaults).
-    private static PropertyOption AsDeclaredBy(DeclaredProperty entry, ContentXElement element)
-        => entry.Option with { DefaultValue = PropertyDefaults.DeclaredValue(entry.Property, element) };
+    private static PropertyOption AsDeclaredBy(PropertyOption option, ContentXElement element)
+        => element.GetAttribute(option.Name)?.Value is { } declared ? option with { DefaultValue = declared } : option;
 
     private static List<OverrideTarget> DescribeTargets(string identifier)
     {
@@ -154,10 +126,10 @@ internal static class PropertyOverrideCatalog
         return targets;
     }
 
-    private static List<DeclaredProperty> DescribeProperties(Type type)
+    private static List<PropertyOption> DescribeProperties(Type type)
     {
         object probe = RuntimeHelpers.GetUninitializedObject(type);
-        List<DeclaredProperty> options = [];
+        List<PropertyOption> options = [];
 
         foreach (SerializableProperty property in SerializableProperty.GetProperties(probe).Values)
         {
@@ -166,25 +138,21 @@ internal static class PropertyOverrideCatalog
 
             string kind = string.Equals(typeName, "Enum", StringComparison.Ordinal) ? property.PropertyType.Name : typeName;
 
-            // What the host's own editors go by: [Editable] (or [ConditionallyEditable]) marks a property they will
-            // offer, and IsPropertySaveable says whether SerializeProperties writes it into the saved XML.
             bool editable = property.Attributes.OfType<Editable>().Any();
             bool saveable = serialize.IsSaveable == IsPropertySaveable.Yes;
 
-            options.Add(new DeclaredProperty(
-                new PropertyOption(
-                    property.Name,
-                    kind,
-                    PropertyDefaults.Format(serialize.DefaultValue),
-                    editable,
-                    saveable,
-                    KindOf(typeName, property.PropertyType),
-                    RangeOf(property, typeName),
-                    ValuesOf(property.PropertyType)),
-                property));
+            options.Add(new PropertyOption(
+                property.Name,
+                kind,
+                PropertyDefaults.Format(serialize.DefaultValue),
+                editable,
+                saveable,
+                KindOf(typeName, property.PropertyType),
+                RangeOf(property, typeName),
+                ValuesOf(property.PropertyType)));
         }
 
-        options.Sort(static (a, b) => string.Compare(a.Option.Name, b.Option.Name, StringComparison.OrdinalIgnoreCase));
+        options.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return options;
     }
 
@@ -249,30 +217,22 @@ internal static class PropertyOverrideCatalog
         return ComponentTypeFor(name) is not null;
     }
 
-    private static Type? ComponentTypeFor(string name) => ComponentTypes.TryGetValue(name, out Type? type) ? type : null;
-
-    private static FrozenDictionary<string, Type> ComponentTypes => _componentTypes ??= BuildComponentTypes();
-
-    private static FrozenDictionary<string, Type> BuildComponentTypes()
+    private static Type? ComponentTypeFor(string name)
     {
-        Dictionary<string, Type> types = new(StringComparer.OrdinalIgnoreCase);
-
         foreach (Type type in ReflectionUtils.GetDerivedNonAbstract<ItemComponent>())
         {
-            types.TryAdd(type.Name, type);
+            if (string.Equals(type.Name, name, StringComparison.OrdinalIgnoreCase)) { return type; }
         }
 
         foreach (PluginData pluginData in PluginData.LoadedPluginData)
         {
             foreach (Type type in pluginData.ItemComponents)
             {
-                types.TryAdd(type.Name, type);
+                if (string.Equals(type.Name, name, StringComparison.OrdinalIgnoreCase)) { return type; }
             }
         }
 
-        types.TryAdd(typeof(ItemComponent).Name, typeof(ItemComponent));
-
-        return types.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        return string.Equals(typeof(ItemComponent).Name, name, StringComparison.OrdinalIgnoreCase) ? typeof(ItemComponent) : null;
     }
 
     private static bool TryGetPrefab(string identifier, out ItemPrefab prefab)

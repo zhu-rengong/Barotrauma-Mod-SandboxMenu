@@ -1,7 +1,5 @@
 namespace SandboxMenu.UI.Controls;
 
-// The host's colour picker as a markup element: the view says where it sits, the element keeps it in step with the
-// colour it is bound to and hands every colour picked out of it back through Changed.
 [Element("ColorPicker")]
 public sealed class ColorPickerElement : ViewElement, IDisposable
 {
@@ -16,8 +14,6 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
     {
         _holder = (GUIFrame)Control;
 
-        // The host picker measures its gradient once, on its first update, and keeps that size for good: it is built a
-        // frame late, once the layout has handed this element the size it will keep.
         context.View.EveryFrame(EnsurePicker);
     }
 
@@ -50,8 +46,6 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
         Rectangle area = _holder.Rect;
         int thickness = UiMetrics.DipInt(Theme.LineThickness * 3f);
 
-        // The picker is inset by the frame's thickness so that the frame can sit outside the gradient: a frame drawn
-        // on the picker's own rectangle would land on top of the colours.
         Vector2 fill = new(
             Math.Max(1, area.Width - thickness * 2) / (float)Math.Max(1, area.Width),
             Math.Max(1, area.Height - thickness * 2) / (float)Math.Max(1, area.Height));
@@ -87,11 +81,6 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
 
         Vector3 hsv = ToolBox.RGBToHSV(_color);
 
-        // A colour that is black or grey carries no hue at all — RGBToHSV answers -1 for black and NaN for a grey —
-        // and a black one carries no saturation either, so those readings say nothing about where the player put the
-        // marker. Taking them anyway is what dragged the marker off to red whenever a drag reached the bottom edge
-        // of the board; the picker keeps the hue and saturation it has, and only the value it can read is written
-        // back. The hue test also rejects the NaN: every comparison with it is false.
         bool carriesHue = hsv.X >= 0f && hsv.Y > 0f && hsv.Z > 0f;
         float hue = carriesHue ? hsv.X : picker.SelectedHue;
         float saturation = hsv.Z > 0f ? hsv.Y : picker.SelectedSaturation;
@@ -103,8 +92,6 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
         picker.SelectedValue = hsv.Z;
         picker.CurrentColor = _color;
 
-        // Regenerating the gradient is the expensive part of the picker, so it only follows a hue that moved; before
-        // the picker's first update there is nothing to regenerate, and it builds its gradient with this hue.
         if (hueMoved) { picker.RefreshHue(); }
     }
 }

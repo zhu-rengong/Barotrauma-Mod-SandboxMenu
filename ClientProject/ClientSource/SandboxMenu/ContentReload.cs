@@ -1,15 +1,12 @@
+using SandboxMenu.UI.Framework;
+
 namespace SandboxMenu;
 
-// The text packs reload with the content packages, and that revision is the only signal the mod gets from it:
-// anything derived from the old packages lets go of it here, even while the menu is closed.
 internal static class ContentReload
 {
+    private static readonly RebuildSignal _signal = new();
+
     private static int _version = ContentRevision.Current;
-    private static bool _rebuild;
-
-    static ContentReload() => ModLifetime.Unloading += Reset;
-
-    internal static event Action? Invalidated;
 
     internal static void Poll()
     {
@@ -19,25 +16,8 @@ internal static class ContentReload
 
         _version = version;
 
-        if (_rebuild) { return; }
-
-        _rebuild = true;
-
-        Guard.RunEach(Invalidated);
+        _signal.Signal();
     }
 
-    internal static bool TakeRebuild()
-    {
-        if (!_rebuild) { return false; }
-
-        _rebuild = false;
-        return true;
-    }
-
-    private static void Reset()
-    {
-        _version = ContentRevision.Current;
-        _rebuild = false;
-        Invalidated = null;
-    }
+    internal static bool TakeRebuild() => _signal.Take();
 }

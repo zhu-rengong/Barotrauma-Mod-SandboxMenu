@@ -1,8 +1,12 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class PickerRowViewModel(LocalizedString text, Action onPicked) : PickerRow
+internal abstract class PickerRowViewModel : Notifiable
 {
-    public LocalizedString Text { get; } = text;
+    private bool _visible = true;
 
-    public RelayCommand PickCommand { get; } = new(onPicked);
+    public bool Visible
+    {
+        get => _visible;
+        set => Set(ref _visible, value);
+    }
 }

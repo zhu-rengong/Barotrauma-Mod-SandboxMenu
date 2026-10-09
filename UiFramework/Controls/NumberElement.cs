@@ -21,8 +21,6 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         _input = (GUINumberInput)Control;
         _integer = integer;
 
-        // Only a literal step is read here: a bound one arrives through the property below, and the placement reader
-        // would report its binding text as a bad DIP length.
         if (context.Node.Value("Step")?.Extension is null) { _input.ValueStep = context.Metric("Step", 1f); }
 
         _input.OnValueChanged = _ => _changed?.Invoke(_integer ? _input.IntValue : _input.FloatValue);
@@ -49,8 +47,6 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         }
     }
 
-    // The host reformats the box whenever the decimals are set, even to the number they already are, and a binding
-    // that is re-read writes them again: without this guard the text under the caret is reformatted as it is typed.
     [ElementProperty]
     public int Decimals
     {
@@ -117,8 +113,6 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
 
     private static bool IsInteger(ElementContext context) => ViewMarkup.ToBool(context.Text("Integer"), false);
 
-    // A bound handed over as a float cannot be cast straight back: int.MaxValue is not representable as one, so the
-    // cast would land on int.MinValue and clip every value a box without a bound shows.
     private static int ToInt(float value)
         => value >= int.MaxValue ? int.MaxValue
             : value <= int.MinValue ? int.MinValue

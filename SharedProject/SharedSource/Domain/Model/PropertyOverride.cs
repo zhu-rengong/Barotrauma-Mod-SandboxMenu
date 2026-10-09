@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
@@ -12,8 +13,6 @@ internal sealed class PropertyOverride
 
     public string Value { get; set; } = string.Empty;
 
-    // A row whose property has not been picked yet is a draft: it names nothing the engine could set, so a preset
-    // must neither write it out nor read it back (the editor still keeps it, and it fills in once it is named).
     public bool IsNamed => !string.IsNullOrEmpty(PropertyName);
 
     public PropertyOverride Clone() => (PropertyOverride)MemberwiseClone();
@@ -21,7 +20,7 @@ internal sealed class PropertyOverride
     public XElement ToXml() => new(
         "Property",
         new XAttribute("component", ComponentName),
-        new XAttribute("index", XmlValue.Text(ComponentIndex)),
+        new XAttribute("index", ComponentIndex.ToString(CultureInfo.InvariantCulture)),
         new XAttribute("name", PropertyName),
         new XAttribute("value", Value));
 

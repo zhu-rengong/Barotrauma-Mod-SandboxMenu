@@ -33,7 +33,7 @@ internal static class SpawnPayloadCodec
 
             if (output.Length > MaxCompressedBytes)
             {
-                Log.Warn($"Spawn request is too large to send ({xml.Length} bytes of XML compress to {output.Length}).");
+                DebugConsole.AddWarning($"Spawn request is too large to send ({xml.Length} bytes of XML compress to {output.Length}).");
                 return false;
             }
 
@@ -42,7 +42,7 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            Log.Warn("Packing the spawn request failed", e);
+            DebugConsole.AddWarning($"Packing the spawn request failed: {e}");
             return false;
         }
     }
@@ -77,13 +77,13 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            Log.Warn("Unpacking a spawn request failed", e);
+            DebugConsole.AddWarning($"Unpacking a spawn request failed: {e}");
             return false;
         }
 
         if (length < 0)
         {
-            Log.Warn($"A spawn request unpacked to more than {MaxPayloadBytes} bytes.");
+            DebugConsole.AddWarning($"A spawn request unpacked to more than {MaxPayloadBytes} bytes.");
             return false;
         }
 
@@ -93,7 +93,7 @@ internal static class SpawnPayloadCodec
 
         if (!WithinDepthLimit(stream))
         {
-            Log.Warn("A spawn request nested its entries deeper than the mod accepts.");
+            DebugConsole.AddWarning("A spawn request nested its entries deeper than the mod accepts.");
             return false;
         }
 
@@ -107,7 +107,7 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            Log.Warn("A spawn request carried XML that could not be read", e);
+            DebugConsole.AddWarning($"A spawn request carried XML that could not be read: {e}");
             return false;
         }
 
@@ -117,7 +117,7 @@ internal static class SpawnPayloadCodec
 
         if (payload.TemplateCount > MaxTemplates || !payload.WithinEntryLimit())
         {
-            Log.Warn("A spawn request asked for more entries than the mod accepts.");
+            DebugConsole.AddWarning("A spawn request asked for more entries than the mod accepts.");
             payload = new SpawnPayload();
             return false;
         }

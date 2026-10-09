@@ -1,6 +1,5 @@
 namespace SandboxMenu.UI.ViewModels;
 
-// What an entry reads as in the tree; the words live here rather than on the model, which the server shares.
 internal static class EntrySummary
 {
     internal static LocalizedString Text(SpawnEntry entry)

@@ -8,8 +8,6 @@ internal static class ServerOptions
 
     private static BooleanSetting? _allowAllClients;
 
-    static ServerOptions() => ModLifetime.Unloading += () => _allowAllClients = null;
-
     internal static bool AllowAllClients => _allowAllClients?.Value ?? false;
 
     internal static void Register(ISettingsService settings)

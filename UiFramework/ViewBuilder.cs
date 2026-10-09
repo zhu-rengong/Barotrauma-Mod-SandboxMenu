@@ -2,8 +2,6 @@ using System.Windows.Input;
 
 namespace UiFramework;
 
-// Builds one element of a view from its markup node and hands it what the node says: its style, its attributes,
-// its bindings and its content.
 internal static class ViewBuilder
 {
     internal static ViewElement BuildElement(ViewContext view, MarkupNode node, RectTransform? parent, object? dataContext = null, ViewElement? parentElement = null)
@@ -172,7 +170,6 @@ internal static class ViewBuilder
 
     private static void ApplyAttributes(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
     {
-        // A text block is the one control the framework hands the room to itself; every other element reads its own.
         static void GivePadding(ViewElement target, Insets padding)
         {
             if (padding.IsEmpty) { return; }
@@ -180,8 +177,6 @@ internal static class ViewBuilder
             if (target.Control is GUITextBlock block) { block.Padding = padding.ToVector4(); }
         }
 
-        // A margin is room outside the element, so it comes off the rect the element was given; a container that lays it
-        // out takes it into its own share instead.
         static void GiveMargin(ViewContext view, MarkupNode node, ViewElement element, Insets margin)
         {
             if (margin.IsEmpty) { return; }
@@ -305,8 +300,6 @@ internal static class ViewBuilder
         extension.Apply(new PropertyAssignment(view, propertyNode, element, property));
     }
 
-    // The commands of the keys an element answers to are bound off the element's own data context, so a key binding
-    // is written exactly like the command of a button.
     private static void ReadInputBindings(ViewContext view, ViewElement element, MarkupNode propertyNode)
     {
         foreach (MarkupNode child in propertyNode.Content)

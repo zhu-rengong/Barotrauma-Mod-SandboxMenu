@@ -4,7 +4,7 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
 {
     private bool _isSelected;
 
-    internal TreeEntryViewModel(SpawnMenuViewModel menu, SpawnEntry entry, List<SpawnEntry> owner, int depth, ItemEntry? container)
+    internal TreeEntryViewModel(SpawnPanelViewModel menu, SpawnEntry entry, List<SpawnEntry> owner, int depth, ItemEntry? container)
     {
         Menu = menu;
         Entry = entry;
@@ -18,16 +18,14 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
         Refresh();
     }
 
-    public SpawnMenuViewModel Menu { get; }
+    public SpawnPanelViewModel Menu { get; }
 
     public SpawnEntry Entry { get; }
 
     public List<SpawnEntry> Owner { get; }
 
-    // The item this entry is stored inside, when it is nested in one: it decides what the entry may be.
     internal ItemEntry? Container { get; }
 
-    // How deep the entry sits in the tree; how far that is drawn is the row's business.
     public int Depth { get; }
 
     public override RichString Title

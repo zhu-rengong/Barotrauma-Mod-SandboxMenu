@@ -3,9 +3,7 @@ using Barotrauma.Items.Components;
 
 namespace SandboxMenu.UI.ViewModels;
 
-// What the editor puts up for one entry: the spawn section, the amount fields and, for an item, the behaviour and
-// property rows. Each row writes back through the entry and tells the editor to refresh the tree summaries.
-internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuViewModel menu)
+internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelViewModel menu)
 {
     private const float AmountLimit = 100000f;
 
@@ -15,11 +13,11 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
     {
         if (entry is null)
         {
-            _rows.Add(new HintRow(TextManager.Get("sandboxmenu.empty")));
+            _rows.Add(new HintRowViewModel(TextManager.Get("sandboxmenu.empty")));
             return;
         }
 
-        _rows.Add(new SectionRow(TextManager.Get("sandboxmenu.section.spawn")));
+        _rows.Add(new SectionRowViewModel(TextManager.Get("sandboxmenu.section.spawn")));
 
         switch (entry)
         {
@@ -38,7 +36,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
 
     private void AddAmountRows(SpawnEntry entry)
     {
-        _rows.Add(new RangeRow(
+        _rows.Add(new RangeRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.amount"),
             entry.Amount,
@@ -48,7 +46,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
 
         if (entry is ItemEntry item)
         {
-            _rows.Add(new RangeRow(
+            _rows.Add(new RangeRowViewModel(
                 editor,
                 TextManager.Get("sandboxmenu.field.stacks"),
                 item.Stacks,
@@ -57,7 +55,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 value => item.Stacks = value));
         }
 
-        _rows.Add(new TickRow(
+        _rows.Add(new TickRowViewModel(
             TextManager.Get("sandboxmenu.field.amountround"),
             entry.AmountRound,
             value => entry.AmountRound = value,
@@ -71,7 +69,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
 
     private void AddTargetRows(ItemEntry item, ItemEntry? container)
     {
-        ItemPreviewRow preview = ItemPreviewRow.For(item.Identifier);
+        ItemPreviewRowViewModel preview = ItemPreviewRowViewModel.For(item.Identifier);
 
         void Take(string identifier)
         {
@@ -80,7 +78,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
             editor.NotifyEdited();
         }
 
-        _rows.Add(new BrowseRow(
+        _rows.Add(new BrowseRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.identifier"),
             item.Identifier,
@@ -103,15 +101,15 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
 
     private void AddBehaviourRows(ItemEntry item)
     {
-        _rows.Add(new SectionRow(TextManager.Get("sandboxmenu.section.behaviour")));
+        _rows.Add(new SectionRowViewModel(TextManager.Get("sandboxmenu.section.behaviour")));
         AddTick("sandboxmenu.field.equip", item.Equip, value => item.Equip = value);
-        SlotRow? slots = null;
-        slots = new SlotRow(editor, item, () => BrowseEquipSlots(item, slots));
+        SlotRowViewModel? slots = null;
+        slots = new SlotRowViewModel(editor, item, () => BrowseEquipSlots(item, slots));
         _rows.Add(slots);
         AddTick("sandboxmenu.field.install", item.Install, value => item.Install = value);
         AddTick("sandboxmenu.field.inheritchannel", item.InheritChannel, value => item.InheritChannel = value);
 
-        _rows.Add(new IntRow(
+        _rows.Add(new IntRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.slotindex"),
             item.SlotIndex,
@@ -119,7 +117,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
             32,
             value => item.SlotIndex = value));
 
-        _rows.Add(new IntRow(
+        _rows.Add(new IntRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.quality"),
             item.Quality,
@@ -127,7 +125,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
             Quality.MaxQuality,
             value => item.Quality = value));
 
-        _rows.Add(new TextRow(
+        _rows.Add(new TextRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.tags"),
             item.Tags ?? string.Empty,
@@ -138,15 +136,15 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
 
     private void BuildProperties(ItemEntry item)
     {
-        _rows.Add(new SectionRow(TextManager.Get("sandboxmenu.section.properties")));
+        _rows.Add(new SectionRowViewModel(TextManager.Get("sandboxmenu.section.properties")));
 
         int index = 0;
         foreach (PropertyOverride target in item.Properties.ToList())
         {
             index++;
 
-            PropertyRow? row = null;
-            row = new PropertyRow(
+            PropertyRowViewModel? row = null;
+            row = new PropertyRowViewModel(
                 editor,
                 index,
                 target,
@@ -166,7 +164,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
             _rows.Add(row);
         }
 
-        _rows.Add(new ButtonRow(TextManager.Get("sandboxmenu.addproperty"), () => FrameActions.Post(() =>
+        _rows.Add(new ButtonRowViewModel(TextManager.Get("sandboxmenu.addproperty"), () => FrameActions.Post(() =>
         {
             item.Properties.Add(new PropertyOverride());
             editor.Rebuild();
@@ -175,16 +173,16 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
     }
 
     private void AddTemplateRow(ReferenceEntry reference)
-        => _rows.Add(new TextRow(
+        => _rows.Add(new TextRowViewModel(
             editor,
             TextManager.Get("sandboxmenu.field.template"),
             reference.TemplateName,
             value => reference.TemplateName = value));
 
     private void AddTick(string labelKey, bool value, Action<bool> apply)
-        => _rows.Add(new TickRow(TextManager.Get(labelKey), value, apply, editor.NotifyEdited));
+        => _rows.Add(new TickRowViewModel(TextManager.Get(labelKey), value, apply, editor.NotifyEdited));
 
-    private void BrowseComponents(ItemEntry item, PropertyRow? row)
+    private void BrowseComponents(ItemEntry item, PropertyRowViewModel? row)
     {
         if (row is null) { return; }
 
@@ -194,19 +192,15 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 .Select(target => new PickerOption(target.Label, () => SetComponent(item, row, target))));
     }
 
-    // The property stays only while the new component declares it the same way: the metadata behind the row's editor is
-    // taken again from the target the name would be read from.
-    private static void SetComponent(ItemEntry item, PropertyRow row, OverrideTarget target)
+    private static void SetComponent(ItemEntry item, PropertyRowViewModel row, OverrideTarget target)
         => row.SetComponent(
             target,
             PropertyOverrideCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, row.PropertyName));
 
-    private void BrowseEnums(PropertyRow? row)
+    private void BrowseEnums(PropertyRowViewModel? row)
     {
         if (row?.Descriptor is not { } declared || declared.Values.Length == 0) { return; }
 
-        // A flags enum holds several values at once, which the host's own editors draw as a set of tick boxes; a
-        // plain one is a single choice.
         if (declared.Kind == PropertyKind.Flags)
         {
             menu.Host.ShowMultiPicker(
@@ -225,14 +219,14 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
             filterable: true);
     }
 
-    private void PickColor(PropertyRow? row)
+    private void PickColor(PropertyRowViewModel? row)
     {
         if (row is null) { return; }
 
         menu.Host.ShowColorPicker(row.Swatch, color => row.Swatch = color);
     }
 
-    private void BrowseEquipSlots(ItemEntry item, SlotRow? row)
+    private void BrowseEquipSlots(ItemEntry item, SlotRowViewModel? row)
     {
         if (row is null) { return; }
 
@@ -244,7 +238,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnMenuVie
                 ticked => row.Set(slot, ticked))));
     }
 
-    private void BrowseProperties(ItemEntry item, PropertyRow? row)
+    private void BrowseProperties(ItemEntry item, PropertyRowViewModel? row)
     {
         if (row is null) { return; }
 

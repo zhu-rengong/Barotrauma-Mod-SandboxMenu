@@ -2,9 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace SandboxMenu.UI.ViewModels;
 
-// The flat list of tree rows the left column shows: the spawn set walked depth first, and what a rebuild, a content
-// change and a close do to the rows already there.
-internal sealed class SpawnSetTree(SpawnMenuViewModel menu, SpawnSet set)
+internal sealed class SpawnSetTree(SpawnPanelViewModel menu, SpawnSet set)
 {
     private readonly ObservableCollection<TreeEntryViewModel> _rows = [];
 

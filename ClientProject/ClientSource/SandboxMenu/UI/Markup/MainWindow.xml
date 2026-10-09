@@ -3,34 +3,34 @@
 <Stack Orientation="Vertical">
 
   <Stack.Resources>
-    <DataTemplate DataType="SectionRow">
+    <DataTemplate DataType="SectionRowViewModel">
       <Text Text="{Binding Label}" Font="SubHeading" FontSize="24" Height="section" Padding="8" TextAlign="Center" />
     </DataTemplate>
 
-    <DataTemplate DataType="HintRow">
+    <DataTemplate DataType="HintRowViewModel">
       <Text Text="{Binding Label}" FontSize="22" Height="fill" TextAlign="Center"
         Wrap="True" Scale="False" Padding="8" />
     </DataTemplate>
 
-    <DataTemplate DataType="TickRow">
+    <DataTemplate DataType="TickRowViewModel">
       <Field LabelText="{Binding Label}">
         <Tick Selected="{Binding Value, Mode=TwoWay}" Width="0.16" />
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="TextRow">
+    <DataTemplate DataType="TextRowViewModel">
       <Field LabelText="{Binding Label}">
         <TextBox Text="{Binding Text, Mode=TwoWay}" Width="1" />
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="SlotRow">
+    <DataTemplate DataType="SlotRowViewModel">
       <Field LabelText="{Binding Label}">
         <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" Skin="GUITextBoxNoIcon" Scale="False" />
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="RangeRow">
+    <DataTemplate DataType="RangeRowViewModel">
       <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
         <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
         <Number Value="{Binding Min, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
@@ -38,20 +38,20 @@
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="IntRow">
+    <DataTemplate DataType="IntRowViewModel">
       <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
         <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
         <Number Value="{Binding Value, Mode=TwoWay}" Width="0.3" Integer="True" Min="0" Max="{Binding Limit}" />
       </Field>
     </DataTemplate>
-    <DataTemplate DataType="BrowseRow">
+    <DataTemplate DataType="BrowseRowViewModel">
       <Field LabelText="{Binding Label}">
         <TextBox Text="{Binding Text, Mode=TwoWay}" Focus="{Binding TakeFocus, Mode=TwoWay}" Width="0.72" />
         <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" />
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="ItemPreviewRow">
+    <DataTemplate DataType="ItemPreviewRowViewModel">
       <Row Text="{Binding Title}" FontSize="16" Icon="{Binding Icon}" SubText="{Binding SubText}"
         ToolTip="{Binding ToolTip}" Height="0.12" />
     </DataTemplate>
@@ -59,7 +59,7 @@
     <!-- The editors of the types this row is not are bound all the same and only hidden: the stack drops a hidden
          child from the layout and hands its room to the ones left, so the editor in use fills the slot on its own
          (and a two component value splits it between its two boxes). -->
-    <DataTemplate DataType="PropertyRow">
+    <DataTemplate DataType="PropertyRowViewModel">
       <Field LabelText="{Binding Label}" LabelWidth="0.07" ControlWidth="0.91">
         <Button Text="{Binding ComponentLabel}" Command="{Binding BrowseComponentCommand}" Width="0.24" Height="1"
                 Skin="GUITextBoxNoIcon" Scale="False" />
@@ -89,7 +89,7 @@
       </Field>
     </DataTemplate>
 
-    <DataTemplate DataType="ButtonRow">
+    <DataTemplate DataType="ButtonRowViewModel">
       <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" />
     </DataTemplate>
     <DataTemplate DataType="TreeEntryViewModel">

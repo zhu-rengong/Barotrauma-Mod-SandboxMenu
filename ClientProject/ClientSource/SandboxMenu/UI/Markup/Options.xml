@@ -6,7 +6,7 @@
        The list holds a row for every entry it was given; the search text above hides the ones it is not looking
        for, so the row follows the view model's visibility rather than being built and thrown away. -->
   <Stack.Resources>
-    <DataTemplate DataType="PickerRowViewModel">
+    <DataTemplate DataType="OptionRowViewModel">
       <Row Text="{Binding Text}" Command="{Binding PickCommand}" Visible="{Binding Visible}" Height="row" />
     </DataTemplate>
   </Stack.Resources>

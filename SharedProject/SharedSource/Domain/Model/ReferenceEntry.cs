@@ -2,7 +2,6 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
 
-// An entry that stands for another preset: what it spawns is whatever that preset holds.
 internal sealed class ReferenceEntry : SpawnEntry
 {
     public string TemplateName { get; set; } = string.Empty;

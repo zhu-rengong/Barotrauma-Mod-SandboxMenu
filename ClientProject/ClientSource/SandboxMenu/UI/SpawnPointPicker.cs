@@ -8,8 +8,6 @@ internal static class SpawnPointPicker
     private static Action<Vector2>? _onPicked;
     private static Action? _onCancelled;
 
-    static SpawnPointPicker() => ModLifetime.Unloading += Abort;
-
     public static bool IsActive { get; private set; }
 
     public static void Begin(Action<Vector2> onPicked, Action? onCancelled = null)
@@ -27,8 +25,6 @@ internal static class SpawnPointPicker
         Reset();
         cancelled?.Invoke();
     }
-
-    internal static void Abort() => Reset();
 
     public static bool Update()
     {

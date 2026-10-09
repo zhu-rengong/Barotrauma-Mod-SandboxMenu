@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace SandboxMenu.Domain.Model;
@@ -6,8 +7,6 @@ namespace SandboxMenu.Domain.Model;
 internal abstract class SpawnEntry
 {
     private static FrozenDictionary<string, Func<XElement, SpawnEntry>>? _readers;
-
-    static SpawnEntry() => ModLifetime.Unloading += () => _readers = null;
 
     private static FrozenDictionary<string, Func<XElement, SpawnEntry>> Readers => _readers ??= new Dictionary<string, Func<XElement, SpawnEntry>>(StringComparer.Ordinal)
     {
@@ -36,13 +35,33 @@ internal abstract class SpawnEntry
 
     protected void WriteCommon(XElement element)
     {
-        XmlValue.WriteRange(element, "amount", Amount);
-        XmlValue.WriteBool(element, "amountRound", AmountRound);
+        WriteRange(element, "amount", Amount);
+
+        if (AmountRound) { element.SetAttributeValue("amountRound", "true"); }
     }
 
     protected void ReadCommon(XElement element)
     {
-        Amount = XmlValue.ReadRange(element, "amount");
+        Amount = ReadRange(element, "amount");
         AmountRound = element.GetAttributeBool("amountRound", false);
+    }
+
+    protected static void WriteRange(XElement element, string prefix, ValueRange? range)
+    {
+        if (range is not { } value) { return; }
+
+        element.SetAttributeValue(prefix + "Min", value.Min.ToString(CultureInfo.InvariantCulture));
+
+        if (value.IsRange) { element.SetAttributeValue(prefix + "Max", value.Max.ToString(CultureInfo.InvariantCulture)); }
+    }
+
+    protected static ValueRange? ReadRange(XElement element, string prefix)
+    {
+        if (element.Attribute(prefix + "Min") is null) { return null; }
+
+        float min = element.GetAttributeFloat(prefix + "Min", 0f);
+        float max = element.GetAttributeFloat(prefix + "Max", min);
+
+        return new ValueRange(min, max);
     }
 }

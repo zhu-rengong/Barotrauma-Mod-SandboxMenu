@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal enum MenuFunction
+internal enum FunctionTab
 {
     Spawn,
     Afflictions
@@ -21,16 +21,14 @@ internal sealed class FunctionTabViewModel(string labelKey, Action onSelected) :
     }
 }
 
-// Which function area the main window shows: the tabs are the entries the title band offers, and the two flags
-// decide which area's blocks take the room under the title.
 internal sealed class FunctionSelectorViewModel : Notifiable
 {
-    private MenuFunction _active = MenuFunction.Spawn;
+    private FunctionTab _active = FunctionTab.Spawn;
 
     internal FunctionSelectorViewModel()
     {
-        SpawnTab = new FunctionTabViewModel("sandboxmenu.function.spawn", () => Select(MenuFunction.Spawn));
-        AfflictionsTab = new FunctionTabViewModel("sandboxmenu.function.afflictions", () => Select(MenuFunction.Afflictions));
+        SpawnTab = new FunctionTabViewModel("sandboxmenu.function.spawn", () => Select(FunctionTab.Spawn));
+        AfflictionsTab = new FunctionTabViewModel("sandboxmenu.function.afflictions", () => Select(FunctionTab.Afflictions));
 
         SpawnTab.IsActive = true;
     }
@@ -39,19 +37,19 @@ internal sealed class FunctionSelectorViewModel : Notifiable
 
     public FunctionTabViewModel AfflictionsTab { get; }
 
-    internal MenuFunction Active => _active;
+    internal FunctionTab Active => _active;
 
-    public bool ShowSpawn => _active == MenuFunction.Spawn;
+    public bool ShowSpawn => _active == FunctionTab.Spawn;
 
-    public bool ShowAfflictions => _active == MenuFunction.Afflictions;
+    public bool ShowAfflictions => _active == FunctionTab.Afflictions;
 
-    internal void Select(MenuFunction function)
+    internal void Select(FunctionTab function)
     {
         if (_active == function) { return; }
 
         _active = function;
-        SpawnTab.IsActive = _active == MenuFunction.Spawn;
-        AfflictionsTab.IsActive = _active == MenuFunction.Afflictions;
+        SpawnTab.IsActive = _active == FunctionTab.Spawn;
+        AfflictionsTab.IsActive = _active == FunctionTab.Afflictions;
 
         Raise(nameof(ShowSpawn));
         Raise(nameof(ShowAfflictions));

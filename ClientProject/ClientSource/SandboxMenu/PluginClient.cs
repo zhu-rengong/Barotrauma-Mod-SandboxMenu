@@ -11,14 +11,18 @@ public sealed partial class Plugin
 
     private static ISimpleHookService HookService => _hookService ??= PluginServiceProvider.GetService<ISimpleHookService>();
 
-    internal partial void Setup()
+    partial void InitProjSpecific()
     {
-        UiBootstrap.Register();
+        UiHost.RegisterViewAssembly(typeof(Plugin).Assembly);
+        UiHost.RegisterElementAssembly(typeof(Plugin).Assembly);
+        UiHost.RegisterShortcutHints("sandboxmenu.shortcut.hint", "sandboxmenu.shortcut.hint.dark");
+        UiHost.RegisterTokens(Tokens);
+        UiHost.RegisterGlobalResources(ViewLoader.LoadResources("Theme.xml"));
 
         NetworkService.RegisterNetworkHeaders<NetworkHeaders>();
         NetworkService.RegisterHandler<NetworkHeaders, SpawnResponse>(NetworkHeaders.SpawnResponse, ClientSpawnDispatcher.OnResponse);
 
-        GameScreenService.RegisterResolutionChangeEvent(_resolutionChangedEvent, ScreenReload.Signal);
+        GameScreenService.RegisterResolutionChangeEvent(_resolutionChangedEvent, MenuWindow.ResolutionChanged.Signal);
 
         HookService.RegisterHook(PluginHooks.AddToGUIUpdateListHook);
         HookService.RegisterHook(PluginHooks.GameModeDrawHook);
@@ -26,16 +30,20 @@ public sealed partial class Plugin
         HookService.RegisterHook(PluginHooks.EscapeKeyHook);
     }
 
-    internal partial void Teardown()
+    partial void DisposeProjSpecific()
     {
-        MenuHost.Shutdown();
-        UiBootstrap.Shutdown();
-
-        _gameScreen = null;
-        _hookService = null;
-        _toggleKeySetting?.Detach();
-        _toggleKeySetting = null;
-        _giveKeySetting?.Detach();
-        _giveKeySetting = null;
+        MenuWindow.Shutdown();
     }
+
+    private static readonly Dictionary<string, UiToken> Tokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["row"] = UiToken.Percent(Theme.RowHeight),
+        ["section"] = UiToken.Percent(Theme.SectionHeight),
+        ["control"] = UiToken.Percent(Theme.ControlHeight),
+        ["labelWidth"] = UiToken.Percent(Theme.LabelWidth),
+        ["pad"] = UiToken.Dip(Theme.Pad),
+        ["gap"] = UiToken.Dip(Theme.Gap),
+        ["indent"] = UiToken.Dip(Theme.TreeIndentStep),
+        ["tile"] = UiToken.Dip(Theme.TileSize)
+    };
 }

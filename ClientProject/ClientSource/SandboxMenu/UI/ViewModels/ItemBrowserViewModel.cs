@@ -16,7 +16,6 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 
     public RelayCommand SelfCommand { get; }
 
-    // The line the browser adds about its buttons, in the call-out colour because it is the one thing to notice.
     public RichString SelfToolTip => WithSelfHint(ToolTip);
 
     public RichString TileSelfToolTip => WithSelfHint(TileToolTip);
@@ -25,7 +24,6 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
     {
         RichString hint = RichString.ColorizeText(TextManager.Get("sandboxmenu.browser.selfhint"), Theme.Callout);
 
-        // Joined as nested markup: joining the two with `+` lands on a LocalizedString and drops every tag.
         return RichString.Rich(text.NestedStr + "\n" + hint.NestedStr);
     }
 }
@@ -65,13 +63,10 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     internal void PickInto(Action<string> onPicked) => _onPicked = onPicked;
 
-    // What the right mouse button does with a picked item, when whoever opened the browser has somewhere to put it.
     internal void UseOnSelf(Action<string>? onSelf) => _onSelf = onSelf;
 
     private void UseOnSelf(string identifier) => _onSelf?.Invoke(identifier);
 
-    // The list's scroll position, bound two-way: writing it is how the list is sent back to the top, and the list
-    // reports the player's scrolling back through it.
     public float Scroll
     {
         get => _scroll;
@@ -100,7 +95,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     public LocalizedString ContainerFilterLabel => TextManager.Get("sandboxmenu.filter.container.only");
 
-    // Ticked by the tick box in the filter row: only the items the parent container takes.
     public bool ContainerOnly
     {
         get => _containerOnly;
@@ -117,8 +111,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     public LocalizedString HiddenFilterLabel => TextManager.Get("sandboxmenu.filter.hide.hidden");
 
-    // Ticked by the tick box in the filter row, and ticked from the start: what the menus themselves leave out stays
-    // out of the list until the tick is taken off.
     public bool HideHidden
     {
         get => _hideHidden;
@@ -137,8 +129,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     public IReadOnlyList<ItemPickerRowViewModel> Rows => _visible;
 
-    // Picking the item of an entry inside another item: what the parent's container accepts decides the list. The same
-    // parent hands back the same rows and keeps the scroll; another parent is another list and starts at the top.
     internal void UseParent(ItemEntry? parent)
     {
         bool sameList = string.Equals(_parent, parent?.Identifier, StringComparison.OrdinalIgnoreCase);
@@ -178,7 +168,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
         _fits = fits;
     }
 
-
     private int CategoryCount
     {
         get
@@ -208,7 +197,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
             ItemPrefabCatalog.Packages().Select(package => new PickerToggle(
-                RichString.Rich(Labels.AccentMarkup(package.Label, package.Package)),
+                RichString.Rich(Theme.AccentMarkup(package.Label, package.Package)),
                 () => _packages.Contains(package.Package),
                 selected => SetPackage(package.Package, selected))));
 
@@ -228,8 +217,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
         return string.IsNullOrEmpty(name.Value) ? category.ToString() : name;
     }
 
-    // The icon is the one the game's own category buttons wear, so a category reads here the way it reads in the
-    // fabricator; a category the game has no button style for simply has no icon.
     private static Sprite? CategoryIcon(MapEntityCategory category)
         => GUIStyle.GetComponentStyle(new Identifier("CategoryButton." + category))
             is { } style && style.Sprites.TryGetValue(GUIComponent.ComponentState.None, out List<UISprite>? sprites)
@@ -254,8 +241,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
         ApplyFilter();
     }
 
-    // A filter the player changed starts the list at the top; reopening the browser hands it the same rows again and
-    // leaves the scroll alone.
     private void ApplyFilter(bool keepScroll = false)
     {
         ItemFilter filter = new(_packages, _categories);
@@ -263,7 +248,6 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
         _visible = [.. _rows.Where(row => Shows(row.Entry, filter, query))];
 
-        // Raised even when it does not change: the list has to be told to go back to the top, not read.
         if (!keepScroll)
         {
             _scroll = 0f;

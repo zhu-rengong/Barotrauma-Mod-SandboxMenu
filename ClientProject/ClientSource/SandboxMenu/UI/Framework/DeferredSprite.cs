@@ -2,8 +2,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI.Framework;
 
-// The sprite is handed to the host image only once it is really loaded: GUIImage takes its asynchronous branch just
-// until it has loaded once, and a recycled row would otherwise reach its blocking Texture getter on the draw thread.
 internal sealed class DeferredSprite : IDisposable
 {
     private readonly RectTransform _transform;
@@ -20,12 +18,6 @@ internal sealed class DeferredSprite : IDisposable
         _transform = transform;
         _fit = mode != GUIImage.ScalingMode.None;
 
-        // The icon casts a shadow of itself, the way the game draws one in an inventory slot: the same sprite again, a
-        // couple of DIP down and to the right, in black. Both are boxes inside the one the caller hands over — moving
-        // that box moves both — and the shadow is built first, so the icon is drawn over it.
-        //
-        // The box carries a component of its own: the host walks the rect children of a component and reads the component
-        // of each without a null check, so a box holding nothing but other boxes breaks every such walk.
         _shadow = new GUIImage(
             new RectTransform(Vector2.One, transform, Anchor.Center)
             {
@@ -36,7 +28,6 @@ internal sealed class DeferredSprite : IDisposable
         {
             CanBeFocused = false,
 
-            // An image takes its parent's state and draws in that state's colour, so the state is pinned to none.
             OverrideState = GUIComponent.ComponentState.None,
             Color = Theme.IconShadow
         };
@@ -73,15 +64,11 @@ internal sealed class DeferredSprite : IDisposable
             return;
         }
 
-        // Anything the image holds while a sprite loads would be drawn, and a lazy one would be loaded by the
-        // image itself the moment it is drawn; so it holds nothing and the throbber stands in for it.
         _image.Sprite = null;
         _shadow.Sprite = null;
         _waiting = true;
     }
 
-    // Runs while the throbber is up, which is exactly while this icon is unloaded: an icon that has loaded
-    // costs nothing after that.
     private void Load(float deltaTime, GUICustomComponent component)
     {
         if (_sprite is not { } sprite) { return; }
@@ -90,7 +77,6 @@ internal sealed class DeferredSprite : IDisposable
         {
             _load = null;
 
-            // A load that ended without the sprite (a missing or broken file) leaves nothing to show.
             if (!sprite.Loaded)
             {
                 _waiting = false;
@@ -131,8 +117,6 @@ internal sealed class DeferredSprite : IDisposable
         _shadow.Scale = _image.Scale;
     }
 
-    // This is a component of the box the caller handed over, so it draws in the icon's own place and stands in for the
-    // sprite while it is on its way.
     private void DrawThrobber(SpriteBatch spriteBatch, GUICustomComponent component)
     {
         if (!_waiting) { return; }
@@ -163,13 +147,9 @@ internal sealed class DeferredSprite : IDisposable
         _shadow.Sprite = null;
     }
 
-    // One decode in flight at a time: the host caches textures by file, so a racing decode of the same file is built
-    // only to be dropped, and the GPU memory it takes is not something the garbage collector can see.
     private static class DecodeGate
     {
         private static Task? _current;
-
-        static DecodeGate() => ModLifetime.Unloading += () => _current = null;
 
         internal static bool Acquire()
         {

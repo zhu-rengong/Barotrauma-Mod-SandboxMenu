@@ -1,7 +1,5 @@
 namespace UiFramework.Controls;
 
-// Spacer heights keep the three parts — a tile band above, the detail rows, a tile band below — where they belong inside
-// one host list, so the wheel, the bar, the clipping and the input stay the host's own.
 internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 {
     private readonly GUIListBox _listBox = list.ListBox;
@@ -15,8 +13,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
     private GUIFrame? _bottom;
     private GUIFrame? _tail;
 
-    // The content has to keep the length the bar maps onto the items, so every pass counts the same children; the
-    // signature is what stops the work when the result has stopped changing.
     private int _signature;
 
     private int _above;
@@ -80,8 +76,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int spacing = _listBox.Spacing;
         Insets padding = list.Padding;
 
-        // GUIListBox.CalculateTopOffset maps the bar over the content height, so the scrolled figure is read with exactly
-        // that and not with the list's own.
         int viewport = _listBox.Content.Rect.Height;
         int room = Math.Max(0, viewport - padding.Vertical);
         int width = Math.Max(1, _listBox.Content.Rect.Width - padding.Horizontal);
@@ -119,13 +113,11 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int scroll = (int)scrolled;
         int window = steps == 0 ? 0 : Math.Clamp(scroll / stride, 0, steps);
 
-        // Which sides have items is decided by the window position alone, so the rows never flap between two counts.
         bool topOn = window > 0;
         bool bottomOn = count - window > rows;
         bool topTiles = tiles && topOn;
         bool bottomTiles = tiles && bottomOn;
 
-        // Each side keeps only the tile rows it really fills; the rows neither side can use go to the detail rows.
         int columns = _geometry.Columns;
         int nominal = _geometry.NominalTileRows;
         int cells = columns * nominal;
@@ -141,8 +133,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int bands = (topTiles ? 1 : 0) + (bottomTiles ? 1 : 0);
         int gaps = bands == 2 ? 2 * spacing : spacing;
 
-        // The rows are cut to what the bands leave rather than rounded to it: rounding a row out of a band squares its
-        // cells off, and the gaps between the tiles then stop matching. What is left over goes to the tail.
         int shown = bands == 0
             ? Math.Min(count - window, _geometry.MaxRows)
             : Math.Clamp((int)MathF.Floor((room - gaps - wantTop - wantBottom + spacing) / (float)stride), list.DetailRows, _geometry.MaxRows);
@@ -152,13 +142,9 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int leftover = room - gaps - (shown * stride - spacing);
         int weight = Math.Max(1, usedTop + usedBottom);
 
-        // A band stops at the height its cells ask for — a cell is as tall as it is wide and more room would only stretch
-        // one row away from the next; what a band cannot take goes to the tail.
         int topHeight = topTiles ? Math.Clamp(leftover * usedTop / weight, minTop, wantTop) : 0;
         int bottomHeight = bottomTiles ? Math.Clamp(leftover - topHeight, minBottom, wantBottom) : 0;
 
-        // A band short of its own height takes what the other one does not need: a whole number of square cells is what
-        // keeps the gaps between the tiles equal.
         if (topTiles && topHeight < wantTop && bottomTiles && bottomHeight >= wantBottom)
         {
             topHeight = Math.Clamp(leftover - bottomHeight, minTop, wantTop);
@@ -180,8 +166,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         BandShape bottomShape = bottomTiles ? _geometry.ShapeOf(bottomHeight, usedBottom) : BandShape.None;
         int children = 2 + shown + bands;
 
-        // The length counts the whole viewport, so the padding rides on top of it and shows as the tail; the pad is held
-        // to that tail, since a bigger one would push the host's own length up and the scrolled figure is read from it.
         int content = viewport + steps * stride;
         int budget = Math.Max(0, content - spacing * children - topShape.Height - bottomShape.Height - shown * height);
         int pad = Math.Min(steps == 0 ? 0 : Math.Max(0, scroll - spacing), budget);
@@ -230,7 +214,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
     }
 
-    // The host puts every child of the content at its left edge, so a row carries the room itself.
     private static void Inset(GUIComponent row, int width, int contentWidth)
     {
         if (contentWidth <= 0) { return; }
@@ -321,14 +304,11 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
     }
 
-    // Parts keep their slots while scrolling, and each is moved to its slot in the order the host lays children out in.
     private void Arrange(int pad, int tail, int shown, int width, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
     {
         GUIFrame padFrame = _pad ??= CreateFrame();
         GUIFrame tailFrame = _tail ??= CreateFrame();
 
-        // The parts are pinned half a gap above the top edge, so the pad carries the top room as well: without it the list
-        // eats into the padding and a tile growing upwards is clipped by the rest. What it takes comes off the tail.
         int inset = list.Padding.Top;
         int offset = inset > 0 ? inset + _listBox.Spacing : 0;
 
@@ -379,11 +359,9 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         transform.Parent = content;
 
-        // Moving a part re-scales its whole subtree, so it is only moved when it is not already in its slot.
         if (content.GetChildIndex(transform) != slot) { transform.RepositionChildInHierarchy(slot); }
     }
 
-    // The tiles run from the seam outwards, so the items of a band stay in sequence and next to each other on screen.
     private void PlaceTiles(List<BuiltRow> tiles, GUIFrame? band, int shown, bool seamAtBottom, int tileRows, int cellHeight)
     {
         if (band is null || shown <= 0 || tiles.Count == 0) { return; }
@@ -398,7 +376,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         for (int i = 0; i < count; i++)
         {
-            // The top band fills from the seam outwards too, so the item next to the window takes the first place.
             BuiltRow tile = seamAtBottom ? tiles[count - 1 - i] : tiles[i];
             int flowRow = i / columns;
             int within = i % columns;
@@ -435,7 +412,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         Detach(_tail);
     }
 
-    // A detached control that is still visible stays in the host's update list, so hiding is what takes it out.
     private static void Detach(GUIFrame? frame)
     {
         if (frame is not { } value) { return; }

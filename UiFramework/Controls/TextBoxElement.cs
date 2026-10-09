@@ -34,9 +34,6 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public string? Text { set => _box.Text = value ?? string.Empty; }
 
-    // Setting this asks for the keyboard, taken once the click that asked for it is over (or the box would lose it
-    // again in the same frame); the request is then answered with false so a re-pointed binding cannot take the caret
-    // away from someone who is typing.
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public bool Focus
     {
@@ -46,8 +43,6 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
         }
     }
 
-    // Asked for when the box is done with an edit: the source is given the chance to hand back what it actually holds,
-    // so text that was not taken (or was taken in another spelling) is replaced by the value that stands.
     [ElementProperty]
     public Action? Committed
     {

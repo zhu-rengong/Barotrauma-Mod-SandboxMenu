@@ -2,7 +2,6 @@ using System.Globalization;
 
 namespace UiFramework;
 
-// Turns markup text and arbitrary objects into the type a property or a binding holds.
 internal static class ValueConversion
 {
     internal static (object? Value, bool Ok) Parse(string text, Type type, Func<object?> fallback)

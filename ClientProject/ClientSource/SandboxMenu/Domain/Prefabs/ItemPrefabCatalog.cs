@@ -22,8 +22,6 @@ internal sealed record ItemFilter(IReadOnlySet<ContentPackage> Packages, MapEnti
             && (Categories == MapEntityCategory.None || (entry.Category & Categories) != 0);
 }
 
-// A package is told apart by its instance: names are not unique and the content hash is costly yet still not unique.
-// The label is the name, with the folder added only when the name alone would be ambiguous.
 internal sealed record ItemPackage(ContentPackage Package, string Label);
 
 internal static class ItemPrefabCatalog
@@ -35,20 +33,6 @@ internal static class ItemPrefabCatalog
     private static IReadOnlyList<ItemPackage> _packages = [];
     private static MapEntityCategory _categoryMask = MapEntityCategory.None;
     private static FrozenDictionary<ContentPackage, MapEntityCategory> _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
-
-    static ItemPrefabCatalog()
-    {
-        ModLifetime.Unloading += Invalidate;
-        ContentReload.Invalidated += Invalidate;
-    }
-
-    internal static void Invalidate()
-    {
-        _entries = ImmutableArray<ItemPrefabEntry>.Empty;
-        _packages = [];
-        _categoryMask = MapEntityCategory.None;
-        _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
-    }
 
     internal static IReadOnlyList<ItemPrefabEntry> All()
     {
@@ -64,8 +48,6 @@ internal static class ItemPrefabCatalog
         return _packages;
     }
 
-    // Which categories the chosen packages carry; choosing none means the whole catalog. The masks are collected in
-    // the same pass that lists the packages, so this never walks the items.
     internal static MapEntityCategory CategoryMaskIn(IReadOnlySet<ContentPackage> packages)
     {
         EnsureBuilt();

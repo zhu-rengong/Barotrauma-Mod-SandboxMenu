@@ -43,7 +43,6 @@ internal sealed class MultiPickerViewModel : Notifiable
         foreach (PickerToggle option in options) { Options.Add(new ToggleRowViewModel(option)); }
     }
 
-    // Both buttons work on what the filter shows; the rows it hides keep their ticks.
     private void TickVisible(bool ticked)
     {
         for (int i = 0; i < Options.Count; i++)

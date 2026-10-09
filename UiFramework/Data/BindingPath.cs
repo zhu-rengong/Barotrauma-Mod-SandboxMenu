@@ -3,13 +3,9 @@ using System.Globalization;
 
 namespace UiFramework.Data;
 
-// A parsed binding path, cached by its text because the same path is parsed for every row a list builds: the steps
-// from the source to the value, and the objects along the way whose changes the binding follows.
 internal sealed class BindingPath
 {
     private static readonly Dictionary<string, BindingSegment[]> _parseCache = new(StringComparer.Ordinal);
-
-    static BindingPath() => UiLifetime.Unloading += Clear;
 
     private readonly BindingSegment[] _segments;
     private readonly List<INotifyPropertyChanged> _hooked = [];
@@ -21,12 +17,6 @@ internal sealed class BindingPath
     }
 
     internal string Text { get; }
-
-    internal static void Clear()
-    {
-        _parseCache.Clear();
-        MemberAccess.Clear();
-    }
 
     internal static BindingPath Parse(string text)
     {

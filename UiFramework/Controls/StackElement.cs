@@ -28,8 +28,6 @@ internal sealed class StackElement : ViewElement
 
     public override void ChildVisibilityChanged(ViewElement child) => ApplyShares();
 
-    // The host's layout group keeps a place for every child it was handed, so a hidden child has to be taken out of the
-    // layout for the remaining shares to fill the axis again.
     private void ApplyShares()
     {
         float shares = 0f;
@@ -69,7 +67,6 @@ internal sealed class StackElement : ViewElement
     private float? Share(ViewElement child)
         => Length.TryWeight(child.Node?.Text(_horizontal ? "Width" : "Height"), out float weight) ? weight : null;
 
-    // The room a margin keeps outside the child, taken off the share the host gives it.
     private float Margin(ViewElement child)
     {
         Insets margin = child.Node?.Margin ?? Insets.None;

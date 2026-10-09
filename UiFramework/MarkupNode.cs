@@ -3,6 +3,31 @@ using System.Xml.Linq;
 
 namespace UiFramework;
 
+internal sealed class MarkupValue
+{
+    private MarkupValue(string raw, MarkupExtension? extension)
+    {
+        Raw = raw;
+        Extension = extension;
+    }
+
+    internal string Raw { get; }
+
+    internal MarkupExtension? Extension { get; }
+
+    internal bool IsText => Extension is null;
+
+    internal static MarkupValue Parse(string raw)
+    {
+        string trimmed = raw.Trim();
+
+        if (trimmed.Length < 2 || trimmed[0] != '{' || trimmed[^1] != '}') { return new MarkupValue(trimmed, null); }
+        if (trimmed.StartsWith("{}", StringComparison.Ordinal)) { return new MarkupValue(trimmed[2..], null); }
+
+        return new MarkupValue(trimmed, MarkupExtension.Parse(trimmed));
+    }
+}
+
 internal sealed class MarkupAttribute(string name, MarkupValue value)
 {
     internal string Name { get; } = name;
@@ -50,7 +75,6 @@ internal sealed class MarkupNode
 
     internal string? Text(string name) => Attribute(name)?.Value.Raw;
 
-    // Read by an element while it is built and by the container that lays it out afterwards, so the node reads it once.
     internal Insets Padding => _padding ??= Insets.Parse(Text("Padding"));
 
     internal Insets Margin => _margin ??= Insets.Parse(Text("Margin"));

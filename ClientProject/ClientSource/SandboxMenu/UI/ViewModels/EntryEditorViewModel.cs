@@ -4,14 +4,14 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class EntryEditorViewModel : Notifiable
 {
-    private readonly SpawnMenuViewModel _menu;
+    private readonly SpawnPanelViewModel _menu;
     private readonly EditorRowBuilder _rowBuilder;
 
     private SpawnEntry? _entry;
     private ItemEntry? _container;
     private bool _rebuildQueued;
 
-    internal EntryEditorViewModel(SpawnMenuViewModel menu)
+    internal EntryEditorViewModel(SpawnPanelViewModel menu)
     {
         _menu = menu;
         _rowBuilder = new EditorRowBuilder(this, menu);
@@ -39,11 +39,9 @@ internal sealed class EntryEditorViewModel : Notifiable
 
     internal void NotifyEdited() => _menu.RefreshSummaries();
 
-    // The identifier is the first row the editor puts up for an item: asking it for the keyboard again is what the
-    // "type the identifier" command does (no rebuild, so nothing being typed is disturbed).
     internal void FocusIdentifier()
     {
-        if (Rows.OfType<BrowseRow>().FirstOrDefault() is not { } row) { return; }
+        if (Rows.OfType<BrowseRowViewModel>().FirstOrDefault() is not { } row) { return; }
 
         row.TakeFocus = false;
         row.TakeFocus = true;
