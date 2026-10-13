@@ -15,6 +15,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     private readonly ListBandLayout _bands;
     private readonly ListDrag _drag;
     private readonly List<BuiltRow> _rows = [];
+    private readonly List<BuiltRow> _previous = [];
 
     private readonly List<object> _index = [];
     private IEnumerable? _items;
@@ -64,6 +65,12 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
         if (_detailRows == 0) { _listBox.Padding = _padding.ToVector4(); }
 
+        if (!string.IsNullOrWhiteSpace(tileKey))
+        {
+            _listBox.KeepSpaceForScrollBar = true;
+            _listBox.DimensionsNeedRecalculation = true;
+        }
+
         if (Windowed) { _view.EveryFrame(UpdateWindow); }
 
         if (ViewMarkup.ToBool(context.Text("Draggable"), false))
@@ -94,7 +101,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     internal int DetailRows => _detailRows;
 
-    internal Insets Padding => _padding;
+    internal Insets ContentPadding => _padding;
 
     [ElementProperty]
     public IEnumerable? Items
@@ -120,6 +127,21 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     {
         set => _rowPool.RowTemplateKey = value;
     }
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal bool Virtual => ViewMarkup.ToBool(Node?.Text("Virtual"), false);
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal bool Draggable => ViewMarkup.ToBool(Node?.Text("Draggable"), false);
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal bool BackgroundMenu => ViewMarkup.ToBool(Node?.Text("BackgroundMenu"), false);
+
+    [ElementProperty("Rows", Phase = ApplyPhase.Construct)]
+    internal int DeclaredRows => int.TryParse(Node?.Text("Rows"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows) ? Math.Max(0, rows) : 0;
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? TileTemplate => Node?.Text("TileTemplate");
 
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public float Scroll
@@ -203,6 +225,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
             _retriedEmpty = false;
         }
 
+        _rowPool.FlushLayout();
         InvalidateLayout();
 
         _listBox.RecalculateChildren();
@@ -211,6 +234,18 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     private bool Extends()
     {
         if (_items is null) { return false; }
+
+        if (_items is IList list)
+        {
+            if (list.Count < _rows.Count) { return false; }
+
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                if (!ReferenceEquals(_rows[i].Item, list[i])) { return false; }
+            }
+
+            return true;
+        }
 
         int index = 0;
 
@@ -228,6 +263,18 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     private void Append()
     {
+        if (_items is IList list)
+        {
+            for (int i = _rows.Count; i < list.Count; i++)
+            {
+                if (list[i] is not { } item) { continue; }
+
+                if (_rowPool.Build(item) is { } built) { _rows.Add(built); }
+            }
+
+            return;
+        }
+
         int skip = _rows.Count;
         int index = 0;
 
@@ -243,9 +290,10 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     private void RebuildAll()
     {
-        List<BuiltRow> previous = [.. _rows];
+        _previous.Clear();
+        _previous.AddRange(_rows);
 
-        for (int i = 0; i < previous.Count; i++) { previous[i].Element.Control.RectTransform.Parent = null; }
+        for (int i = 0; i < _previous.Count; i++) { _previous[i].Element.Control.RectTransform.Parent = null; }
 
         _rows.Clear();
         _listBox.Content.ClearChildren();
@@ -258,9 +306,9 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
             {
                 BuiltRow? kept = null;
 
-                while (cursor < previous.Count)
+                while (cursor < _previous.Count)
                 {
-                    BuiltRow candidate = previous[cursor++];
+                    BuiltRow candidate = _previous[cursor++];
 
                     if (ReferenceEquals(candidate.Item, item)) { kept = candidate; break; }
 
@@ -272,6 +320,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
                 if (kept is not null)
                 {
                     kept.Element.Control.RectTransform.Parent = _listBox.Content.RectTransform;
+                    kept.Element.Control.AutoUpdate = _view.Interactive;
                     _rows.Add(kept);
                     continue;
                 }
@@ -281,7 +330,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         }
         finally
         {
-            while (cursor < previous.Count) { _rowPool.Keep(previous[cursor++]); }
+            while (cursor < _previous.Count) { _rowPool.Keep(_previous[cursor++]); }
         }
     }
 
@@ -315,6 +364,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     private bool HasItems()
     {
         if (_items is null) { return false; }
+        if (_items is ICollection collection) { return collection.Count > 0; }
 
         IEnumerator enumerator = _items.GetEnumerator();
 

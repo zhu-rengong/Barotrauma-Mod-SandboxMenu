@@ -23,6 +23,18 @@ internal static class FrameActions
         }
     }
 
+    internal static void Run<TState>(TState state, Action<TState> body)
+    {
+        try
+        {
+            body(state);
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Running a menu command failed: {e}");
+        }
+    }
+
     internal static void Clear()
     {
         _posted.Clear();

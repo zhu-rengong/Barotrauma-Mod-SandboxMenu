@@ -12,6 +12,8 @@ internal sealed class DeferredSprite : IDisposable
     private Sprite? _sprite;
     private Task? _load;
     private bool _waiting;
+    private bool _shadowShown = true;
+    private Color _shadowColor = Theme.IconShadow;
 
     internal DeferredSprite(RectTransform transform, GUIImage.ScalingMode mode)
     {
@@ -41,7 +43,8 @@ internal sealed class DeferredSprite : IDisposable
 
         _throbber = new GUICustomComponent(transform, DrawThrobber, Load)
         {
-            CanBeFocused = false
+            CanBeFocused = false,
+            AutoUpdate = false
         };
 
         if (_fit) { _transform.SizeChanged += Fit; }
@@ -50,6 +53,27 @@ internal sealed class DeferredSprite : IDisposable
     internal RectTransform Transform => _transform;
 
     internal GUIImage Image => _image;
+
+    internal bool Shadow
+    {
+        get => _shadowShown;
+        set
+        {
+            _shadowShown = value;
+            ApplyShadow();
+        }
+    }
+
+    internal Color ShadowColor
+    {
+        set
+        {
+            _shadowColor = value;
+            ApplyShadow();
+        }
+    }
+
+    internal void Refit() => Fit();
 
     internal void Set(Sprite? sprite)
     {
@@ -66,7 +90,7 @@ internal sealed class DeferredSprite : IDisposable
 
         _image.Sprite = null;
         _shadow.Sprite = null;
-        _waiting = true;
+        SetWaiting(true);
     }
 
     private void Load(float deltaTime, GUICustomComponent component)
@@ -79,7 +103,7 @@ internal sealed class DeferredSprite : IDisposable
 
             if (!sprite.Loaded)
             {
-                _waiting = false;
+                SetWaiting(false);
                 return;
             }
         }
@@ -96,10 +120,18 @@ internal sealed class DeferredSprite : IDisposable
         DecodeGate.Started(_load);
     }
 
+    private void ApplyShadow() => _shadow.Color = _shadowShown ? _shadowColor : Color.Transparent;
+
+    private void SetWaiting(bool waiting)
+    {
+        _waiting = waiting;
+        _throbber.AutoUpdate = waiting;
+    }
+
     private void Show(Sprite? sprite)
     {
         _load = null;
-        _waiting = false;
+        SetWaiting(false);
         _image.Sprite = sprite;
         _shadow.Sprite = sprite;
         Fit();
@@ -145,20 +177,30 @@ internal sealed class DeferredSprite : IDisposable
         _load = null;
         _image.Sprite = null;
         _shadow.Sprite = null;
+        _waiting = false;
+        _throbber.AutoUpdate = false;
+        _throbber.OnDraw = null;
     }
 
     private static class DecodeGate
     {
+        private const double StuckSeconds = 8.0;
+
         private static Task? _current;
+        private static double _started;
 
         internal static bool Acquire()
         {
-            if (_current is { IsCompleted: false }) { return false; }
+            if (_current is { IsCompleted: false } && Timing.TotalTime - _started < StuckSeconds) { return false; }
 
             _current = null;
             return true;
         }
 
-        internal static void Started(Task load) => _current = load;
+        internal static void Started(Task load)
+        {
+            _current = load;
+            _started = Timing.TotalTime;
+        }
     }
 }

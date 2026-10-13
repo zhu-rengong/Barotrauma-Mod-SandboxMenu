@@ -40,6 +40,9 @@ internal sealed class MarkupNode
     private readonly Dictionary<string, MarkupAttribute> _attributes = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<MarkupNode> _children = [];
 
+    private List<MarkupNode>? _content;
+    private Dictionary<string, MarkupNode>? _byName;
+
     private Insets? _padding;
     private Insets? _margin;
 
@@ -65,11 +68,23 @@ internal sealed class MarkupNode
 
     internal IReadOnlyList<MarkupNode> Children => _children;
 
-    internal IEnumerable<MarkupNode> Content => _children.Where(child => !child.IsProperty);
+    internal IReadOnlyList<MarkupNode> Content => _content ??= BuildContent();
 
     internal string? ElementName => Text("Name");
 
     internal MarkupAttribute? Attribute(string name) => _attributes.GetValueOrDefault(name);
+
+    internal MarkupNode? Child(string name)
+    {
+        if (_byName is null)
+        {
+            _byName = new Dictionary<string, MarkupNode>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (MarkupNode child in _children) { _byName.TryAdd(child.Name, child); }
+        }
+
+        return _byName.GetValueOrDefault(name);
+    }
 
     internal MarkupValue? Value(string name) => Attribute(name)?.Value;
 
@@ -101,6 +116,18 @@ internal sealed class MarkupNode
     }
 
     public override string ToString() => $"{View}:{Line} <{Name}>";
+
+    private List<MarkupNode> BuildContent()
+    {
+        List<MarkupNode> content = [];
+
+        foreach (MarkupNode child in _children)
+        {
+            if (!child.IsProperty) { content.Add(child); }
+        }
+
+        return content;
+    }
 
     private static (string Name, string? Owner) SplitName(string localName)
     {

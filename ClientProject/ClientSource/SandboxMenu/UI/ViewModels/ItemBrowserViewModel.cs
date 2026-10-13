@@ -32,7 +32,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
     private readonly HashSet<ContentPackage> _packages;
-    private readonly List<ItemPickerRowViewModel> _rows;
+    private readonly ItemPrefabEntry[] _entries;
+    private readonly ItemPickerRowViewModel?[] _built;
 
     private IReadOnlyList<ItemPickerRowViewModel> _visible = [];
     private Action<string> _onPicked = static _ => { };
@@ -40,6 +41,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private string _query = string.Empty;
     private MapEntityCategory _categories;
     private float _scroll;
+    private bool _keepScroll;
 
     private ContainerRules? _container;
     private string? _parent;
@@ -56,7 +58,8 @@ internal sealed class ItemBrowserViewModel : Notifiable
         PickPackagesCommand = new RelayCommand(PickPackages);
         PickCategoriesCommand = new RelayCommand(PickCategories);
 
-        _rows = [.. ItemPrefabCatalog.All().Select(entry => new ItemPickerRowViewModel(entry, Picked, UseOnSelf))];
+        _entries = [.. ItemPrefabCatalog.All()];
+        _built = new ItemPickerRowViewModel?[_entries.Length];
 
         ApplyFilter();
     }
@@ -243,20 +246,44 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
     private void ApplyFilter(bool keepScroll = false)
     {
+        _keepScroll |= keepScroll;
+
+        if (NotificationBatch.Defer(this, nameof(ApplyFilter), RenewFilter)) { return; }
+
+        RenewFilter();
+    }
+
+    private void RenewFilter()
+    {
+        bool keepScroll = _keepScroll;
+        _keepScroll = false;
+
         ItemFilter filter = new(_packages, _categories);
         string query = _query.Trim();
+        List<ItemPickerRowViewModel> visible = new(_entries.Length);
 
-        _visible = [.. _rows.Where(row => Shows(row.Entry, filter, query))];
-
-        if (!keepScroll)
+        for (int i = 0; i < _entries.Length; i++)
         {
-            _scroll = 0f;
-            Raise(nameof(Scroll));
+            ItemPrefabEntry entry = _entries[i];
+
+            if (!Shows(entry, filter, query)) { continue; }
+
+            visible.Add(_built[i] ??= new ItemPickerRowViewModel(entry, Picked, UseOnSelf));
         }
 
-        Raise(nameof(Rows));
+        _visible = visible;
 
-        Raise(nameof(PackageFilter));
-        Raise(nameof(CategoryFilter));
+        using (NotificationBatch.Begin())
+        {
+            if (!keepScroll)
+            {
+                _scroll = 0f;
+                Raise(nameof(Scroll));
+            }
+
+            Raise(nameof(Rows));
+            Raise(nameof(PackageFilter));
+            Raise(nameof(CategoryFilter));
+        }
     }
 }

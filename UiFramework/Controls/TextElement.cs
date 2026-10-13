@@ -7,8 +7,10 @@ internal sealed class TextElement : ViewElement
 {
     private readonly GUITextBlock _block;
     private readonly GUIFont _font;
+    private readonly ViewContext _view;
 
     private float _scale;
+    private bool _armed;
 
     public TextElement(ElementContext context)
         : this(context, CreateBlock(context))
@@ -20,6 +22,7 @@ internal sealed class TextElement : ViewElement
         _block = block;
         _font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _font);
+        _view = context.View;
 
         _block.Padding = context.Padding.IsEmpty
             ? new Vector4(UiMetrics.Dip(UiTokens.Dip("pad", 6f)), 0f, 0f, 0f)
@@ -29,20 +32,6 @@ internal sealed class TextElement : ViewElement
 
         _block.HoverColor = Microsoft.Xna.Framework.Color.Transparent;
         _block.SelectedColor = Microsoft.Xna.Framework.Color.Transparent;
-
-        if (ViewMarkup.ToBool(context.Text("Wrap"), false))
-        {
-            int wrappedWidth = -1;
-
-            context.View.EveryFrame(() =>
-            {
-                int width = _block.Rect.Width;
-                if (width == wrappedWidth) { return; }
-
-                wrappedWidth = width;
-                _block.SetTextPos();
-            });
-        }
     }
 
     [ElementProperty(KeyText = true)]
@@ -68,10 +57,29 @@ internal sealed class TextElement : ViewElement
     public bool Scale { set => _block.AutoScaleHorizontal = value; }
 
     [ElementProperty]
-    public bool Wrap { set => _block.Wrap = value; }
+    public bool Wrap
+    {
+        set
+        {
+            if (_block.Wrap == value) { return; }
+
+            _block.Wrap = value;
+
+            if (!value) { return; }
+
+            _block.SetTextPos();
+            ArmWrap();
+        }
+    }
 
     [ElementProperty]
-    public string Color { set => _block.TextColor = ViewMarkup.ColorOf(value, UiMetrics.Text); }
+    public bool Clip { set => _block.OverflowClip = value; }
+
+    [ElementProperty]
+    public new string Color { set => _block.TextColor = ViewMarkup.ColorOf(value, UiMetrics.Text); }
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? Font => Node?.Text("Font");
 
     private static GUITextBlock CreateBlock(ElementContext context)
         => new(
@@ -85,5 +93,29 @@ internal sealed class TextElement : ViewElement
     {
         _block.Text = value;
         _block.TextScale = _scale;
+    }
+
+    private void ArmWrap()
+    {
+        if (_armed) { return; }
+
+        _armed = true;
+        _block.RectTransform.SizeChanged += Rewrap;
+
+        _view.EveryFrame(() =>
+        {
+            if (_block.Rect.Width <= 0) { return false; }
+
+            _block.SetTextPos();
+
+            return true;
+        });
+    }
+
+    private void Rewrap()
+    {
+        if (!_block.Wrap || _block.Rect.Width <= 0) { return; }
+
+        _block.SetTextPos();
     }
 }

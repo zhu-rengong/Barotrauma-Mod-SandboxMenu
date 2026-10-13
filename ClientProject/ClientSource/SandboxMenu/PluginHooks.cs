@@ -45,7 +45,11 @@ internal static class PluginHooks
     {
         try
         {
+            UiHost.AdvanceFrame(deltaTime);
+
             ContentReload.Poll();
+            TextReload.Poll();
+            CharacterPreview.RenderPending();
             MenuWindow.Current?.ServePendingScreenshot();
 
             if (Screen.Selected != GameMain.GameScreen) { return; }

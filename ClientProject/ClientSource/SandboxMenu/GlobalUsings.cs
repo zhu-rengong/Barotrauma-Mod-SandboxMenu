@@ -1,3 +1,4 @@
+global using SandboxMenu.Domain.Afflictions;
 global using SandboxMenu.Domain.Persistence;
 global using SandboxMenu.Domain.Prefabs;
 global using SandboxMenu.Settings;

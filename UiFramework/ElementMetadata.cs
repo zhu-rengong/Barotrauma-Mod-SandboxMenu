@@ -1,5 +1,7 @@
 using System.Collections.Frozen;
+using Microsoft.Xna.Framework;
 using UiFramework.Data;
+using UiFramework.Layout;
 
 namespace UiFramework;
 
@@ -7,6 +9,13 @@ public enum ApplyPhase
 {
     Construct,
     Live
+}
+
+internal enum ValueSource
+{
+    Base,
+    Trigger,
+    Animation
 }
 
 [AttributeUsage(AttributeTargets.Class)]
@@ -36,9 +45,49 @@ internal sealed record PropertyMetadata(
     BindingMode DefaultMode,
     bool SettableFromStyle,
     bool KeyText,
-    Action<object, object?> Apply);
+    Action<object, object?> Apply,
+    Func<object, object?>? Read)
+{
+    internal bool CanAnimate
+        => ValueType == typeof(float)
+            || ValueType == typeof(double)
+            || ValueType == typeof(int)
+            || ValueType == typeof(Color)
+            || ValueType == typeof(Length)
+            || ValueType == typeof(Insets);
+}
 
 internal sealed record ElementMetadata(
     string Name,
     Func<ElementContext, ViewElement> Create,
     FrozenDictionary<string, PropertyMetadata> Properties);
+
+internal static class AttachedProperties
+{
+    private static readonly FrozenDictionary<string, PropertyMetadata> _table = Build();
+
+    internal static PropertyMetadata? Find(string name) => _table.GetValueOrDefault(name);
+
+    private static FrozenDictionary<string, PropertyMetadata> Build()
+    {
+        Dictionary<string, PropertyMetadata> table = new(StringComparer.OrdinalIgnoreCase);
+
+        Add(table, "Grid.Row");
+        Add(table, "Grid.Column");
+        Add(table, "Grid.RowSpan");
+        Add(table, "Grid.ColumnSpan");
+
+        return table.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void Add(Dictionary<string, PropertyMetadata> table, string name)
+        => table[name] = new PropertyMetadata(
+            name,
+            typeof(int),
+            ApplyPhase.Live,
+            BindingMode.OneWay,
+            SettableFromStyle: true,
+            KeyText: false,
+            (target, value) => ((ViewElement)target).SetAttached(name, value),
+            target => ((ViewElement)target).Attached(name));
+}

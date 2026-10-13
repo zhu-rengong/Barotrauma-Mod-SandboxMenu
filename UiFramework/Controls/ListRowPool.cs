@@ -11,11 +11,18 @@ internal sealed class ListRowPool
     private readonly GUIListBox _listBox;
     private readonly Dictionary<object, BuiltRow> _byItem = new(ReferenceEqualityComparer.Instance);
     private readonly Queue<object> _order = new();
-    private readonly List<BuiltRow> _recycled = [];
     private readonly Dictionary<Type, Templating.DataTemplate> _rowTemplates = [];
     private readonly Dictionary<Type, Templating.DataTemplate> _tileTemplates = [];
 
+    private readonly TemplatePool<BuiltRow> _recycled = new(Limit, static row =>
+    {
+        row.Element.Control.Visible = false;
+        row.Element.Control.RectTransform.Parent = null;
+        row.Scope.Dispose();
+    });
+
     private string? _rowTemplateKey;
+    private bool _layoutDirty;
 
     internal ListRowPool(ViewContext view, ListBoxElement owner, GUIListBox listBox, string? rowTemplateKey, string? tileTemplateKey)
     {
@@ -63,18 +70,33 @@ internal sealed class ListRowPool
 
         row.Control.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
 
-        LayoutFlush.Apply(row.Control);
+        _layoutDirty = true;
 
         row.Parent = _owner;
         row.Control.UserData = item;
+        row.Control.AutoUpdate = _view.Interactive;
 
         return new BuiltRow(item, row, row.Control as GUIButton, scope, template);
     }
 
+    internal void FlushLayout()
+    {
+        if (!_layoutDirty) { return; }
+
+        _layoutDirty = false;
+        LayoutFlush.Apply(_listBox.Content);
+    }
+
     internal BuiltRow? Take(object item)
-        => RowTemplate(item) is { } template
-            ? TakeRecycled(template, item) ?? Build(item, template)
-            : ReportMissingRowTemplate(item);
+    {
+        if (RowTemplate(item) is not { } template) { return ReportMissingRowTemplate(item); }
+
+        BuiltRow? row = TakeRecycled(template, item) ?? Build(item, template);
+
+        if (row is not null) { row.Element.Control.AutoUpdate = _view.Interactive; }
+
+        return row;
+    }
 
     internal BuiltRow? TakeTile(GUIFrame band, object item)
     {
@@ -86,7 +108,11 @@ internal sealed class ListRowPool
 
         BuiltRow? tile = TakeRecycled(template, item) ?? Build(item, template, band.RectTransform);
 
-        if (tile is not null) { tile.Element.Control.RectTransform.Parent = band.RectTransform; }
+        if (tile is not null)
+        {
+            tile.Element.Control.RectTransform.Parent = band.RectTransform;
+            tile.Element.Control.AutoUpdate = _view.Interactive;
+        }
 
         return tile;
     }
@@ -117,6 +143,8 @@ internal sealed class ListRowPool
 
     internal static BuiltRow Reuse(BuiltRow row, object item)
     {
+        if (!ReferenceEquals(row.Item, item)) { row.Element.ResetAnimatedValues(); }
+
         row.Element.DataContext = item;
         row.Scope.Retarget(item);
         row.Element.Control.UserData = item;
@@ -135,6 +163,7 @@ internal sealed class ListRowPool
         }
 
         kept.Element.Control.Visible = true;
+        kept.Element.Control.AutoUpdate = _view.Interactive;
         kept.Scope.Resume();
         row = kept;
         return true;
@@ -148,13 +177,7 @@ internal sealed class ListRowPool
 
         if (_owner.Windowed)
         {
-            _recycled.Add(row);
-
-            while (_recycled.Count > Limit)
-            {
-                Drop(_recycled[0]);
-                _recycled.RemoveAt(0);
-            }
+            _recycled.Add(row.Template, row);
 
             return;
         }
@@ -185,12 +208,7 @@ internal sealed class ListRowPool
         }
     }
 
-    internal void DropRecycled()
-    {
-        for (int i = 0; i < _recycled.Count; i++) { Drop(_recycled[i]); }
-
-        _recycled.Clear();
-    }
+    internal void DropRecycled() => _recycled.Clear();
 
     internal void Clear()
     {
@@ -208,18 +226,7 @@ internal sealed class ListRowPool
     }
 
     private BuiltRow? TakeRecycled(Templating.DataTemplate template, object item)
-    {
-        for (int i = _recycled.Count - 1; i >= 0; i--)
-        {
-            BuiltRow row = _recycled[i];
-            if (!ReferenceEquals(row.Template, template)) { continue; }
-
-            _recycled.RemoveAt(i);
-            return Reuse(row, item);
-        }
-
-        return null;
-    }
+        => _recycled.Take(template) is { } row ? Reuse(row, item) : null;
 
     private Templating.DataTemplate? RowTemplate(object item)
     {

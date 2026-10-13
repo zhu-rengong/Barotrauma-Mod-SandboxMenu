@@ -43,6 +43,15 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
         }
     }
 
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? Font => Node?.Text("Font");
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? TextAlign => Node?.Text("TextAlign");
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal bool Clear => ViewMarkup.ToBool(Node?.Text("Clear"), false);
+
     [ElementProperty]
     public Action? Committed
     {

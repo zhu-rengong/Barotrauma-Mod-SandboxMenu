@@ -25,10 +25,21 @@ public static class ViewLoader
         RectTransform? parent = null)
     {
         ViewContext context = new(view) { DataContext = dataContext, DiagnosticSink = diagnosticSink };
-        configure?.Invoke(context);
-        context.Root = ViewBuilder.BuildElement(context, root, parent);
-        context.Resources = context.Root?.Resources;
+
+        try
+        {
+            configure?.Invoke(context);
+            context.Root = ViewBuilder.BuildElement(context, root, parent);
+            context.Resources = context.Root?.Resources;
+        }
+        catch (Exception e)
+        {
+            context.Diagnostics.Report($"the view could not be built ({e.Message})", root);
+            context.Dispose();
+        }
+
         context.Diagnostics.Flush(context.DiagnosticSink);
+
         return context;
     }
 }

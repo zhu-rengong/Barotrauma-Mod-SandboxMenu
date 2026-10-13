@@ -6,6 +6,8 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
     private readonly GUITickBox _tick;
     private Action<object?>? _changed;
     private GUIImage? _icon;
+    private RichString _text = string.Empty;
+    private bool _selfToolTip;
 
     public TickElement(ElementContext context)
         : base(new GUITickBox(
@@ -34,9 +36,20 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
     {
         set
         {
+            _text = value;
             _tick.TextBlock.Text = value;
             _tick.TextBlock.TextScale = UiMetrics.TextScale;
-            _tick.ToolTip = value;
+            ApplyToolTip();
+        }
+    }
+
+    [ElementProperty]
+    public bool SelfToolTip
+    {
+        set
+        {
+            _selfToolTip = value;
+            ApplyToolTip();
         }
     }
 
@@ -58,6 +71,9 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
     [ElementProperty(Mode = BindingMode.TwoWay)]
     public bool Selected { set => _tick.Selected = value; }
 
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? Font => Node?.Text("Font");
+
     public override void AddContent(ViewElement child) => throw new NotSupportedException("Tick takes no content");
 
     void IPropertyObserver.Observe(string property, Action<object?> changed)
@@ -72,6 +88,8 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         _tick.OnSelected = null;
         _changed = null;
     }
+
+    private void ApplyToolTip() => _tick.ToolTip = _selfToolTip ? _text : string.Empty;
 
     private GUIImage CreateIcon()
     {

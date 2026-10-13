@@ -36,6 +36,10 @@ internal sealed class SwatchButton : GUIButton
 
     internal Color Swatch { get; set; } = Color.White;
 
+    internal Color Outline { get; set; } = Color.Gray;
+
+    private DipValue _paddingDip;
+
     internal static Color Contrast(Color color)
     {
         float shown = (0.299f * color.R + 0.587f * color.G + 0.114f * color.B) / 255f * (color.A / 255f);
@@ -51,7 +55,7 @@ internal sealed class SwatchButton : GUIButton
         try
         {
             Rectangle rect = Rect;
-            int inset = Math.Clamp(UiMetrics.DipInt(Padding), 0, Math.Max(0, (rect.Height - 1) / 2));
+            int inset = Math.Clamp(_paddingDip.Pixels(Padding), 0, Math.Max(0, (rect.Height - 1) / 2));
             int side = Math.Min(inset, Math.Max(0, (rect.Width - 1) / 2));
             Rectangle chip = new(rect.X + side, rect.Y + inset, Math.Max(1, rect.Width - side * 2), Math.Max(1, rect.Height - inset * 2));
 
@@ -60,7 +64,7 @@ internal sealed class SwatchButton : GUIButton
             Color hint = GetColor(State);
             if (hint.A > 0f) { GUI.DrawRectangle(spriteBatch, chip, hint, true, 0f, 1f); }
 
-            Theme.Outline(spriteBatch, chip, Color.Gray);
+            Theme.Outline(spriteBatch, chip, Outline);
         }
         catch (Exception e)
         {

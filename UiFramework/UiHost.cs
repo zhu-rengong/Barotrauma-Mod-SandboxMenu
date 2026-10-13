@@ -4,6 +4,8 @@ namespace UiFramework;
 
 public static class UiHost
 {
+    public static void AdvanceFrame(float deltaTime) => Animation.AnimationClock.Advance(deltaTime);
+
     public static void RegisterShortcutHints(string hintKey, string darkHintKey)
     {
         ViewMarkup.HintKey = hintKey;

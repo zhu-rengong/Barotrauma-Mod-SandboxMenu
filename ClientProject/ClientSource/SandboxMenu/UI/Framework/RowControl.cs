@@ -13,11 +13,22 @@ internal sealed class RowControl : GUIButton
 
     internal bool SlotOnly { get; set; }
 
-    internal bool Hovered => State is GUIComponent.ComponentState.Hover or GUIComponent.ComponentState.Pressed;
+    internal Color SlotFill { get; set; } = Theme.SlotFill;
+
+    internal Color SlotLine { get; set; } = Theme.SlotLine;
+
+    internal float SlotPadding { get; set; } = Theme.SlotPadding;
 
     internal bool Highlight { get; set; } = true;
 
-    internal Action<float>? Animate { get; set; }
+    internal Color Fill { get; set; } = Color.Transparent;
+
+    internal Color SelectedBarFill { get; set; } = Theme.Accent;
+
+    internal float SelectedBarWidth { get; set; } = Theme.SelectedBarWidth;
+
+    private DipValue _slotPaddingDip;
+    private DipValue _selectedBarDip;
 
     internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment)
         : base(rectT, text, alignment, BaseStyle)
@@ -45,13 +56,6 @@ internal sealed class RowControl : GUIButton
         Theme.ApplyLabel(TextBlock, Theme.Text);
     }
 
-    public override void Update(float deltaTime)
-    {
-        base.Update(deltaTime);
-
-        Animate?.Invoke(deltaTime);
-    }
-
     public override void Draw(SpriteBatch spriteBatch)
     {
         base.Draw(spriteBatch);
@@ -61,22 +65,21 @@ internal sealed class RowControl : GUIButton
         {
             Rectangle rect = Rect;
             Rectangle? slot = SlotBox();
-            Color fill = Highlight ? FillOf(State) : Color.Transparent;
 
             if (slot is { } box)
             {
-                Theme.Fill(spriteBatch, box, Theme.SlotFill);
-                Theme.Outline(spriteBatch, box, Theme.SlotLine);
+                Theme.Fill(spriteBatch, box, SlotFill);
+                Theme.Outline(spriteBatch, box, SlotLine);
             }
 
-            if (fill.A > 0f)
+            if (Highlight && Fill.A > 0f)
             {
-                GUI.DrawRectangle(spriteBatch, SlotOnly && slot is { } marked ? marked : rect, fill * (fill.A / 255f), true, 0f, 1f);
+                GUI.DrawRectangle(spriteBatch, SlotOnly && slot is { } marked ? marked : rect, Fill * (Fill.A / 255f), true, 0f, 1f);
             }
 
-            if (Selected)
+            if (Selected && SelectedBarFill.A > 0f)
             {
-                GUI.DrawRectangle(spriteBatch, SelectedBarRect(rect), Theme.Accent, true, 0f, 1f);
+                GUI.DrawRectangle(spriteBatch, SelectedBarRect(rect), SelectedBarFill, true, 0f, 1f);
             }
         }
         catch (Exception e)
@@ -85,13 +88,7 @@ internal sealed class RowControl : GUIButton
         }
     }
 
-    private static Color FillOf(GUIComponent.ComponentState state) => state switch
-    {
-        GUIComponent.ComponentState.Hover or GUIComponent.ComponentState.HoverSelected => Theme.RowHover,
-        GUIComponent.ComponentState.Pressed => Theme.RowPressed,
-        GUIComponent.ComponentState.Selected => Theme.RowSelected,
-        _ => Color.Transparent
-    };
+    internal Rectangle? SlotBoxRect => SlotBox();
 
     private Rectangle? SlotBox()
     {
@@ -100,14 +97,14 @@ internal sealed class RowControl : GUIButton
         Rectangle box = icon.Rect;
         if (box.Width <= 0 || box.Height <= 0) { return null; }
 
-        int pad = UiMetrics.DipInt(Theme.SlotPadding);
+        int pad = _slotPaddingDip.Pixels(SlotPadding);
 
         return new Rectangle(box.X - pad, box.Y - pad, box.Width + 2 * pad, box.Height + 2 * pad);
     }
 
     private Rectangle SelectedBarRect(Rectangle rect)
     {
-        int thickness = Math.Max(1, UiMetrics.DipInt(Theme.SelectedBarWidth));
+        int thickness = Math.Max(1, _selectedBarDip.Pixels(SelectedBarWidth));
 
         return SelectedBar switch
         {

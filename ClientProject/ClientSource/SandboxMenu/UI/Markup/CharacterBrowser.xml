@@ -1,0 +1,61 @@
+<Window Width="704dip" Height="560dip">
+
+<Stack Orientation="Vertical" Spacing="6">
+
+  <!-- A cell is the character's portrait with their name under it and, when they have a job, the job's small icon in
+       the top left corner. What is left of the filters sits in the titles of the three buttons. The hover swell is a
+       storyboard on the tile's own Grow, exactly like the item tiles in the browser. -->
+  <Stack.Resources>
+    <DataTemplate Key="CharacterTile">
+      <CharacterTile Character="{Binding Display}" ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}"
+                     IconShadow="False">
+        <CharacterTile.Triggers>
+          <Trigger Property="IsMouseOver" Value="True">
+            <Trigger.EnterActions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Property="Grow" To="1" Duration="0.12" Easing="QuadOut" />
+                </Storyboard>
+              </BeginStoryboard>
+            </Trigger.EnterActions>
+            <Trigger.ExitActions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Property="Grow" To="0" Duration="0.12" Easing="QuadOut" />
+                </Storyboard>
+              </BeginStoryboard>
+            </Trigger.ExitActions>
+          </Trigger>
+        </CharacterTile.Triggers>
+      </CharacterTile>
+    </DataTemplate>
+  </Stack.Resources>
+
+  <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
+    <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="1*" Height="1" Padding="8" />
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
+            SelfToolTip="False" />
+  </Stack>
+
+  <!-- What the grid is limited to: the three buttons each open a list of tick boxes on top of this window and the
+       box takes the text. -->
+  <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
+    <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="1.8*" Height="0.8"
+            Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+    <Button Text="{Binding SpeciesFilter}" Command="{Binding PickSpeciesCommand}" Width="1.2*" Height="0.8"
+            Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+    <Button Text="{Binding TeamFilter}" Command="{Binding PickTeamsCommand}" Width="1.2*" Height="0.8"
+            Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+    <TextBox Text="{Binding Query, Mode=TwoWay}" Width="2*" Height="0.8" Clear="True" Focus="True" />
+  </Stack>
+
+  <Panel Skin="InnerFrame" Height="80*">
+    <TileGrid Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="1" Columns="3" Spacing="4"
+              Padding="16,10,10,10" TileTemplate="CharacterTile" />
+    <Text Text="{Binding EmptyHint}" Visible="{Binding Empty}" FontSize="20" Width="0.8" Height="0.2"
+          Align="Center" TextAlign="Center" Wrap="True" />
+  </Panel>
+
+</Stack>
+
+</Window>

@@ -9,6 +9,7 @@ internal sealed class ListDrag(ListBoxElement list)
 
     private readonly GUIListBox _listBox = list.ListBox;
     private readonly ViewContext _view = list.View;
+    private readonly Dictionary<object, GUIButton?> _rows = new(ReferenceEqualityComparer.Instance);
 
     private IItemDropTarget? _target;
     private IListBackground? _background;
@@ -30,6 +31,8 @@ internal sealed class ListDrag(ListBoxElement list)
     {
         _target = dataContext as IItemDropTarget;
         _background = dataContext as IListBackground;
+
+        _rows.Clear();
     }
 
     private bool IsShown()
@@ -44,6 +47,8 @@ internal sealed class ListDrag(ListBoxElement list)
 
     internal void Update()
     {
+        _rows.Clear();
+
         if (_view.IsInputBlocked()) { return; }
 
         if (IsDragging) { ContinueDrag(PlayerInput.MousePosition); return; }
@@ -85,6 +90,8 @@ internal sealed class ListDrag(ListBoxElement list)
 
     internal void UpdateBackgroundClick()
     {
+        _rows.Clear();
+
         if (!IsShown() || _view.IsInputBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
@@ -100,6 +107,7 @@ internal sealed class ListDrag(ListBoxElement list)
         RestoreHighlight();
         Restore(_draggedSkin, RowOf(_dragged));
         _draggedSkin = null;
+        _rows.Clear();
 
         IsDragging = false;
         _dragged = null;
@@ -229,12 +237,22 @@ internal sealed class ListDrag(ListBoxElement list)
 
     private GUIButton? RowOf(object? item)
     {
+        if (item is null) { return null; }
+        if (_rows.TryGetValue(item, out GUIButton? cached)) { return cached; }
+
+        GUIButton? row = null;
+
         for (int i = 0; i < list.Rows.Count; i++)
         {
-            if (ReferenceEquals(list.Rows[i].Element.DataContext, item)) { return list.Rows[i].Button; }
+            if (!ReferenceEquals(list.Rows[i].Element.DataContext, item)) { continue; }
+
+            row = list.Rows[i].Button;
+            break;
         }
 
-        return null;
+        _rows[item] = row;
+
+        return row;
     }
 
     private object? ItemAt(Vector2 mouse)

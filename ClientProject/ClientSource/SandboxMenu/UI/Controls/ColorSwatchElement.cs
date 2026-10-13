@@ -18,13 +18,14 @@ public sealed class ColorSwatchElement : ViewElement, IDisposable
 
         _button.OnClicked = (_, _) =>
         {
+            RaiseEvent("Click");
             _view.Dispatch(() => _command?.Execute(null));
             return false;
         };
     }
 
     [ElementProperty]
-    public Color Color
+    public new Color Color
     {
         set
         {
@@ -45,6 +46,13 @@ public sealed class ColorSwatchElement : ViewElement, IDisposable
 
     [ElementProperty]
     public ICommand? Command { set => _command = value; }
+
+    [ElementProperty]
+    public Color Outline
+    {
+        get => _button.Outline;
+        set => _button.Outline = value;
+    }
 
     public void Dispose()
     {

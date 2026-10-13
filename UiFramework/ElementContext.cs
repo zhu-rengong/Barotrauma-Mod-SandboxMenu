@@ -28,8 +28,6 @@ public sealed class ElementContext
 
     internal Insets Padding => Node.Padding;
 
-    internal Insets Margin => Node.Margin;
-
     public float Size(string attribute, float fallback) => MarkupPlacement.Size(Node, attribute, fallback, View.Diagnostics);
 
     public float Metric(string attribute, float fallback) => MarkupPlacement.Metric(Node, attribute, fallback, View.Diagnostics);

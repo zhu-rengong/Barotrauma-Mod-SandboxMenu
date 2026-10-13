@@ -6,12 +6,18 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
 
     private readonly GUIListBox _listBox = list.ListBox;
 
+    private readonly List<BuiltRow?> _previous = [];
+    private readonly List<BuiltRow> _next = [];
+
     private int _first = -1;
     private int _height;
     private int _spacing = -1;
     private float _scrolled;
     private GUIFrame? _top;
     private GUIFrame? _bottom;
+
+    private (int Count, int Viewport, int Spacing, int Height, float Scroll, float BarSize, float TotalSize, int Rows, int First) _inputs;
+    private bool _hasInputs;
 
     internal void Rebuild()
     {
@@ -51,6 +57,8 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
         if (count == 0)
         {
             Release();
+
+            _hasInputs = false;
             return;
         }
 
@@ -63,6 +71,14 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
         if (height <= 0 || viewport <= 0) { return; }
 
         list.RowHeight = height;
+
+        (int, int, int, int, float, float, float, int, int) inputs = (
+            count, viewport, spacing, height, _listBox.BarScroll, _listBox.BarSize, _listBox.TotalSize, list.Rows.Count, _first);
+
+        if (!force && _hasInputs && inputs == _inputs) { return; }
+
+        _inputs = inputs;
+        _hasInputs = true;
 
         int stride = height + spacing;
         float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - viewport) * _listBox.BarScroll : 0f;
@@ -102,8 +118,13 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
 
     private void Build(int first, int last, int height, int spacing)
     {
-        List<BuiltRow?> previous = [.. list.Rows];
-        List<BuiltRow> next = new(last - first + 1);
+        List<BuiltRow?> previous = _previous;
+        List<BuiltRow> next = _next;
+
+        previous.Clear();
+        previous.AddRange(list.Rows);
+
+        next.Clear();
         int failed = 0;
 
         for (int index = first; index <= last; index++)
@@ -134,6 +155,7 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
 
             list.Rows.Clear();
             _first = -1;
+            _hasInputs = false;
 
             if (next.Count == 0) { return; }
 
@@ -170,6 +192,8 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
         int after = list.Index.Count - _first - list.Rows.Count;
 
         if (after > 0) { _bottom = CreateSpacer(width, after * stride - spacing); }
+
+        rowPool.FlushLayout();
     }
 
     private GUIFrame CreateSpacer(int width, int height)
@@ -192,6 +216,7 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
 
         list.Rows.Clear();
         _first = -1;
+        _hasInputs = false;
 
         ReleaseSpacers();
     }

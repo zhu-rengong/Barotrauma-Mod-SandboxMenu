@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using UiFramework.Styling;
 
 namespace UiFramework;
 
@@ -27,26 +28,35 @@ internal static class ViewBuilder
         if (node.ElementName is { } name) { view.Names.Add(name, element, view.Diagnostics, node); }
 
         element.Node = node;
-
+        element.ElementName = node.Name;
         element.DataContext = dataContext ?? view.DataContext;
         element.Context = view;
         element.Parent = parentElement;
+        element.Scope = view.CurrentScope;
 
         if (element is IDisposable disposable) { view.Own(disposable); }
 
         Style? style = ResolveStyle(view, node, element);
+
         ApplySetters(view, node, element, style);
         ApplyAttributes(view, node, element, metadata);
-        ApplyTriggers(view, node, element, style);
-
         ApplyContent(view, node, element, metadata);
+        AttachTriggers(view, node, element, style);
 
         return element;
     }
 
     private static Style? ResolveStyle(ViewContext view, MarkupNode node, ViewElement element)
     {
-        Style? style = node.Text("Style") is { } key ? view.FindResource(key, element) as Style : null;
+        Style? style = null;
+
+        if (node.Text("Style") is { Length: > 0 } key)
+        {
+            style = view.FindResource(key, element) as Style;
+
+            if (style is null) { view.Diagnostics.Report($"no style named '{key}'", node); }
+        }
+
         style ??= view.FindResource(node.Name, element) as Style;
 
         return style is null ? null : FoldIn(style, view, node, element);
@@ -71,7 +81,8 @@ internal static class ViewBuilder
             Key = style.Key,
             TargetType = style.TargetType,
             Setters = [.. folded.Setters, .. style.Setters],
-            Triggers = [.. folded.Triggers, .. style.Triggers]
+            Triggers = [.. folded.Triggers, .. style.Triggers],
+            Events = [.. folded.Events, .. style.Events]
         };
     }
 
@@ -83,69 +94,59 @@ internal static class ViewBuilder
         }
     }
 
-    private static void ApplyTriggers(ViewContext view, MarkupNode node, ViewElement element, Style? style)
+    private static void AttachTriggers(ViewContext view, MarkupNode node, ViewElement element, Style? style)
     {
-        if (style is null) { return; }
+        List<TriggerBase> triggers = [];
+        List<EventTrigger> events = [];
 
-        foreach (DataTrigger trigger in style.Triggers)
+        if (style is not null)
         {
-            Dictionary<string, Setter> active = new(StringComparer.OrdinalIgnoreCase);
-            string expected = trigger.Value.Raw;
-
-            view.Own(Binding.Attach(new BindingDefinition
-            {
-                Source = element.DataContext,
-                Path = trigger.Path,
-                Mode = BindingMode.OneWay,
-                TargetType = typeof(object),
-                Apply = value =>
-                {
-                    try
-                    {
-                        bool matches = string.Equals(value?.ToString(), expected, StringComparison.OrdinalIgnoreCase);
-
-                        if (matches && active.Count == 0)
-                        {
-                            foreach (Setter setter in trigger.Setters)
-                            {
-                                if (TryApply(view, node, element, setter)) { active[setter.Property] = setter; }
-                            }
-                        }
-                        else if (!matches && active.Count > 0)
-                        {
-                            foreach (Setter setter in active.Values)
-                            {
-                                Style? own = style;
-                                foreach (Setter baseSetter in own.Setters.Where(baseSetter => string.Equals(baseSetter.Property, setter.Property, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    TryApply(view, node, element, baseSetter);
-                                }
-                            }
-
-                            active.Clear();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        view.Diagnostics.Report($"a trigger on <{node.Name}> failed ({e.Message})", node);
-                    }
-                },
-                Report = message => view.Diagnostics.Report(message, node)
-            }));
+            triggers.AddRange(style.Triggers);
+            events.AddRange(style.Events);
         }
+
+        triggers.AddRange(element.Triggers);
+        events.AddRange(element.Events);
+
+        if (triggers.Count == 0 && events.Count == 0) { return; }
+
+        TriggerContext context = new(view, element, node, element.Scope);
+
+        foreach (TriggerBase trigger in triggers)
+        {
+            TriggerBase current = trigger;
+            UiGuard.Run(() => current.Attach(context));
+        }
+
+        bool loaded = false;
+
+        foreach (EventTrigger raised in events)
+        {
+            EventTrigger current = raised;
+            UiGuard.Run(() => current.Attach(context));
+            loaded |= string.Equals(current.Event, "Loaded", StringComparison.Ordinal);
+        }
+
+        if (loaded) { view.Once(() => element.RaiseEvent("Loaded")); }
     }
 
     private static bool TryApply(ViewContext view, MarkupNode node, ViewElement element, Setter setter)
     {
-        if (ElementRegistry.Find(node.Name)?.Properties.TryGetValue(setter.Property, out PropertyMetadata? property) is not true)
+        if (ElementRegistry.Property(node.Name, setter.Property) is not { } property)
         {
             view.Diagnostics.Report($"a style sets '{setter.Property}', which <{node.Name}> does not have", node);
             return false;
         }
 
-        if (!property.SettableFromStyle)
+        if (property.Phase == ApplyPhase.Construct)
         {
             view.Diagnostics.Report($"'{setter.Property}' is decided while <{node.Name}> is built, a style cannot set it", node);
+            return false;
+        }
+
+        if (!property.SettableFromStyle)
+        {
+            view.Diagnostics.Report($"'{setter.Property}' is not there to be set from a style", node);
             return false;
         }
 
@@ -206,6 +207,8 @@ internal static class ViewBuilder
 
         foreach (MarkupAttribute attribute in node.Attributes)
         {
+            if (IsReserved(attribute.Name)) { continue; }
+
             if (string.Equals(attribute.Name, "Padding", StringComparison.OrdinalIgnoreCase))
             {
                 GivePadding(element, node.Padding);
@@ -218,13 +221,25 @@ internal static class ViewBuilder
                 continue;
             }
 
-            if (attribute.Name.Contains('.', StringComparison.Ordinal) || IsStructural(attribute.Name)) { continue; }
+            if (attribute.Name.Contains('.', StringComparison.Ordinal))
+            {
+                if (AttachedProperties.Find(attribute.Name) is not { } attached)
+                {
+                    view.Diagnostics.Report($"<{node.Name}> has no attached property '{attribute.Name}'", node);
+                    continue;
+                }
+
+                Give(new PropertyAssignment(view, node, element, attached), attribute.Value);
+                continue;
+            }
 
             if (!metadata.Properties.TryGetValue(attribute.Name, out PropertyMetadata? property))
             {
                 view.Diagnostics.Report($"<{node.Name}> has no property '{attribute.Name}'", node);
                 continue;
             }
+
+            if (property.Phase == ApplyPhase.Construct) { continue; }
 
             Give(new PropertyAssignment(view, node, element, property), attribute.Value);
         }
@@ -244,6 +259,12 @@ internal static class ViewBuilder
             if (string.Equals(property.Name, "InputBindings", StringComparison.OrdinalIgnoreCase))
             {
                 ReadInputBindings(view, element, property);
+                continue;
+            }
+
+            if (string.Equals(property.Name, "Triggers", StringComparison.OrdinalIgnoreCase))
+            {
+                ReadTriggers(view, element, property);
                 continue;
             }
 
@@ -269,6 +290,16 @@ internal static class ViewBuilder
                 view.Diagnostics.Report($"<{node.Name}> takes no content", child);
             }
         }
+    }
+
+    private static void ReadTriggers(ViewContext view, ViewElement element, MarkupNode propertyNode)
+    {
+        List<TriggerBase> triggers = [];
+        List<EventTrigger> events = [];
+
+        Style.ReadTriggers(propertyNode, message => view.Diagnostics.Report(message, propertyNode), triggers, events);
+
+        element.AddTriggers(triggers, events);
     }
 
     private static void ApplyPropertyElement(
@@ -327,9 +358,10 @@ internal static class ViewBuilder
         typeof(ICommand),
         ApplyPhase.Live,
         BindingMode.OneWay,
-        SettableFromStyle: false,
+        SettableFromStyle: true,
         KeyText: false,
-        (target, value) => ((Input.KeyBinding)target).Command = (ICommand?)value);
+        (target, value) => ((Input.KeyBinding)target).Command = (ICommand?)value,
+        target => ((Input.KeyBinding)target).Command);
 
     private static void ReadResources(ViewContext view, ResourceDictionary dictionary, MarkupNode propertyNode)
     {
@@ -343,8 +375,8 @@ internal static class ViewBuilder
         }
     }
 
-    private static bool IsStructural(string name)
-        => name is "Name" or "Skin" or "Align" or "Width" or "Height" or "LabelWidth" or "Orientation" or "ChildAnchor" or "Spacing" or "RelativeSpacing" or "Stretch" or "Draggable" or "BackgroundMenu" or "Virtual" or "Clear" or "Integer" or "ItemTemplate" or "TileTemplate" or "Rows" or "Columns" or "Gap" or "Padding" or "Margin" or "Font";
+    private static bool IsReserved(string name)
+        => name is "Name" or "Style";
 
     private sealed class PlaceholderElement : ViewElement
     {

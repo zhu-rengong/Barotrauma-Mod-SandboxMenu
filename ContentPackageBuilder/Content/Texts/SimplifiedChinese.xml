@@ -2,9 +2,8 @@
 <infotexts language="Simplified Chinese" nowhitespace="true" translatedname="中文（简体）">
   <sandboxmenu.title>沙盒菜单</sandboxmenu.title>
   <sandboxmenu.close>关闭</sandboxmenu.close>
-  <sandboxmenu.function.spawn>物品生成</sandboxmenu.function.spawn>
+  <sandboxmenu.function.spawn>生成</sandboxmenu.function.spawn>
   <sandboxmenu.function.afflictions>状态效果</sandboxmenu.function.afflictions>
-  <sandboxmenu.function.afflictions.placeholder>状态效果的浏览与控制尚未实现。</sandboxmenu.function.afflictions.placeholder>
   <sandboxmenu.give>生成到背包</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>生成到鼠标位置</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>未选中条目。在左侧列表的空白处点击鼠标右键即可打开菜单，添加物品或模板引用。</sandboxmenu.empty>
@@ -33,18 +32,18 @@
   <sandboxmenu.field.tags>标签</sandboxmenu.field.tags>
   <sandboxmenu.field.template>模板名称</sandboxmenu.field.template>
 
-  <sandboxmenu.preview.none>尚未指定物品。</sandboxmenu.preview.none>
+  <sandboxmenu.preview.none>尚未输入标识符。</sandboxmenu.preview.none>
   <sandboxmenu.preview.missing>没有物品使用该标识符。</sandboxmenu.preview.missing>
 
   <sandboxmenu.summary.unset>（未设置）</sandboxmenu.summary.unset>
-  <sandboxmenu.summary.stacks>[count] 堆</sandboxmenu.summary.stacks>
+  <sandboxmenu.summary.stacks>[count] 堆叠</sandboxmenu.summary.stacks>
   <sandboxmenu.addproperty>+ 添加属性覆盖</sandboxmenu.addproperty>
   <sandboxmenu.addchild>+ 添加容器内物品</sandboxmenu.addchild>
   <sandboxmenu.moveup>上移</sandboxmenu.moveup>
   <sandboxmenu.movedown>下移</sandboxmenu.movedown>
   <sandboxmenu.previous>上一个物品</sandboxmenu.previous>
   <sandboxmenu.next>下一个物品</sandboxmenu.next>
-  <sandboxmenu.focusidentifier>输入标识符</sandboxmenu.focusidentifier>
+  <sandboxmenu.focusidentifier>编辑标识符</sandboxmenu.focusidentifier>
 
   <sandboxmenu.togglekey.displayname>打开或关闭菜单的快捷键</sandboxmenu.togglekey.displayname>
   <sandboxmenu.togglekey.tooltip>用于在游戏中打开或关闭沙盒菜单的按键。</sandboxmenu.togglekey.tooltip>
@@ -70,8 +69,8 @@
   <sandboxmenu.filter.categories>物品类别</sandboxmenu.filter.categories>
   <sandboxmenu.filter.summary.all>[name]：全部</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]：已选 [count] 项</sandboxmenu.filter.summary.some>
-  <sandboxmenu.filter.container.only>只显示可放入</sandboxmenu.filter.container.only>
-  <sandboxmenu.filter.hide.hidden>跳过隐藏项</sandboxmenu.filter.hide.hidden>
+  <sandboxmenu.filter.container.only>只显示能放入的</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.hide.hidden>跳过隐藏条目</sandboxmenu.filter.hide.hidden>
   <sandboxmenu.filter.editable>仅可编辑</sandboxmenu.filter.editable>
   <sandboxmenu.filter.saveable>仅可保存</sandboxmenu.filter.saveable>
   <sandboxmenu.browser.selfhint>[鼠标右键] 生成至角色物品栏，并应用生成参数。</sandboxmenu.browser.selfhint>
@@ -80,12 +79,12 @@
   <sandboxmenu.browse.property>选择属性</sandboxmenu.browse.property>
   <sandboxmenu.browse.enumvalue>选择取值</sandboxmenu.browse.enumvalue>
   <sandboxmenu.colorpick.title>选择颜色</sandboxmenu.colorpick.title>
-  <sandboxmenu.pick.itemitself>（物品自身）</sandboxmenu.pick.itemitself>
+  <sandboxmenu.pick.itemitself>物品自身</sandboxmenu.pick.itemitself>
   <sandboxmenu.pick.noproperties>该目标没有可覆盖的属性。</sandboxmenu.pick.noproperties>
   <sandboxmenu.picker.hint>左键在此生成，右键或 Esc 取消</sandboxmenu.picker.hint>
-  <sandboxmenu.status.nocharacter>没有正在控制的角色。</sandboxmenu.status.nocharacter>
+  <sandboxmenu.status.nocharacter>没有可用的角色。</sandboxmenu.status.nocharacter>
   <sandboxmenu.status.empty>生成集合为空。</sandboxmenu.status.empty>
-  <sandboxmenu.status.spawnqueued>已提交生成请求。</sandboxmenu.status.spawnqueued>
+  <sandboxmenu.status.spawnqueued>已生成。</sandboxmenu.status.spawnqueued>
   <sandboxmenu.clear>清空生成集合</sandboxmenu.clear>
   <sandboxmenu.preset.name>预设名称</sandboxmenu.preset.name>
   <sandboxmenu.preset.save>保存预设</sandboxmenu.preset.save>
@@ -101,7 +100,7 @@
   <sandboxmenu.status.presetreloaded>已从磁盘重新载入预设“[name]”。</sandboxmenu.status.presetreloaded>
   <sandboxmenu.status.presetloadfailed>载入预设“[name]”失败，详见日志。</sandboxmenu.status.presetloadfailed>
   <sandboxmenu.status.presetsavefailed>保存预设“[name]”失败，详见日志。</sandboxmenu.status.presetsavefailed>
-  <sandboxmenu.status.templatecycle>该预置通过其它预置引用了它自己。请换个名称或移除该引用后再保存。</sandboxmenu.status.templatecycle>
+  <sandboxmenu.status.templatecycle>该预设通过其他预设引用了它自己。请换个名称或移除该引用后再保存。</sandboxmenu.status.templatecycle>
   <sandboxmenu.status.presetnotfound>还没有名为“[name]”的预设文件，请先保存一次。</sandboxmenu.status.presetnotfound>
   <sandboxmenu.status.presetopened>已用系统默认程序打开预设文件“[name]”。</sandboxmenu.status.presetopened>
   <sandboxmenu.status.presetopenfailed>打开预设文件“[name]”失败，详见日志。</sandboxmenu.status.presetopenfailed>
@@ -120,6 +119,78 @@
   <sandboxmenu.status.spawntoolarge>生成集合过大，无法发送给服务器。</sandboxmenu.status.spawntoolarge>
   <sandboxmenu.status.sendfailed>无法把请求发送给服务器，详见日志。</sandboxmenu.status.sendfailed>
   <sandboxmenu.status.serverproblems>服务器报告了 [count] 个问题，详见日志。</sandboxmenu.status.serverproblems>
+
+  <sandboxmenu.characters.title>选择角色</sandboxmenu.characters.title>
+  <sandboxmenu.characters.empty>没有符合筛选的角色。</sandboxmenu.characters.empty>
+  <sandboxmenu.filter.species>种族</sandboxmenu.filter.species>
+  <sandboxmenu.filter.teams>队伍</sandboxmenu.filter.teams>
+
+  <sandboxmenu.team.none>无队伍</sandboxmenu.team.none>
+  <sandboxmenu.team.friendlynpc>友方 NPC</sandboxmenu.team.friendlynpc>
+
+  <sandboxmenu.afflictions.characters>选择角色</sandboxmenu.afflictions.characters>
+  <sandboxmenu.afflictions.characters.controlled>当前角色</sandboxmenu.afflictions.characters.controlled>
+  <sandboxmenu.afflictions.none>尚未选择角色。</sandboxmenu.afflictions.none>
+  <sandboxmenu.afflictions.targets>作用肢体</sandboxmenu.afflictions.targets>
+  <sandboxmenu.afflictions.target.body>全身</sandboxmenu.afflictions.target.body>
+  <sandboxmenu.list.separator>、</sandboxmenu.list.separator>
+  <sandboxmenu.afflictions.group.body>全身</sandboxmenu.afflictions.group.body>
+  <sandboxmenu.afflictions.group.other>其他</sandboxmenu.afflictions.group.other>
+  <sandboxmenu.afflictions.sort.name>按名称排序</sandboxmenu.afflictions.sort.name>
+  <sandboxmenu.afflictions.hide.empty>隐藏没有状态效果的肢体</sandboxmenu.afflictions.hide.empty>
+  <sandboxmenu.afflictions.filter.types>类型</sandboxmenu.afflictions.filter.types>
+  <sandboxmenu.afflictions.filter.scope>范围</sandboxmenu.afflictions.filter.scope>
+  <sandboxmenu.afflictions.filter.kind>效果类型</sandboxmenu.afflictions.filter.kind>
+  <sandboxmenu.afflictions.strength>施加强度 %</sandboxmenu.afflictions.strength>
+  <sandboxmenu.afflictions.apply.hint>左键把该状态效果施加给所选角色。</sandboxmenu.afflictions.apply.hint>
+  <sandboxmenu.afflictions.rows.empty>请先选择一个角色，才能查看其状态效果。</sandboxmenu.afflictions.rows.empty>
+  <sandboxmenu.afflictions.tiles.empty>没有符合筛选的状态效果。</sandboxmenu.afflictions.tiles.empty>
+
+  <sandboxmenu.afflictions.field.species>[种族] [value]</sandboxmenu.afflictions.field.species>
+  <sandboxmenu.afflictions.field.group>[分组] [value]</sandboxmenu.afflictions.field.group>
+  <sandboxmenu.afflictions.field.job>[职业] [value]</sandboxmenu.afflictions.field.job>
+  <sandboxmenu.afflictions.field.team>[队伍] [value]</sandboxmenu.afflictions.field.team>
+  <sandboxmenu.afflictions.field.health>[生命值] [value]</sandboxmenu.afflictions.field.health>
+  <sandboxmenu.afflictions.field.none>—</sandboxmenu.afflictions.field.none>
+  <sandboxmenu.afflictions.field.limbspecific>[肢体专属]</sandboxmenu.afflictions.field.limbspecific>
+  <sandboxmenu.afflictions.field.body>[全身]</sandboxmenu.afflictions.field.body>
+  <sandboxmenu.afflictions.field.buff>[增益]</sandboxmenu.afflictions.field.buff>
+  <sandboxmenu.afflictions.field.debuff>[减益]</sandboxmenu.afflictions.field.debuff>
+  <sandboxmenu.afflictions.option.limb>肢体专属</sandboxmenu.afflictions.option.limb>
+  <sandboxmenu.afflictions.option.body>全身</sandboxmenu.afflictions.option.body>
+  <sandboxmenu.afflictions.option.buff>增益</sandboxmenu.afflictions.option.buff>
+  <sandboxmenu.afflictions.option.debuff>减益</sandboxmenu.afflictions.option.debuff>
+
+  <sandboxmenu.afflictions.status.applied>已施加 [value]。</sandboxmenu.afflictions.status.applied>
+  <sandboxmenu.afflictions.status.removed>已移除 [value]。</sandboxmenu.afflictions.status.removed>
+  <sandboxmenu.afflictions.status.blocked>目标无法承受该状态效果（无敌模式或不可击杀）。</sandboxmenu.afflictions.status.blocked>
+  <sandboxmenu.afflictions.status.senttoserver>状态效果请求已发送到服务器。</sandboxmenu.afflictions.status.senttoserver>
+  <sandboxmenu.afflictions.status.sendfailed>无法把请求发送给服务器，详见日志。</sandboxmenu.afflictions.status.sendfailed>
+  <sandboxmenu.afflictions.status.serverok>服务器已施加该状态效果。</sandboxmenu.afflictions.status.serverok>
+  <sandboxmenu.afflictions.status.serverdenied>服务器不允许你施加状态效果。</sandboxmenu.afflictions.status.serverdenied>
+  <sandboxmenu.afflictions.status.serverunknown>服务器不认识该状态效果。</sandboxmenu.afflictions.status.serverunknown>
+  <sandboxmenu.afflictions.status.servernocharacter>服务器找不到该角色。</sandboxmenu.afflictions.status.servernocharacter>
+  <sandboxmenu.afflictions.status.serverthrottled>服务器仍在处理上一个请求。</sandboxmenu.afflictions.status.serverthrottled>
+
+  <sandboxmenu.limb.none>其他</sandboxmenu.limb.none>
+  <sandboxmenu.limb.head>头部</sandboxmenu.limb.head>
+  <sandboxmenu.limb.torso>躯干</sandboxmenu.limb.torso>
+  <sandboxmenu.limb.waist>腰部</sandboxmenu.limb.waist>
+  <sandboxmenu.limb.jaw>下颚</sandboxmenu.limb.jaw>
+  <sandboxmenu.limb.tail>尾巴</sandboxmenu.limb.tail>
+  <sandboxmenu.limb.legs>腿</sandboxmenu.limb.legs>
+  <sandboxmenu.limb.leftarm>左臂</sandboxmenu.limb.leftarm>
+  <sandboxmenu.limb.rightarm>右臂</sandboxmenu.limb.rightarm>
+  <sandboxmenu.limb.leftforearm>左前臂</sandboxmenu.limb.leftforearm>
+  <sandboxmenu.limb.rightforearm>右前臂</sandboxmenu.limb.rightforearm>
+  <sandboxmenu.limb.lefthand>左手</sandboxmenu.limb.lefthand>
+  <sandboxmenu.limb.righthand>右手</sandboxmenu.limb.righthand>
+  <sandboxmenu.limb.leftthigh>左大腿</sandboxmenu.limb.leftthigh>
+  <sandboxmenu.limb.rightthigh>右大腿</sandboxmenu.limb.rightthigh>
+  <sandboxmenu.limb.leftleg>左腿</sandboxmenu.limb.leftleg>
+  <sandboxmenu.limb.rightleg>右腿</sandboxmenu.limb.rightleg>
+  <sandboxmenu.limb.leftfoot>左脚</sandboxmenu.limb.leftfoot>
+  <sandboxmenu.limb.rightfoot>右脚</sandboxmenu.limb.rightfoot>
 
   <sandboxmenu.allowallclients.displayname>允许所有客户端生成物品</sandboxmenu.allowallclients.displayname>
   <sandboxmenu.allowallclients.tooltip>关闭时，只有拥有控制台命令权限的客户端（主机与管理员）才能用沙盒菜单生成物品。</sandboxmenu.allowallclients.tooltip>

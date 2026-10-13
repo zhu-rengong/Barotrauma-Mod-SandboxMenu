@@ -25,6 +25,9 @@ internal sealed class MenuWindow : IDialogHost
     private MarkupWindow? _browser;
     private ItemBrowserViewModel? _browserModel;
 
+    private MarkupWindow? _characterBrowser;
+    private CharacterBrowserViewModel? _characterBrowserModel;
+
     private MarkupWindow? _multiPicker;
 
     private int _popupGrace;
@@ -35,6 +38,8 @@ internal sealed class MenuWindow : IDialogHost
     private MenuWindow() => _viewModel = new SandboxMenuViewModel(this);
 
     public bool IsOpen => _window?.IsOpen == true;
+
+    internal SandboxMenuViewModel ViewModel => _viewModel;
 
     public void Toggle()
     {
@@ -113,6 +118,24 @@ internal sealed class MenuWindow : IDialogHost
         ScreenshotWriter.Write(drawn, _viewModel.Spawn.Report);
     }
 
+    public void ShowCharacterBrowser(Action<Character> onPicked)
+    {
+        if (_characterBrowser is null || _characterBrowserModel is null)
+        {
+            _characterBrowserModel = new CharacterBrowserViewModel(this);
+            _characterBrowser = new MarkupWindow("CharacterBrowser.xml", DialogOrder, _characterBrowserModel);
+        }
+
+        _characterBrowserModel.Refresh();
+        _characterBrowserModel.PickInto(character =>
+        {
+            ClosePopups();
+            onPicked(character);
+        });
+
+        ShowPopup(_characterBrowser);
+    }
+
     public void Close()
     {
         _window?.Close();
@@ -130,6 +153,11 @@ internal sealed class MenuWindow : IDialogHost
             instance._browser?.Dispose();
             instance._browser = null;
             instance._browserModel = null;
+            instance._characterBrowser?.Dispose();
+            instance._characterBrowser = null;
+            instance._characterBrowserModel = null;
+
+            CharacterPreview.ReleaseAll();
         }
 
         _instance = null;
@@ -152,9 +180,20 @@ internal sealed class MenuWindow : IDialogHost
             _viewModel.Spawn.ContentChanged();
         }
 
+        if (TextReload.TakeRebuild())
+        {
+            ReleaseCachedContent();
+            _viewModel.Spawn.ContentChanged();
+        }
+
         if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
         {
             _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
+        }
+
+        if (ClientAfflictionDispatcher.TryTakeResult(out AfflictionStatus afflictionStatus))
+        {
+            _viewModel.Afflictions.ApplyResult(afflictionStatus);
         }
 
         if (ResolutionChanged.Take()) { DropWindows(); }
@@ -163,12 +202,21 @@ internal sealed class MenuWindow : IDialogHost
     private void ReleaseCachedContent()
     {
         DropWindows();
+
+        AfflictionDisplay.Reset();
+        AfflictionPrefabCatalog.Reset();
+        ItemDisplay.Reset();
+        PropertyOverrideCatalog.Reset();
+
         _viewModel.Spawn.ReleaseContent();
+        _viewModel.Afflictions.ReleaseContent();
     }
 
     private void DropWindows()
     {
         ClosePopups();
+
+        CharacterPreview.ReleaseAll();
 
         _window?.Dispose();
         _window = null;
@@ -176,6 +224,10 @@ internal sealed class MenuWindow : IDialogHost
         _browser?.Dispose();
         _browser = null;
         _browserModel = null;
+
+        _characterBrowser?.Dispose();
+        _characterBrowser = null;
+        _characterBrowserModel = null;
     }
 
     private void DrivePopups()
@@ -209,11 +261,20 @@ internal sealed class MenuWindow : IDialogHost
     {
         _window?.Update();
         RefreshHints();
+        RefreshAfflictions();
 
         for (int i = 0; i < _popups.Count; i++)
         {
             if (_popups[i].IsOpen) { _popups[i].Update(); }
         }
+    }
+
+    private void RefreshAfflictions()
+    {
+        if (_window is not { IsOpen: true }) { return; }
+        if (!_viewModel.Functions.ShowAfflictions) { return; }
+
+        _viewModel.Afflictions.Tick();
     }
 
     private void RefreshHints()
@@ -325,6 +386,11 @@ internal sealed class MenuWindow : IDialogHost
             popup.Closing?.Invoke();
 
             if (ReferenceEquals(popup, _browser)) { _browser.Close(); }
+            else if (ReferenceEquals(popup, _characterBrowser))
+            {
+                _characterBrowser.Close();
+                _characterBrowserModel?.Release();
+            }
             else { popup.Dispose(); }
         }
         catch (Exception e)

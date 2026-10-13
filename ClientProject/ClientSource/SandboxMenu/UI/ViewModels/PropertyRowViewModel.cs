@@ -21,6 +21,9 @@ internal sealed class PropertyRowViewModel(
     private LocalizedString _componentLabel = componentLabel;
     private PropertyOption? _property = property;
 
+    private string _membersFrom = string.Empty;
+    private string[] _members = [];
+
     public LocalizedString ComponentLabel => _componentLabel;
 
     public string ComponentName => _target.ComponentName;
@@ -182,23 +185,57 @@ internal sealed class PropertyRowViewModel(
     }
 
     internal bool HasEnumFlag(string member)
-        => ValueMembers().Any(part => string.Equals(part, member, StringComparison.OrdinalIgnoreCase));
+    {
+        string[] members = ValueMembers();
+
+        for (int i = 0; i < members.Length; i++)
+        {
+            if (string.Equals(members[i], member, StringComparison.OrdinalIgnoreCase)) { return true; }
+        }
+
+        return false;
+    }
 
     internal void SetEnumFlag(string member, bool on)
     {
         if (Kind != PropertyKind.Flags) { return; }
 
-        List<string> members = [.. ValueMembers().Where(part => !string.Equals(part, member, StringComparison.OrdinalIgnoreCase))];
+        string[] current = ValueMembers();
+        List<string> members = new(current.Length + 1);
+
+        for (int i = 0; i < current.Length; i++)
+        {
+            if (string.Equals(current[i], member, StringComparison.OrdinalIgnoreCase)) { continue; }
+
+            members.Add(current[i]);
+        }
 
         if (on) { members.Add(member); }
 
-        SetValue(members.Count > 0
-            ? string.Join(", ", members)
-            : _property?.Values.Any(value => string.Equals(value, "None", StringComparison.OrdinalIgnoreCase)) == true ? "None" : "0");
+        SetValue(members.Count > 0 ? string.Join(", ", members) : HasNoneValue() ? "None" : "0");
     }
 
-    private IEnumerable<string> ValueMembers()
-        => _target.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+    private bool HasNoneValue()
+    {
+        if (_property is not { } property) { return false; }
+
+        foreach (string value in property.Values)
+        {
+            if (string.Equals(value, "None", StringComparison.OrdinalIgnoreCase)) { return true; }
+        }
+
+        return false;
+    }
+
+    private string[] ValueMembers()
+    {
+        if (string.Equals(_membersFrom, _target.Value, StringComparison.Ordinal)) { return _members; }
+
+        _membersFrom = _target.Value;
+        _members = _target.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        return _members;
+    }
 
     private bool Integral => Kind is PropertyKind.Int or PropertyKind.Point;
 

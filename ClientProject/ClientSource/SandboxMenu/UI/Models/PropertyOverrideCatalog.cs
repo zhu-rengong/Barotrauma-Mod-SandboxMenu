@@ -39,6 +39,8 @@ internal static class PropertyOverrideCatalog
 {
     private static readonly Dictionary<string, ImmutableArray<PropertyOption>> _propertyCache = new(StringComparer.OrdinalIgnoreCase);
 
+    internal static void Reset() => _propertyCache.Clear();
+
     internal static IReadOnlyList<OverrideTarget> Targets(string identifier) =>
         DescribeTargets((identifier ?? string.Empty).Trim());
 

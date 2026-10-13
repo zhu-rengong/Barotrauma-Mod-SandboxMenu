@@ -10,6 +10,9 @@ internal abstract class LayoutPanel : ViewElement
     protected LayoutPanel(ElementContext context, GUIComponent control) : base(control)
     {
         _view = context.View;
+
+        control.RectTransform.SizeChanged += Invalidate;
+        control.RectTransform.ScaleChanged += Invalidate;
     }
 
     protected List<ViewElement> Children { get; } = [];
@@ -22,16 +25,11 @@ internal abstract class LayoutPanel : ViewElement
         Invalidate();
     }
 
-    protected Length WidthOf(ViewElement child, Length fallback)
-        => Length.Parse(child.Node?.Text("Width"), fallback, message => Report(message, child.Node));
+    public override void ChildVisibilityChanged(ViewElement child) => Invalidate();
 
-    protected Length HeightOf(ViewElement child, Length fallback)
-        => Length.Parse(child.Node?.Text("Height"), fallback, message => Report(message, child.Node));
+    public override void ChildLayoutChanged(ViewElement child) => Invalidate();
 
     protected void Report(string message, MarkupNode? node) => _view.Diagnostics.Report(message, node);
-
-    protected static string? Attached(ViewElement child, string property)
-        => child.Node?.Text(property);
 
     protected void Invalidate()
     {
@@ -68,7 +66,7 @@ internal abstract class LayoutPanel : ViewElement
 
         foreach (ViewElement child in Children)
         {
-            Length length = horizontal ? WidthOf(child, Length.Fill) : HeightOf(child, Length.Fill);
+            Length length = horizontal ? child.Width : child.Height;
             int size = length.Kind switch
             {
                 LengthKind.Auto => horizontal ? Layout.Measure(child).X : Layout.Measure(child).Y,

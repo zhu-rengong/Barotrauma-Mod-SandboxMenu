@@ -8,6 +8,16 @@ internal static class SpawnPointPicker
     private static Action<Vector2>? _onPicked;
     private static Action? _onCancelled;
 
+    private static LocalizedString _hint = LocalizedString.EmptyString;
+    private static float _hintScale;
+    private static Vector2 _hintSize;
+    private static float _offsetX;
+    private static float _offsetY;
+    private static int _arm;
+    private static int _thickness;
+    private static int _pad;
+    private static int _padY;
+
     public static bool IsActive { get; private set; }
 
     public static void Begin(Action<Vector2> onPicked, Action? onCancelled = null)
@@ -15,6 +25,16 @@ internal static class SpawnPointPicker
         _onPicked = onPicked;
         _onCancelled = onCancelled;
         IsActive = true;
+
+        _hint = TextManager.Get("sandboxmenu.picker.hint");
+        _hintScale = UiMetrics.FontScale(Theme.PickerHintFontSize, GUIStyle.SmallFont);
+        _hintSize = GUIStyle.SmallFont.MeasureString(_hint, false) * _hintScale;
+        _offsetX = UiMetrics.Dip(Theme.PickerHintOffsetX);
+        _offsetY = UiMetrics.Dip(Theme.PickerHintOffsetY);
+        _arm = UiMetrics.DipInt(Theme.PickerHintArmLength);
+        _thickness = UiMetrics.DipInt(Theme.LineThickness);
+        _pad = UiMetrics.DipInt(Theme.Pad);
+        _padY = UiMetrics.DipInt(Theme.PickerHintPaddingY);
     }
 
     public static void Cancel()
@@ -49,28 +69,22 @@ internal static class SpawnPointPicker
     {
         if (!IsActive) { return; }
 
-        LocalizedString hint = TextManager.Get("sandboxmenu.picker.hint");
-        float textScale = UiMetrics.FontScale(Theme.PickerHintFontSize, GUIStyle.SmallFont);
-        Vector2 textSize = GUIStyle.SmallFont.MeasureString(hint, false) * textScale;
+        LocalizedString hint = _hint;
+        float textScale = _hintScale;
+        Vector2 textSize = _hintSize;
         Vector2 mouse = PlayerInput.MousePosition;
-        Vector2 textPosition = new(
-            mouse.X + UiMetrics.Dip(Theme.PickerHintOffsetX),
-            mouse.Y + UiMetrics.Dip(Theme.PickerHintOffsetY));
+        Vector2 textPosition = new(mouse.X + _offsetX, mouse.Y + _offsetY);
 
         int cx = (int)mouse.X;
         int cy = (int)mouse.Y;
-        int arm = UiMetrics.DipInt(Theme.PickerHintArmLength);
-        int thickness = UiMetrics.DipInt(Theme.LineThickness);
-        Theme.Fill(spriteBatch, new Rectangle(cx - arm, cy, arm * 2 + 1, thickness), Theme.Accent);
-        Theme.Fill(spriteBatch, new Rectangle(cx, cy - arm, thickness, arm * 2 + 1), Theme.Accent);
+        Theme.Fill(spriteBatch, new Rectangle(cx - _arm, cy, _arm * 2 + 1, _thickness), Theme.Accent);
+        Theme.Fill(spriteBatch, new Rectangle(cx, cy - _arm, _thickness, _arm * 2 + 1), Theme.Accent);
 
-        int pad = UiMetrics.DipInt(Theme.Pad);
-        int padY = UiMetrics.DipInt(Theme.PickerHintPaddingY);
         Rectangle frame = new(
-            (int)textPosition.X - pad,
-            (int)textPosition.Y - padY,
-            (int)textSize.X + pad * 2,
-            (int)textSize.Y + padY * 2);
+            (int)textPosition.X - _pad,
+            (int)textPosition.Y - _padY,
+            (int)textSize.X + _pad * 2,
+            (int)textSize.Y + _padY * 2);
 
         Theme.Fill(spriteBatch, frame, Theme.OverlayFill);
         Theme.Outline(spriteBatch, frame, Theme.OverlayLine);
@@ -83,5 +97,7 @@ internal static class SpawnPointPicker
         IsActive = false;
         _onPicked = null;
         _onCancelled = null;
+        _hint = LocalizedString.EmptyString;
+        _hintSize = Vector2.Zero;
     }
 }

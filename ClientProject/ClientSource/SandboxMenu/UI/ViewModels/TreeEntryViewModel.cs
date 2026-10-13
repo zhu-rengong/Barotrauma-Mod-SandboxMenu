@@ -33,11 +33,7 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
             ? display.TitleFor(display.Name + EntrySummary.AmountSuffix(item))
             : RichString.Rich(EntrySummary.Text(Entry));
 
-    public string ColorName => Entry switch
-    {
-        ReferenceEntry => "Dim",
-        _ => "Bright"
-    };
+    public bool IsReference => Entry is ReferenceEntry;
 
     public bool IsSelected
     {
@@ -54,6 +50,6 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
         Display = Entry is ItemEntry item ? ItemDisplay.For(item.Identifier) : null;
 
         Raise(nameof(Title));
-        Raise(nameof(ColorName));
+        Raise(nameof(IsReference));
     }
 }

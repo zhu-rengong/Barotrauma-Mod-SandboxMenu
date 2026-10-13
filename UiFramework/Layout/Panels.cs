@@ -1,6 +1,3 @@
-using System.Globalization;
-using Microsoft.Xna.Framework;
-
 namespace UiFramework.Layout;
 
 [Element("Flow")]
@@ -82,6 +79,7 @@ internal sealed class GridElement : LayoutPanel
         foreach (ViewElement child in Children)
         {
             bool explicitCell = TryCell(child, out int childRow, out int childColumn, out int rowSpan, out int columnSpan);
+
             if (!explicitCell)
             {
                 childRow = Math.Min(row, _rows.Length - 1);
@@ -104,17 +102,16 @@ internal sealed class GridElement : LayoutPanel
         }
     }
 
-    private bool TryCell(ViewElement child, out int row, out int column, out int rowSpan, out int columnSpan)
+    private static bool TryCell(ViewElement child, out int row, out int column, out int rowSpan, out int columnSpan)
     {
-        string? rowText = Attached(child, "Grid.Row");
-        string? columnText = Attached(child, "Grid.Column");
+        bool placed = child.Attached("Grid.Row") is not null || child.Attached("Grid.Column") is not null;
 
-        row = int.TryParse(rowText, CultureInfo.InvariantCulture, out int parsedRow) ? Math.Max(0, parsedRow) : 0;
-        column = int.TryParse(columnText, CultureInfo.InvariantCulture, out int parsedColumn) ? Math.Max(0, parsedColumn) : 0;
-        rowSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.RowSpan"), CultureInfo.InvariantCulture, out int parsedRowSpan) ? parsedRowSpan : 1);
-        columnSpan = Math.Max(1, int.TryParse(Attached(child, "Grid.ColumnSpan"), CultureInfo.InvariantCulture, out int parsedColumnSpan) ? parsedColumnSpan : 1);
+        row = Math.Max(0, child.AttachedInt("Grid.Row", 0));
+        column = Math.Max(0, child.AttachedInt("Grid.Column", 0));
+        rowSpan = Math.Max(1, child.AttachedInt("Grid.RowSpan", 1));
+        columnSpan = Math.Max(1, child.AttachedInt("Grid.ColumnSpan", 1));
 
-        return rowText is not null || columnText is not null;
+        return placed;
     }
 
     private static int Offset(int[] sizes, int index)
@@ -180,7 +177,7 @@ internal sealed class GridElement : LayoutPanel
     }
 
     private static int TrackOf(ViewElement child, bool rows)
-        => int.TryParse(rows ? child.Node?.Text("Grid.Row") : child.Node?.Text("Grid.Column"), CultureInfo.InvariantCulture, out int index) ? index : 0;
+        => Math.Max(0, child.AttachedInt(rows ? "Grid.Row" : "Grid.Column", 0));
 
     private Length[] ParseSequence(string? text, Length[] fallback, MarkupNode? node)
     {

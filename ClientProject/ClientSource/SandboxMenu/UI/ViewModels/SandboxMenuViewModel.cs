@@ -4,11 +4,17 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class SandboxMenuViewModel : IItemDropTarget, IListBackground
 {
-    internal SandboxMenuViewModel(IDialogHost host) => Spawn = new SpawnPanelViewModel(host);
+    internal SandboxMenuViewModel(IDialogHost host)
+    {
+        Spawn = new SpawnPanelViewModel(host);
+        Afflictions = new AfflictionPanelViewModel(host);
+    }
 
     public FunctionSelectorViewModel Functions { get; } = new();
 
     public SpawnPanelViewModel Spawn { get; }
+
+    public AfflictionPanelViewModel Afflictions { get; }
 
     public bool CanDrag(object item) => Spawn.CanDrag(item);
 

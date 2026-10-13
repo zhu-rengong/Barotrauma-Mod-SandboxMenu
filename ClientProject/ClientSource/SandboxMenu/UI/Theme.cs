@@ -47,19 +47,21 @@ internal static class Theme
 
     public static readonly Color IconShadow = new(0, 0, 0, 153);
 
-    public const float IconSwell = 0.36f;
-
-    public const float IconSwellSeconds = 0.12f;
-
-    public const float FlashSeconds = 0.5f;
+    public static readonly Color BuffText = new(235, 219, 143);
 
     public const float SubTextRatio = 0.5f;
 
-    public static readonly Color RowHover = new(255, 255, 255, 84);
+    public const float TileTextRatio = 0.24f;
 
-    public static readonly Color RowSelected = new(255, 255, 255, 60);
+    public const float TileLabelHeight = 16f;
 
-    public static readonly Color RowPressed = new(255, 255, 255, 110);
+    public const float TileValueHeight = 11f;
+
+    public const float BadgeRatio = 0.18f;
+
+    public const float PortraitExtent = 0.78f;
+
+    public const float GroupIndent = 8f;
 
     public static readonly Color TagText = new(0x61, 0xAF, 0xEF, 0xFF);
 
@@ -70,6 +72,8 @@ internal static class Theme
     public static readonly Color OverlayLine = new(148, 154, 160);
 
     public const float LineThickness = 1f;
+
+    private static DipValue _lineDip;
 
     public const float PickerHintFontSize = 14f;
 
@@ -105,5 +109,5 @@ internal static class Theme
             color,
             false,
             0f,
-            Math.Max(1, thickness ?? UiMetrics.DipInt(LineThickness)));
+            Math.Max(1f, thickness ?? _lineDip.Pixels(LineThickness)));
 }

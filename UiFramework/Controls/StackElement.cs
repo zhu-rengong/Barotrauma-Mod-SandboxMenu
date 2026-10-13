@@ -6,8 +6,8 @@ namespace UiFramework.Controls;
 internal sealed class StackElement : ViewElement
 {
     private readonly GUILayoutGroup _group;
-    private readonly bool _horizontal;
     private readonly List<ViewElement> _children = [];
+    private bool _horizontal;
 
     public StackElement(ElementContext context)
         : base(Create(context))
@@ -19,6 +19,62 @@ internal sealed class StackElement : ViewElement
         Control.RectTransform.ScaleChanged += ApplyShares;
     }
 
+    [ElementProperty]
+    public string Orientation
+    {
+        set
+        {
+            bool horizontal = string.Equals(value ?? "Vertical", "Horizontal", StringComparison.OrdinalIgnoreCase);
+
+            if (_horizontal == horizontal) { return; }
+
+            _horizontal = horizontal;
+            _group.IsHorizontal = horizontal;
+
+            ApplyShares();
+        }
+    }
+
+    [ElementProperty]
+    public Anchor ChildAnchor
+    {
+        set
+        {
+            _group.ChildAnchor = value;
+            ApplyShares();
+        }
+    }
+
+    [ElementProperty]
+    public bool Stretch
+    {
+        set
+        {
+            _group.Stretch = value;
+            ApplyShares();
+        }
+    }
+
+    [ElementProperty]
+    public float Spacing
+    {
+        set
+        {
+            _group.AbsoluteSpacing = UiMetrics.DipInt(value);
+            ApplyShares();
+        }
+    }
+
+    [ElementProperty]
+    public float RelativeSpacing
+    {
+        set
+        {
+            _group.RelativeSpacing = value;
+            ApplyShares();
+        }
+    }
+
     public override void AddContent(ViewElement child)
     {
         _children.Add(child);
@@ -28,48 +84,65 @@ internal sealed class StackElement : ViewElement
 
     public override void ChildVisibilityChanged(ViewElement child) => ApplyShares();
 
+    public override void ChildLayoutChanged(ViewElement child) => ApplyShares();
+
     private void ApplyShares()
     {
         float shares = 0f;
         float taken = 0f;
         int shown = 0;
+        bool changed = false;
 
-        foreach (ViewElement child in _children)
+        for (int i = 0; i < _children.Count; i++)
         {
+            ViewElement child = _children[i];
             bool visible = child.Control.Visible;
+            bool ignored = !visible;
 
-            child.Control.IgnoreLayoutGroups = !visible;
+            if (child.Control.IgnoreLayoutGroups != ignored)
+            {
+                child.Control.IgnoreLayoutGroups = ignored;
+                changed = true;
+            }
 
             if (!visible) { continue; }
 
             shown++;
 
             if (Share(child) is { } weight) { shares += weight; }
-            else { taken += MainAxis(child) + Margin(child); }
+            else { taken += MainAxis(child) + MarginOf(child); }
         }
 
         if (shares > 0f)
         {
             float available = Math.Max(0f, 1f - taken - Gaps(shown));
 
-            foreach (ViewElement child in _children)
+            for (int i = 0; i < _children.Count; i++)
             {
+                ViewElement child = _children[i];
+
                 if (!child.Control.Visible || Share(child) is not { } weight) { continue; }
 
-                SetMainAxis(child, Math.Max(0f, available * weight / shares - Margin(child)));
+                if (SetMainAxis(child, Math.Max(0f, available * weight / shares - MarginOf(child)))) { changed = true; }
             }
         }
+
+        if (!changed) { return; }
 
         if (_horizontal ? Control.Rect.Width > 0 : Control.Rect.Height > 0) { LayoutFlush.Apply(Control); }
         else { _group.NeedsToRecalculate = true; }
     }
 
     private float? Share(ViewElement child)
-        => Length.TryWeight(child.Node?.Text(_horizontal ? "Width" : "Height"), out float weight) ? weight : null;
-
-    private float Margin(ViewElement child)
     {
-        Insets margin = child.Node?.Margin ?? Insets.None;
+        Length length = _horizontal ? child.Width : child.Height;
+
+        return length.Kind == LengthKind.Star ? length.Value : null;
+    }
+
+    private float MarginOf(ViewElement child)
+    {
+        Insets margin = child.Margin;
 
         if (margin.IsEmpty) { return 0f; }
 
@@ -86,11 +159,15 @@ internal sealed class StackElement : ViewElement
         return _horizontal ? size.X : size.Y;
     }
 
-    private void SetMainAxis(ViewElement child, float value)
+    private bool SetMainAxis(ViewElement child, float value)
     {
         Vector2 size = child.Control.RectTransform.RelativeSize;
 
+        if (MathF.Abs((_horizontal ? size.X : size.Y) - value) < 0.0001f) { return false; }
+
         child.Control.RectTransform.RelativeSize = _horizontal ? new(value, size.Y) : new(size.X, value);
+
+        return true;
     }
 
     private float Gaps(int shown)

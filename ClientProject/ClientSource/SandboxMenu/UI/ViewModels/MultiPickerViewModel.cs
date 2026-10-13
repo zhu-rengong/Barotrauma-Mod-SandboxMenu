@@ -45,11 +45,14 @@ internal sealed class MultiPickerViewModel : Notifiable
 
     private void TickVisible(bool ticked)
     {
-        for (int i = 0; i < Options.Count; i++)
+        using (NotificationBatch.Begin())
         {
-            ToggleRowViewModel row = Options[i];
+            for (int i = 0; i < Options.Count; i++)
+            {
+                ToggleRowViewModel row = Options[i];
 
-            if (row.Visible) { row.Tick(ticked); }
+                if (row.Visible) { row.Tick(ticked); }
+            }
         }
     }
 

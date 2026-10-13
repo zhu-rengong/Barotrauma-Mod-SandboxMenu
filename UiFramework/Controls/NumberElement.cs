@@ -58,6 +58,12 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         }
     }
 
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal bool Integer => ViewMarkup.ToBool(Node?.Text("Integer"), false);
+
+    [ElementProperty(Phase = ApplyPhase.Construct)]
+    internal string? TextAlign => Node?.Text("TextAlign");
+
     [ElementProperty]
     public float Min
     {

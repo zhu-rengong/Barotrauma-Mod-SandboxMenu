@@ -8,17 +8,22 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
     private Action<Color>? _changed;
     private GUIColorPicker? _picker;
     private Color _color = Color.White;
+    private Color _frameColor = UiMetrics.TextDim;
+    private float _frameThickness = Theme.LineThickness * 3f;
 
     public ColorPickerElement(ElementContext context)
         : base(new GUIFrame(context.Rect(context.Parent, 1f, 1f), style: null) { CanBeFocused = false })
     {
         _holder = (GUIFrame)Control;
 
-        context.View.EveryFrame(EnsurePicker);
+        _holder.RectTransform.SizeChanged += EnsurePicker;
+        _holder.RectTransform.ScaleChanged += EnsurePicker;
+
+        EnsurePicker();
     }
 
     [ElementProperty]
-    public Color Color
+    public new Color Color
     {
         set
         {
@@ -30,8 +35,17 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
     [ElementProperty]
     public Action<Color>? Changed { set => _changed = value; }
 
+    [ElementProperty]
+    public Color FrameColor { set => _frameColor = value; }
+
+    [ElementProperty]
+    public float FrameThickness { set => _frameThickness = Math.Max(0f, value); }
+
     public void Dispose()
     {
+        _holder.RectTransform.SizeChanged -= EnsurePicker;
+        _holder.RectTransform.ScaleChanged -= EnsurePicker;
+
         if (_picker is not { } picker) { return; }
 
         picker.OnColorSelected = null;
@@ -44,7 +58,7 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
         if (_picker is not null || _holder.Rect.Height <= 0) { return; }
 
         Rectangle area = _holder.Rect;
-        int thickness = UiMetrics.DipInt(Theme.LineThickness * 3f);
+        int thickness = UiMetrics.DipInt(_frameThickness);
 
         Vector2 fill = new(
             Math.Max(1, area.Width - thickness * 2) / (float)Math.Max(1, area.Width),
@@ -66,7 +80,7 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
                 Rectangle frame = picker.Rect;
                 frame.Inflate(thickness, thickness);
 
-                Theme.Outline(spriteBatch, frame, UiMetrics.TextDim, thickness);
+                Theme.Outline(spriteBatch, frame, _frameColor, thickness);
             })
         {
             CanBeFocused = false

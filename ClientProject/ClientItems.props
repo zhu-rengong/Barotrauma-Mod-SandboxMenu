@@ -18,6 +18,7 @@
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MainWindow.xml" LogicalName="SandboxMenu.MainWindow.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ContextMenu.xml" LogicalName="SandboxMenu.ContextMenu.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Browser.xml" LogicalName="SandboxMenu.Browser.xml" />
+    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\CharacterBrowser.xml" LogicalName="SandboxMenu.CharacterBrowser.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
     <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ColorPicker.xml" LogicalName="SandboxMenu.ColorPicker.xml" />

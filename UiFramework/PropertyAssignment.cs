@@ -14,6 +14,8 @@ internal sealed class PropertyAssignment(
 
     internal ViewElement Element { get; } = element;
 
+    internal ValueSource Source { get; init; } = ValueSource.Base;
+
     private object Target { get; } = target ?? element;
 
     internal void SetText(string text)
@@ -31,7 +33,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        Property.Apply(Target, value);
+        Apply(value);
     }
 
     internal void SetValue(object? value, string source)
@@ -43,7 +45,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        Property.Apply(Target, converted);
+        Apply(converted);
     }
 
     internal void Bind(BindingOptions options)
@@ -156,6 +158,23 @@ internal sealed class PropertyAssignment(
 
     internal void Report(string message) => view.Diagnostics.Report($"{Property.Name}: {message}", node);
 
+    private void Apply(object? value)
+    {
+        try
+        {
+            Property.Apply(Target, value);
+        }
+        catch (Exception e)
+        {
+            Report(e.Message);
+            return;
+        }
+
+        if (Source == ValueSource.Base) { Element.RememberBaseValue(Property.Name, value); }
+
+        if (ReferenceEquals(Target, Element)) { Element.NotifyValueChanged(Property.Name, value); }
+    }
+
     private object? ResolveSource(BindingOptions options, out string sourceName)
     {
         if (options.ElementName is { } name)
@@ -178,7 +197,7 @@ internal sealed class PropertyAssignment(
     private void SetKeyText(string key)
     {
         (object? value, bool ok) = ValueConversion.Convert(TextManager.Get(key), Property.ValueType);
-        if (ok) { Property.Apply(Target, value); }
+        if (ok) { Apply(value); }
     }
 
     private static string Friendly(Type type) => type.Name;

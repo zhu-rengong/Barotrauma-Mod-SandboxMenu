@@ -21,6 +21,7 @@ public sealed partial class Plugin
 
         NetworkService.RegisterNetworkHeaders<NetworkHeaders>();
         NetworkService.RegisterHandler<NetworkHeaders, SpawnResponse>(NetworkHeaders.SpawnResponse, ClientSpawnDispatcher.OnResponse);
+        NetworkService.RegisterHandler<NetworkHeaders, AfflictionResponse>(NetworkHeaders.AfflictionResponse, ClientAfflictionDispatcher.OnResponse);
 
         GameScreenService.RegisterResolutionChangeEvent(_resolutionChangedEvent, MenuWindow.ResolutionChanged.Signal);
 

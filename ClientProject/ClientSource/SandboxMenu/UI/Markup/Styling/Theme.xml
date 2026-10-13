@@ -12,4 +12,58 @@
     <Setter Property="FontSize" Value="24" />
   </Style>
 
+  <!-- A row's own feedback: the fill under the row and the accent bar a selected row carries. The three states
+       overlap (a hovered row is usually also the selected one), so each trigger carries a priority and the widest
+       state wins: pressed over hover over selected. -->
+  <Style TargetType="Row">
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="SelectedBarFill" Value="Accent" />
+    <Setter Property="SelectedBarWidth" Value="3" />
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True" Priority="1">
+        <Setter Property="Fill" Value="255,255,255,60" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True" Priority="2">
+        <Setter Property="Fill" Value="255,255,255,84" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True" Priority="3">
+        <Setter Property="Fill" Value="255,255,255,110" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style TargetType="Tile">
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="SelectedBarFill" Value="Accent" />
+    <Setter Property="SelectedBarWidth" Value="3" />
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True" Priority="1">
+        <Setter Property="Fill" Value="255,255,255,60" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True" Priority="2">
+        <Setter Property="Fill" Value="255,255,255,84" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True" Priority="3">
+        <Setter Property="Fill" Value="255,255,255,110" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style TargetType="CharacterTile">
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="SelectedBarFill" Value="Accent" />
+    <Setter Property="SelectedBarWidth" Value="3" />
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True" Priority="1">
+        <Setter Property="Fill" Value="255,255,255,60" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True" Priority="2">
+        <Setter Property="Fill" Value="255,255,255,84" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True" Priority="3">
+        <Setter Property="Fill" Value="255,255,255,110" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
 </ResourceDictionary>

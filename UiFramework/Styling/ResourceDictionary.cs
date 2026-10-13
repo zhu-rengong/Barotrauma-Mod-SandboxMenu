@@ -35,8 +35,15 @@ public sealed class ResourceDictionary
 
             if (string.Equals(child.Name, "Style", StringComparison.OrdinalIgnoreCase))
             {
-                Style style = Style.Read(child);
+                Style style = Style.Read(child, report);
                 dictionary.Set(style.Key ?? style.TargetType ?? throw new InvalidDataException($"a style needs a Key or a TargetType ({child})"), style);
+                continue;
+            }
+
+            if (string.Equals(child.Name, "Storyboard", StringComparison.OrdinalIgnoreCase))
+            {
+                Animation.Storyboard storyboard = Animation.AnimationMarkup.ReadStoryboard(child, report);
+                dictionary.Set(storyboard.Key ?? throw new InvalidDataException($"a storyboard needs a Key ({child})"), storyboard);
                 continue;
             }
 

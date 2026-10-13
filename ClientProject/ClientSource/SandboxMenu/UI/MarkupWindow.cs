@@ -15,6 +15,7 @@ internal sealed class MarkupWindow : IDialogWindow
 
     private GUIDragHandle? _dragHandle;
     private bool _closing;
+    private bool? _interactive;
 
     internal MarkupWindow(string markupFile, int updateOrder, object viewModel)
     {
@@ -122,7 +123,15 @@ internal sealed class MarkupWindow : IDialogWindow
         _view.Dispose();
     }
 
-    internal void SetInteractive(bool interactive) => SetAutoUpdate(_frame, interactive);
+    internal void SetInteractive(bool interactive)
+    {
+        _view.Interactive = interactive;
+
+        if (_interactive == interactive) { return; }
+
+        _interactive = interactive;
+        SetAutoUpdate(_frame, interactive);
+    }
 
     private static void SetAutoUpdate(GUIComponent component, bool enabled)
     {

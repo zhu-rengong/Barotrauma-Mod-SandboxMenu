@@ -5,15 +5,20 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
     private readonly List<IDisposable> _owned = [];
     private readonly List<Data.Binding> _bindings = [];
     private readonly List<Action> _frameActions = [];
+    private readonly List<Func<bool>> _untilActions = [];
 
     private bool _paused;
     private bool _disposed;
+
+    internal bool IsPaused => _paused;
 
     internal void Pause() => _paused = true;
 
     internal void Resume() => _paused = false;
 
     internal void EveryFrame(Action action) => _frameActions.Add(action);
+
+    internal void EveryFrame(Func<bool> action) => _untilActions.Add(action);
 
     internal void RunFrameActions()
     {
@@ -22,6 +27,11 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
         for (int i = 0; i < _frameActions.Count; i++)
         {
             UiGuard.Run(_frameActions[i]);
+        }
+
+        for (int i = _untilActions.Count - 1; i >= 0; i--)
+        {
+            if (UiGuard.TryRun(_untilActions[i], static action => action())) { _untilActions.RemoveAt(i); }
         }
     }
 
@@ -43,6 +53,7 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
 
         _disposed = true;
         _frameActions.Clear();
+        _untilActions.Clear();
         _bindings.Clear();
         live.Remove(this);
 

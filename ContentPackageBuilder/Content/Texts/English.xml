@@ -2,9 +2,8 @@
 <infotexts language="English" nowhitespace="false" translatedname="English">
   <sandboxmenu.title>Sandbox Menu</sandboxmenu.title>
   <sandboxmenu.close>Close</sandboxmenu.close>
-  <sandboxmenu.function.spawn>Spawn items</sandboxmenu.function.spawn>
+  <sandboxmenu.function.spawn>Spawn</sandboxmenu.function.spawn>
   <sandboxmenu.function.afflictions>Afflictions</sandboxmenu.function.afflictions>
-  <sandboxmenu.function.afflictions.placeholder>Browsing and controlling a character's afflictions is not implemented yet.</sandboxmenu.function.afflictions.placeholder>
   <sandboxmenu.give>Spawn into inventory</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>Spawn at the cursor</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>Nothing is selected. Right-click the empty space in the list on the left to open the menu and add an item or a template reference.</sandboxmenu.empty>
@@ -27,13 +26,13 @@
   <sandboxmenu.field.equipslots>Equipment slots</sandboxmenu.field.equipslots>
   <sandboxmenu.slots.none>No slots chosen</sandboxmenu.slots.none>
   <sandboxmenu.field.install>Install in the submarine</sandboxmenu.field.install>
-  <sandboxmenu.field.inheritchannel>Inherit the headset's wifi channel</sandboxmenu.field.inheritchannel>
+  <sandboxmenu.field.inheritchannel>Inherit the character's headset channel</sandboxmenu.field.inheritchannel>
   <sandboxmenu.field.slotindex>Slot to put it in</sandboxmenu.field.slotindex>
   <sandboxmenu.field.quality>Quality</sandboxmenu.field.quality>
   <sandboxmenu.field.tags>Tags</sandboxmenu.field.tags>
   <sandboxmenu.field.template>Template name</sandboxmenu.field.template>
 
-  <sandboxmenu.preview.none>No item selected yet.</sandboxmenu.preview.none>
+  <sandboxmenu.preview.none>No identifier typed yet.</sandboxmenu.preview.none>
   <sandboxmenu.preview.missing>No item has this identifier.</sandboxmenu.preview.missing>
 
   <sandboxmenu.summary.unset>(not set)</sandboxmenu.summary.unset>
@@ -44,7 +43,7 @@
   <sandboxmenu.movedown>Move down</sandboxmenu.movedown>
   <sandboxmenu.previous>Previous item</sandboxmenu.previous>
   <sandboxmenu.next>Next item</sandboxmenu.next>
-  <sandboxmenu.focusidentifier>Type the identifier</sandboxmenu.focusidentifier>
+  <sandboxmenu.focusidentifier>Edit the identifier</sandboxmenu.focusidentifier>
 
   <sandboxmenu.togglekey.displayname>Key that opens and closes the menu</sandboxmenu.togglekey.displayname>
   <sandboxmenu.togglekey.tooltip>Key used to open or close the sandbox menu in-game.</sandboxmenu.togglekey.tooltip>
@@ -70,8 +69,8 @@
   <sandboxmenu.filter.categories>Item category</sandboxmenu.filter.categories>
   <sandboxmenu.filter.summary.all>[name]: all</sandboxmenu.filter.summary.all>
   <sandboxmenu.filter.summary.some>[name]: [count] picked</sandboxmenu.filter.summary.some>
-  <sandboxmenu.filter.container.only>Fitting only</sandboxmenu.filter.container.only>
-  <sandboxmenu.filter.hide.hidden>Skip hidden items</sandboxmenu.filter.hide.hidden>
+  <sandboxmenu.filter.container.only>Fits container</sandboxmenu.filter.container.only>
+  <sandboxmenu.filter.hide.hidden>Skip hidden entries</sandboxmenu.filter.hide.hidden>
   <sandboxmenu.filter.editable>Editable only</sandboxmenu.filter.editable>
   <sandboxmenu.filter.saveable>Saveable only</sandboxmenu.filter.saveable>
   <sandboxmenu.browser.selfhint>[Right-click] Spawn into the character's inventory and apply spawn parameters.</sandboxmenu.browser.selfhint>
@@ -83,9 +82,9 @@
   <sandboxmenu.pick.itemitself>The item itself</sandboxmenu.pick.itemitself>
   <sandboxmenu.pick.noproperties>This target has no property that can be overridden.</sandboxmenu.pick.noproperties>
   <sandboxmenu.picker.hint>Left click to spawn here, right click / Esc to cancel</sandboxmenu.picker.hint>
-  <sandboxmenu.status.nocharacter>No character is being controlled.</sandboxmenu.status.nocharacter>
+  <sandboxmenu.status.nocharacter>No character available.</sandboxmenu.status.nocharacter>
   <sandboxmenu.status.empty>The spawn set is empty.</sandboxmenu.status.empty>
-  <sandboxmenu.status.spawnqueued>Spawn request queued.</sandboxmenu.status.spawnqueued>
+  <sandboxmenu.status.spawnqueued>Spawned.</sandboxmenu.status.spawnqueued>
   <sandboxmenu.clear>Clear set</sandboxmenu.clear>
   <sandboxmenu.preset.name>Preset name</sandboxmenu.preset.name>
   <sandboxmenu.preset.save>Save preset</sandboxmenu.preset.save>
@@ -120,6 +119,78 @@
   <sandboxmenu.status.spawntoolarge>The spawn set is too large to send to the server.</sandboxmenu.status.spawntoolarge>
   <sandboxmenu.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.status.sendfailed>
   <sandboxmenu.status.serverproblems>The server reported [count] problem(s). See the log for details.</sandboxmenu.status.serverproblems>
+
+  <sandboxmenu.characters.title>Select a character</sandboxmenu.characters.title>
+  <sandboxmenu.characters.empty>No character got through the filters.</sandboxmenu.characters.empty>
+  <sandboxmenu.filter.species>Species</sandboxmenu.filter.species>
+  <sandboxmenu.filter.teams>Teams</sandboxmenu.filter.teams>
+
+  <sandboxmenu.team.none>No team</sandboxmenu.team.none>
+  <sandboxmenu.team.friendlynpc>Friendly NPCs</sandboxmenu.team.friendlynpc>
+
+  <sandboxmenu.afflictions.characters>Select character</sandboxmenu.afflictions.characters>
+  <sandboxmenu.afflictions.characters.controlled>Current character</sandboxmenu.afflictions.characters.controlled>
+  <sandboxmenu.afflictions.none>No character is selected.</sandboxmenu.afflictions.none>
+  <sandboxmenu.afflictions.targets>Limbs to affect</sandboxmenu.afflictions.targets>
+  <sandboxmenu.afflictions.target.body>whole body</sandboxmenu.afflictions.target.body>
+  <sandboxmenu.list.separator>, </sandboxmenu.list.separator>
+  <sandboxmenu.afflictions.group.body>Whole body</sandboxmenu.afflictions.group.body>
+  <sandboxmenu.afflictions.group.other>Other</sandboxmenu.afflictions.group.other>
+  <sandboxmenu.afflictions.sort.name>Sort by name</sandboxmenu.afflictions.sort.name>
+  <sandboxmenu.afflictions.hide.empty>Hide limbs without afflictions</sandboxmenu.afflictions.hide.empty>
+  <sandboxmenu.afflictions.filter.types>Types</sandboxmenu.afflictions.filter.types>
+  <sandboxmenu.afflictions.filter.scope>Scope</sandboxmenu.afflictions.filter.scope>
+  <sandboxmenu.afflictions.filter.kind>Effect type</sandboxmenu.afflictions.filter.kind>
+  <sandboxmenu.afflictions.strength>Strength %</sandboxmenu.afflictions.strength>
+  <sandboxmenu.afflictions.apply.hint>Left click to apply this affliction to the character.</sandboxmenu.afflictions.apply.hint>
+  <sandboxmenu.afflictions.rows.empty>Select a character to see their afflictions.</sandboxmenu.afflictions.rows.empty>
+  <sandboxmenu.afflictions.tiles.empty>No affliction got through the filters.</sandboxmenu.afflictions.tiles.empty>
+
+  <sandboxmenu.afflictions.field.species>[species] [value]</sandboxmenu.afflictions.field.species>
+  <sandboxmenu.afflictions.field.group>[group] [value]</sandboxmenu.afflictions.field.group>
+  <sandboxmenu.afflictions.field.job>[job] [value]</sandboxmenu.afflictions.field.job>
+  <sandboxmenu.afflictions.field.team>[team] [value]</sandboxmenu.afflictions.field.team>
+  <sandboxmenu.afflictions.field.health>[health] [value]</sandboxmenu.afflictions.field.health>
+  <sandboxmenu.afflictions.field.none>-</sandboxmenu.afflictions.field.none>
+  <sandboxmenu.afflictions.field.limbspecific>[limb specific]</sandboxmenu.afflictions.field.limbspecific>
+  <sandboxmenu.afflictions.field.body>[whole body]</sandboxmenu.afflictions.field.body>
+  <sandboxmenu.afflictions.field.buff>[buff]</sandboxmenu.afflictions.field.buff>
+  <sandboxmenu.afflictions.field.debuff>[debuff]</sandboxmenu.afflictions.field.debuff>
+  <sandboxmenu.afflictions.option.limb>Limb specific</sandboxmenu.afflictions.option.limb>
+  <sandboxmenu.afflictions.option.body>Whole body</sandboxmenu.afflictions.option.body>
+  <sandboxmenu.afflictions.option.buff>Buff</sandboxmenu.afflictions.option.buff>
+  <sandboxmenu.afflictions.option.debuff>Debuff</sandboxmenu.afflictions.option.debuff>
+
+  <sandboxmenu.afflictions.status.applied>Applied [value].</sandboxmenu.afflictions.status.applied>
+  <sandboxmenu.afflictions.status.removed>Removed [value].</sandboxmenu.afflictions.status.removed>
+  <sandboxmenu.afflictions.status.blocked>The target cannot take this affliction (god mode or unkillable).</sandboxmenu.afflictions.status.blocked>
+  <sandboxmenu.afflictions.status.senttoserver>The affliction request was sent to the server.</sandboxmenu.afflictions.status.senttoserver>
+  <sandboxmenu.afflictions.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.afflictions.status.sendfailed>
+  <sandboxmenu.afflictions.status.serverok>The server applied the affliction.</sandboxmenu.afflictions.status.serverok>
+  <sandboxmenu.afflictions.status.serverdenied>The server does not let you apply afflictions.</sandboxmenu.afflictions.status.serverdenied>
+  <sandboxmenu.afflictions.status.serverunknown>The server does not know that affliction.</sandboxmenu.afflictions.status.serverunknown>
+  <sandboxmenu.afflictions.status.servernocharacter>The server could not find that character.</sandboxmenu.afflictions.status.servernocharacter>
+  <sandboxmenu.afflictions.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.afflictions.status.serverthrottled>
+
+  <sandboxmenu.limb.none>Other</sandboxmenu.limb.none>
+  <sandboxmenu.limb.head>Head</sandboxmenu.limb.head>
+  <sandboxmenu.limb.torso>Torso</sandboxmenu.limb.torso>
+  <sandboxmenu.limb.waist>Waist</sandboxmenu.limb.waist>
+  <sandboxmenu.limb.jaw>Jaw</sandboxmenu.limb.jaw>
+  <sandboxmenu.limb.tail>Tail</sandboxmenu.limb.tail>
+  <sandboxmenu.limb.legs>Legs</sandboxmenu.limb.legs>
+  <sandboxmenu.limb.leftarm>Left arm</sandboxmenu.limb.leftarm>
+  <sandboxmenu.limb.rightarm>Right arm</sandboxmenu.limb.rightarm>
+  <sandboxmenu.limb.leftforearm>Left forearm</sandboxmenu.limb.leftforearm>
+  <sandboxmenu.limb.rightforearm>Right forearm</sandboxmenu.limb.rightforearm>
+  <sandboxmenu.limb.lefthand>Left hand</sandboxmenu.limb.lefthand>
+  <sandboxmenu.limb.righthand>Right hand</sandboxmenu.limb.righthand>
+  <sandboxmenu.limb.leftthigh>Left thigh</sandboxmenu.limb.leftthigh>
+  <sandboxmenu.limb.rightthigh>Right thigh</sandboxmenu.limb.rightthigh>
+  <sandboxmenu.limb.leftleg>Left leg</sandboxmenu.limb.leftleg>
+  <sandboxmenu.limb.rightleg>Right leg</sandboxmenu.limb.rightleg>
+  <sandboxmenu.limb.leftfoot>Left foot</sandboxmenu.limb.leftfoot>
+  <sandboxmenu.limb.rightfoot>Right foot</sandboxmenu.limb.rightfoot>
 
   <sandboxmenu.allowallclients.displayname>Let every client spawn items</sandboxmenu.allowallclients.displayname>
   <sandboxmenu.allowallclients.tooltip>When off, only clients with the console commands permission (the host and the admins) can spawn items with the sandbox menu.</sandboxmenu.allowallclients.tooltip>

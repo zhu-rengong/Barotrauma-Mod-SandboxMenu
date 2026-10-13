@@ -12,6 +12,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     private RichString? _shortcut;
     private RichString? _toolTip;
     private float _scale;
+    private bool _selfToolTip = true;
     private bool _scalable;
     private float _indent;
     private Alignment _alignment = Alignment.Center;
@@ -39,6 +40,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
         button.OnClicked = (_, _) =>
         {
+            RaiseEvent("Click");
             _view.Dispatch(() => _command?.Execute(null));
             return false;
         };
@@ -107,7 +109,27 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
     }
 
     [ElementProperty]
+    public bool SelfToolTip
+    {
+        set
+        {
+            _selfToolTip = value;
+            ApplyToolTip();
+        }
+    }
+
+    [ElementProperty]
     public bool Scale { set => SetScale(value); }
+
+    [ElementProperty]
+    public float Indent
+    {
+        set
+        {
+            _indent = value;
+            ApplyAlignment();
+        }
+    }
 
     [ElementProperty]
     public float FontSize
@@ -180,8 +202,12 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
     private void ApplyToolTip()
     {
-        if (_toolTip is null && _scalable) { return; }
+        if (_toolTip is { } toolTip)
+        {
+            _button.ToolTip = toolTip;
+            return;
+        }
 
-        _button.ToolTip = _toolTip ?? _text;
+        _button.ToolTip = _scalable || !_selfToolTip ? string.Empty : _text;
     }
 }

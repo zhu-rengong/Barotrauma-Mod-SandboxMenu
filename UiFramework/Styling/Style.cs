@@ -12,42 +12,17 @@ internal sealed class Style
 
     internal IReadOnlyList<Setter> Setters { get; init; } = [];
 
-    internal IReadOnlyList<DataTrigger> Triggers { get; init; } = [];
+    internal IReadOnlyList<TriggerBase> Triggers { get; init; } = [];
 
-    internal static Style Read(MarkupNode node)
+    internal IReadOnlyList<EventTrigger> Events { get; init; } = [];
+
+    internal static Style Read(MarkupNode node, Action<string>? report = null)
     {
         List<Setter> setters = [];
-        List<DataTrigger> triggers = [];
+        List<TriggerBase> triggers = [];
+        List<EventTrigger> events = [];
 
-        foreach (MarkupNode child in node.Content)
-        {
-            if (string.Equals(child.Name, "Setter", StringComparison.OrdinalIgnoreCase))
-            {
-                if (child.Text("Property") is { } property && child.Value("Value") is { } value)
-                {
-                    setters.Add(new Setter(property, value));
-                }
-            }
-            else if (string.Equals(child.Name, "DataTrigger", StringComparison.OrdinalIgnoreCase))
-            {
-                if (child.Text("Binding") is { } path && child.Value("Value") is { } expected)
-                {
-                    List<Setter> triggerSetters = [];
-
-                    foreach (MarkupNode triggerChild in child.Content)
-                    {
-                        if (string.Equals(triggerChild.Name, "Setter", StringComparison.OrdinalIgnoreCase)
-                            && triggerChild.Text("Property") is { } triggerProperty
-                            && triggerChild.Value("Value") is { } triggerValue)
-                        {
-                            triggerSetters.Add(new Setter(triggerProperty, triggerValue));
-                        }
-                    }
-
-                    triggers.Add(new DataTrigger(path, expected, triggerSetters));
-                }
-            }
-        }
+        Read(node, report, setters, triggers, events);
 
         return new Style
         {
@@ -55,16 +30,60 @@ internal sealed class Style
             TargetType = node.Text("TargetType"),
             BasedOn = node.Text("BasedOn"),
             Setters = setters,
-            Triggers = triggers
+            Triggers = triggers,
+            Events = events
         };
     }
-}
 
-internal sealed class DataTrigger(string path, MarkupValue value, IReadOnlyList<Setter> setters)
-{
-    internal string Path { get; } = path;
+    internal static void ReadTriggers(
+        MarkupNode node,
+        Action<string>? report,
+        List<TriggerBase> triggers,
+        List<EventTrigger> events)
+    {
+        foreach (MarkupNode child in node.Content)
+        {
+            switch (child.Name)
+            {
+                case "Trigger":
+                case "PropertyTrigger":
+                case "DataTrigger":
+                case "MultiDataTrigger":
+                    if (TriggerReader.Read(child, report) is { } trigger) { triggers.Add(trigger); }
+                    break;
 
-    internal MarkupValue Value { get; } = value;
+                case "EventTrigger":
+                    if (TriggerReader.ReadEvent(child, report) is { } raised) { events.Add(raised); }
+                    break;
+            }
+        }
 
-    internal IReadOnlyList<Setter> Setters { get; } = setters;
+        if (node.Child("Triggers") is { } nested) { ReadTriggers(nested, report, triggers, events); }
+    }
+
+    internal static List<Setter> ReadSetters(MarkupNode node)
+    {
+        List<Setter> setters = [];
+
+        foreach (MarkupNode child in node.Content)
+        {
+            if (!string.Equals(child.Name, "Setter", StringComparison.OrdinalIgnoreCase)) { continue; }
+            if (child.Text("Property") is not { } property || child.Value("Value") is not { } value) { continue; }
+
+            setters.Add(new Setter(property, value));
+        }
+
+        return setters;
+    }
+
+    private static void Read(
+        MarkupNode node,
+        Action<string>? report,
+        List<Setter> setters,
+        List<TriggerBase> triggers,
+        List<EventTrigger> events)
+    {
+        setters.AddRange(ReadSetters(node));
+        ReadTriggers(node, report, triggers, events);
+    }
 }

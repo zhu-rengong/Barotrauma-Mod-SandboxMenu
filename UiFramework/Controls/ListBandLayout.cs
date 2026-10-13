@@ -7,6 +7,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
     private readonly List<BuiltRow?> _slots = [];
     private readonly List<BuiltRow> _topTiles = [];
     private readonly List<BuiltRow> _bottomTiles = [];
+    private readonly List<RectTransform> _order = [];
 
     private GUIFrame? _pad;
     private GUIFrame? _top;
@@ -14,6 +15,9 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
     private GUIFrame? _tail;
 
     private int _signature;
+
+    private (int, int, int, int, int, int, float, float, float) _inputs;
+    private bool _hasInputs;
 
     private int _above;
     private int _below;
@@ -70,11 +74,12 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             DetachFrames();
 
             _signature = 0;
+            _hasInputs = false;
             return;
         }
 
         int spacing = _listBox.Spacing;
-        Insets padding = list.Padding;
+        Insets padding = list.ContentPadding;
 
         int viewport = _listBox.Content.Rect.Height;
         int room = Math.Max(0, viewport - padding.Vertical);
@@ -104,6 +109,14 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
 
         list.RowHeight = height;
+
+        (int, int, int, int, int, int, float, float, float) inputs = (
+            count, room, width, spacing, height, list.DetailRows, _listBox.BarScroll, _listBox.BarSize, _listBox.TotalSize);
+
+        if (!force && _hasInputs && inputs == _inputs) { return; }
+
+        _inputs = inputs;
+        _hasInputs = true;
 
         bool tiles = _geometry.Measure(width, room, spacing, height, count, list.DetailRows);
         int rows = tiles ? _geometry.DetailRowsOneBand : list.DetailRows;
@@ -185,6 +198,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         Arrange(pad, tail, shown, width, topTiles, bottomTiles, topShape, bottomShape);
 
+        rowPool.FlushLayout();
         _listBox.ScrollBarNeedsRecalculation = true;
     }
 
@@ -194,7 +208,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         RectTransform content = _listBox.Content.RectTransform;
         int contentWidth = content.Rect.Width;
-        int width = Math.Max(1, contentWidth - list.Padding.Horizontal);
+        int width = Math.Max(1, contentWidth - list.ContentPadding.Horizontal);
 
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -261,6 +275,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         rowPool.EnsureTiles(tiles, band, list.Index[start], capacity);
 
         int count = Math.Min(shown, Math.Min(capacity, tiles.Count));
+        bool interactive = list.View.Interactive;
 
         for (int i = 0; i < count; i++)
         {
@@ -270,6 +285,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             if (ReferenceEquals(tile.Item, item))
             {
                 tile.Element.Control.Visible = true;
+                tile.Element.Control.AutoUpdate = interactive;
                 continue;
             }
 
@@ -287,6 +303,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             }
 
             tiles[i] = ListRowPool.Reuse(tile, item);
+            tiles[i].Element.Control.AutoUpdate = interactive;
         }
 
         for (int i = count; i < tiles.Count; i++) { tiles[i].Element.Control.Visible = false; }
@@ -309,7 +326,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         GUIFrame padFrame = _pad ??= CreateFrame();
         GUIFrame tailFrame = _tail ??= CreateFrame();
 
-        int inset = list.Padding.Top;
+        int inset = list.ContentPadding.Top;
         int offset = inset > 0 ? inset + _listBox.Spacing : 0;
 
         SizeFrame(padFrame, width, pad + offset);
@@ -330,22 +347,23 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             bottom.Visible = bottomTiles;
         }
 
-        int slot = 0;
+        _order.Clear();
+        _order.Add(padFrame.RectTransform);
 
-        PlacePart(padFrame.RectTransform, slot++);
-
-        if (topTiles && _top is { } firstBand) { PlacePart(firstBand.RectTransform, slot++); }
+        if (topTiles && _top is { } firstBand) { _order.Add(firstBand.RectTransform); }
 
         for (int i = 0; i < shown; i++)
         {
             if (_slots[i] is not { } row || !row.Element.Control.Visible) { continue; }
 
-            PlacePart(row.Element.Control.RectTransform, slot++);
+            _order.Add(row.Element.Control.RectTransform);
         }
 
-        if (bottomTiles && _bottom is { } secondBand) { PlacePart(secondBand.RectTransform, slot++); }
+        if (bottomTiles && _bottom is { } secondBand) { _order.Add(secondBand.RectTransform); }
 
-        PlacePart(tailFrame.RectTransform, slot);
+        _order.Add(tailFrame.RectTransform);
+
+        if (!MatchesOrder()) { PlaceAll(); }
 
         if (topTiles) { PlaceTiles(_topTiles, _top, _above, seamAtBottom: true, topShape.Rows, topShape.CellHeight); }
         if (bottomTiles) { PlaceTiles(_bottomTiles, _bottom, _below, seamAtBottom: false, bottomShape.Rows, bottomShape.CellHeight); }
@@ -353,13 +371,33 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         _listBox.RecalculateChildren();
     }
 
-    private void PlacePart(RectTransform transform, int slot)
+    private bool MatchesOrder()
+    {
+        int index = 0;
+
+        foreach (RectTransform child in _listBox.Content.RectTransform.Children)
+        {
+            if (index >= _order.Count) { return true; }
+            if (!ReferenceEquals(child, _order[index])) { return false; }
+
+            index++;
+        }
+
+        return index >= _order.Count;
+    }
+
+    private void PlaceAll()
     {
         RectTransform content = _listBox.Content.RectTransform;
 
-        transform.Parent = content;
+        for (int i = 0; i < _order.Count; i++)
+        {
+            RectTransform transform = _order[i];
 
-        if (content.GetChildIndex(transform) != slot) { transform.RepositionChildInHierarchy(slot); }
+            transform.Parent = content;
+
+            if (content.GetChildIndex(transform) != i) { transform.RepositionChildInHierarchy(i); }
+        }
     }
 
     private void PlaceTiles(List<BuiltRow> tiles, GUIFrame? band, int shown, bool seamAtBottom, int tileRows, int cellHeight)
@@ -370,7 +408,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int bandHeight = Math.Max(1, band.RectTransform.NonScaledSize.Y);
         int columns = _geometry.Columns;
         int count = Math.Min(shown, tiles.Count);
-        int left = list.Padding.Left;
+        int left = list.ContentPadding.Left;
         int pitch = _geometry.CellWidth + _listBox.Spacing;
         int stride = cellHeight + _listBox.Spacing;
 

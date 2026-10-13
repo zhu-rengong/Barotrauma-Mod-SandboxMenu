@@ -11,6 +11,12 @@ public sealed partial class Plugin
             onCommandExecuted: (string[] _) => MenuWindow.Instance.Toggle());
 
         DebugConsoleService.RegisterCommand(
+            command: "sandboxmenu.markup.selftest",
+            helpMessage: "Loads every sandbox menu view once and reports markup diagnostics.",
+            flags: CommandFlags.DoNotRelayToServer,
+            onCommandExecuted: (string[] _) => MarkupSelfTest.Run());
+
+        DebugConsoleService.RegisterCommand(
             command: "sandboxmenu_screenshot",
             helpMessage: "Saves a PNG of the sandbox spawn menu, the dialogs over it included.",
             flags: CommandFlags.DoNotRelayToServer,

@@ -65,7 +65,7 @@ internal sealed class WindowElement : ViewElement, IViewWindow
 
         GUIFrame frame = new(
             new RectTransform(WindowDraw.Fit(nominal, GUI.Canvas.Rect), context.Parent, Anchor.Center, null, ScaleBasis.Normal, isFixedSize: true),
-            "GUIFrame")
+            context.Skin is { Length: > 0 } skin ? skin : "GUIFrame")
         {
             CanBeFocused = false
         };

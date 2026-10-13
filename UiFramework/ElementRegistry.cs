@@ -6,7 +6,7 @@ namespace UiFramework;
 
 internal static class ElementRegistry
 {
-    private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+    private const BindingFlags DeclaredProperties = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
     private static readonly List<Assembly> _sources = [typeof(ElementRegistry).Assembly];
     private static FrozenDictionary<string, ElementMetadata>? _elements;
@@ -14,6 +14,9 @@ internal static class ElementRegistry
     internal static FrozenDictionary<string, ElementMetadata> Elements => _elements ??= Scan();
 
     internal static ElementMetadata? Find(string name) => Elements.GetValueOrDefault(name);
+
+    internal static PropertyMetadata? Property(string element, string name)
+        => Find(element)?.Properties.TryGetValue(name, out PropertyMetadata? property) is true ? property : null;
 
     internal static void Register(Assembly assembly)
     {
@@ -29,15 +32,34 @@ internal static class ElementRegistry
 
         foreach (Assembly source in _sources)
         {
-            foreach (Type type in source.GetTypes())
+            foreach (Type type in SourceTypes(source))
             {
-                if (type.GetCustomAttribute<ElementAttribute>() is not { } element || type.IsAbstract) { continue; }
+                if (type.GetCustomAttribute<ElementAttribute>() is not { } element) { continue; }
 
-                elements[element.Name] = new ElementMetadata(element.Name, FactoryOf(type), PropertiesOf(type));
+                try
+                {
+                    elements[element.Name] = new ElementMetadata(element.Name, FactoryOf(type), PropertiesOf(type));
+                }
+                catch (Exception e)
+                {
+                    DebugConsole.AddWarning($"the element <{element.Name}> ({type.FullName}) cannot be used: {e.Message}");
+                }
             }
         }
 
         return elements.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<Type> SourceTypes(Assembly source)
+    {
+        try
+        {
+            return source.GetTypes();
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            return e.Types.OfType<Type>();
+        }
     }
 
     private static Func<ElementContext, ViewElement> FactoryOf(Type type)
@@ -57,7 +79,7 @@ internal static class ElementRegistry
 
         for (Type? current = type; current is not null && typeof(ViewElement).IsAssignableFrom(current); current = current.BaseType)
         {
-            foreach (PropertyInfo property in current.GetProperties(PublicInstance))
+            foreach (PropertyInfo property in current.GetProperties(DeclaredProperties))
             {
                 if (property.GetCustomAttribute<ElementPropertyAttribute>() is not { } declared) { continue; }
 
@@ -70,7 +92,8 @@ internal static class ElementRegistry
                     declared.Mode,
                     declared.SettableFromStyle,
                     declared.KeyText,
-                    WriterOf(property)));
+                    WriterOf(property),
+                    ReaderOf(property)));
             }
         }
 
@@ -79,7 +102,15 @@ internal static class ElementRegistry
 
     private static Action<object, object?> WriterOf(PropertyInfo property)
     {
-        if (property.SetMethod is not { IsPublic: true }) { throw new InvalidOperationException($"'{property.Name}' has no setter"); }
+        if (property.SetMethod is not { IsPublic: true })
+        {
+            if (property.GetCustomAttribute<ElementPropertyAttribute>() is { Phase: ApplyPhase.Construct })
+            {
+                return static (_, _) => { };
+            }
+
+            throw new InvalidOperationException($"'{property.Name}' has no public setter");
+        }
 
         ParameterExpression element = Expression.Parameter(typeof(object), "element");
         ParameterExpression value = Expression.Parameter(typeof(object), "value");
@@ -90,5 +121,16 @@ internal static class ElementRegistry
                 Expression.Convert(value, property.PropertyType)),
             element,
             value).Compile();
+    }
+
+    private static Func<object, object?>? ReaderOf(PropertyInfo property)
+    {
+        if (property.GetMethod is not { IsPublic: true }) { return null; }
+
+        ParameterExpression element = Expression.Parameter(typeof(object), "element");
+
+        return Expression.Lambda<Func<object, object?>>(
+            Expression.Convert(Expression.Property(Expression.Convert(element, property.DeclaringType!), property), typeof(object)),
+            element).Compile();
     }
 }

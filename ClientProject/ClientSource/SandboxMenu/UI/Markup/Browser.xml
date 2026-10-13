@@ -3,11 +3,45 @@
 <Stack Orientation="Vertical">
 
   <!-- The tiles are the same rows as icons only: they fill the grid bands above and below the detail rows, so the
-       entries outside the scroll view keep their sequence. IconExtent is how much of its cell an icon takes. -->
+       entries outside the scroll view keep their sequence. IconExtent is how much of its cell an icon takes, and the
+       hover swell is a storyboard on Grow so the element itself carries no animation code. -->
   <Stack.Resources>
     <DataTemplate Key="ItemTile">
       <Tile Icon="{Binding Icon}" ToolTip="{Binding TileSelfToolTip}" Command="{Binding PickCommand}"
-        SecondaryCommand="{Binding SelfCommand}" IconExtent="0.85" />
+        SecondaryCommand="{Binding SelfCommand}" IconExtent="0.85">
+        <Tile.Triggers>
+          <Trigger Property="IsMouseOver" Value="True">
+            <Trigger.EnterActions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Property="Grow" To="1" Duration="0.12" Easing="QuadOut" />
+                </Storyboard>
+              </BeginStoryboard>
+            </Trigger.EnterActions>
+            <Trigger.ExitActions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Property="Grow" To="0" Duration="0.12" Easing="QuadOut" />
+                </Storyboard>
+              </BeginStoryboard>
+            </Trigger.ExitActions>
+          </Trigger>
+
+          <EventTrigger Event="SecondaryPressed">
+            <EventTrigger.Actions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.5" FillBehavior="Stop">
+                    <EasingColorKeyFrame KeyTime="0" Value="Transparent" />
+                    <EasingColorKeyFrame KeyTime="0.3" Value="Accent" Easing="SineOut" />
+                    <EasingColorKeyFrame KeyTime="0.5" Value="Transparent" Easing="SineIn" />
+                  </ColorAnimationUsingKeyFrames>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger.Actions>
+          </EventTrigger>
+        </Tile.Triggers>
+      </Tile>
     </DataTemplate>
 
     <DataTemplate DataType="ItemRowViewModel">

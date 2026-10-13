@@ -141,4 +141,6 @@ internal sealed class ItemDisplay
 
     internal static ItemDisplay? For(string identifier)
         => ItemPrefabLookup.By(identifier) is { } prefab ? For(prefab) : null;
+
+    internal static void Reset() => _cache.Clear();
 }

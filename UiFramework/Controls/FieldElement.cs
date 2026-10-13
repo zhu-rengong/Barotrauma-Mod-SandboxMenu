@@ -67,5 +67,11 @@ internal sealed class FieldElement : ViewElement
         set => _controls.RectTransform.RelativeSize = new Vector2(value, 1f);
     }
 
+    [ElementProperty]
+    public float LabelWidth
+    {
+        set => _label.RectTransform.RelativeSize = new Vector2(value, UiTokens.Percent("control", 0.84f));
+    }
+
     public override RectTransform ContentParent => _controls.RectTransform;
 }

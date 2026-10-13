@@ -18,6 +18,13 @@ internal abstract class Notifiable : INotifyPropertyChanged
     }
 
     protected void Raise([CallerMemberName] string? property = null)
+    {
+        if (NotificationBatch.Enqueue(this, property)) { return; }
+
+        RaiseDirect(property);
+    }
+
+    internal void RaiseDirect(string? property)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 }
 
