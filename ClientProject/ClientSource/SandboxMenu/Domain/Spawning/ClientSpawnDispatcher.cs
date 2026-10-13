@@ -10,50 +10,41 @@ internal static class ClientSpawnDispatcher
 {
     private static uint _nextRequestId;
     private static uint _waitingFor;
-    private static SpawnStatus? _result;
-    private static int _resultQueued;
-    private static int _resultProblems;
+    private static ISpawnResultSink? _sink;
 
-    internal static bool IsMultiplayerClient => GameMain.NetworkMember is { IsClient: true };
+    internal static void Listen(ISpawnResultSink sink) => _sink = sink;
 
-    internal static SpawnRefusal? TrySendIntoInventory(IReadOnlyList<SpawnEntry> entries)
-        => TrySend(entries, SpawnTargetKind.Inventory, Vector2.Zero);
+    internal static void Forget(ISpawnResultSink sink)
+    {
+        if (ReferenceEquals(_sink, sink)) { _sink = null; }
 
-    internal static SpawnRefusal? TrySendToWorld(IReadOnlyList<SpawnEntry> entries, Vector2 worldPosition)
-        => TrySend(entries, SpawnTargetKind.World, worldPosition);
+        _waitingFor = 0;
+    }
+
+    internal static SpawnRefusal? TrySendIntoInventory(IReadOnlyList<SpawnEntry> entries, ushort characterId)
+        => TrySend(entries, SpawnTargetKind.Inventory, Vector2.Zero, characterId);
+
+    internal static SpawnRefusal? TrySendToWorld(IReadOnlyList<SpawnEntry> entries, Vector2 worldPosition, ushort characterId)
+        => TrySend(entries, SpawnTargetKind.World, worldPosition, characterId);
 
     internal static void OnResponse(SpawnResponse response)
     {
         if (_waitingFor == 0 || response.RequestId != _waitingFor) { return; }
 
+        _waitingFor = 0;
+
         foreach (string problem in response.Problems ?? []) { DebugConsole.AddWarning(problem); }
 
-        _result = (SpawnStatus)response.Status;
-        _resultQueued = response.Queued;
-        _resultProblems = response.Problems?.Length ?? 0;
+        _sink?.OnSpawnResult((SpawnStatus)response.Status, response.Queued, response.Problems?.Length ?? 0);
     }
 
-    internal static bool TryTakeResult(out SpawnStatus status, out int queued, out int problems)
+    private static SpawnRefusal? TrySend(
+        IReadOnlyList<SpawnEntry> entries,
+        SpawnTargetKind target,
+        Vector2 worldPosition,
+        ushort characterId)
     {
-        if (_result is not { } result)
-        {
-            status = SpawnStatus.Ok;
-            queued = 0;
-            problems = 0;
-            return false;
-        }
-
-        status = result;
-        queued = _resultQueued;
-        problems = _resultProblems;
-
-        Forget();
-        return true;
-    }
-
-    private static SpawnRefusal? TrySend(IReadOnlyList<SpawnEntry> entries, SpawnTargetKind target, Vector2 worldPosition)
-    {
-        Forget();
+        _waitingFor = 0;
 
         SpawnPayload payload = new();
         CollectTemplates(payload, entries, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
@@ -66,7 +57,7 @@ internal static class ClientSpawnDispatcher
             compressed,
             (byte)target,
             worldPosition,
-            (ushort)(Character.Controlled?.ID ?? 0),
+            characterId,
             requestId);
 
         try
@@ -80,7 +71,6 @@ internal static class ClientSpawnDispatcher
         }
 
         _waitingFor = requestId;
-        _result = null;
 
         return null;
     }
@@ -104,13 +94,5 @@ internal static class ClientSpawnDispatcher
                     break;
             }
         }
-    }
-
-    private static void Forget()
-    {
-        _waitingFor = 0;
-        _result = null;
-        _resultQueued = 0;
-        _resultProblems = 0;
     }
 }

@@ -1,5 +1,24 @@
 namespace UiFramework.Controls;
 
+internal readonly record struct BandArrangement(
+    BandMetrics Metrics,
+    int Viewport,
+    int Window,
+    int Shown,
+    bool Tiles,
+    bool TopTiles,
+    bool BottomTiles,
+    BandShape TopShape,
+    BandShape BottomShape,
+    int Pad,
+    int Tail)
+{
+    internal int Signature => HashCode.Combine(
+        HashCode.Combine(Window, Metrics.Count, Metrics.Room, Metrics.Width, Metrics.Spacing),
+        HashCode.Combine(Metrics.RowHeight, Pad, Tail, Shown, TopTiles ? 1 : 0),
+        HashCode.Combine(BottomTiles ? 1 : 0, TopShape.GetHashCode(), BottomShape.GetHashCode()));
+}
+
 internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 {
     private readonly GUIListBox _listBox = list.ListBox;
@@ -14,10 +33,8 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
     private GUIFrame? _bottom;
     private GUIFrame? _tail;
 
-    private int _signature;
-
-    private (int, int, int, int, int, int, float, float, float) _inputs;
-    private bool _hasInputs;
+    private ShapeSignature<int> _signature;
+    private ShapeSignature<(BandMetrics Metrics, float BarScroll, float BarSize, float TotalSize)> _inputs;
 
     private int _above;
     private int _below;
@@ -67,14 +84,12 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
     private void Apply(bool force)
     {
-        int count = list.Index.Count;
-
-        if (count == 0)
+        if (list.Index.Count == 0)
         {
             DetachFrames();
 
-            _signature = 0;
-            _hasInputs = false;
+            _signature.Reset();
+            _inputs.Reset();
             return;
         }
 
@@ -87,72 +102,82 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
 
         if (width <= 0 || room <= 0)
         {
-            _signature = 0;
+            _signature.Reset();
             return;
         }
 
+        if (!SettleRowHeight())
+        {
+            _signature.Reset();
+            return;
+        }
+
+        BandMetrics metrics = new(width, room, spacing, list.RowHeight, list.Index.Count, list.DetailRows);
+        (BandMetrics Metrics, float BarScroll, float BarSize, float TotalSize) inputs =
+            (metrics, _listBox.BarScroll, _listBox.BarSize, _listBox.TotalSize);
+
+        if (!force && _inputs.Matches(inputs)) { return; }
+
+        _inputs.Set(inputs);
+
+        BandArrangement band = Arrange(metrics, viewport);
+
+        if (!force && _signature.Matches(band.Signature)) { return; }
+
+        _signature.Set(band.Signature);
+
+        Commit(band);
+    }
+
+    private bool SettleRowHeight()
+    {
         if (_slots.Count == 0 || _slots[0] is null)
         {
-            if (!ProbeSlot())
-            {
-                _signature = 0;
-                return;
-            }
+            if (!ProbeSlot()) { return false; }
         }
 
         int height = _slots[0] is { } first ? first.Element.Control.Rect.Height : list.RowHeight;
 
-        if (height <= 0)
-        {
-            _signature = 0;
-            return;
-        }
+        if (height <= 0) { return false; }
 
         list.RowHeight = height;
+        return true;
+    }
 
-        (int, int, int, int, int, int, float, float, float) inputs = (
-            count, room, width, spacing, height, list.DetailRows, _listBox.BarScroll, _listBox.BarSize, _listBox.TotalSize);
-
-        if (!force && _hasInputs && inputs == _inputs) { return; }
-
-        _inputs = inputs;
-        _hasInputs = true;
-
-        bool tiles = _geometry.Measure(width, room, spacing, height, count, list.DetailRows);
+    private BandArrangement Arrange(BandMetrics metrics, int viewport)
+    {
+        bool tiles = _geometry.Measure(metrics);
         int rows = tiles ? _geometry.DetailRowsOneBand : list.DetailRows;
-        int stride = Math.Max(1, height + spacing);
-        int steps = Math.Max(0, count - rows);
+        int stride = Math.Max(1, metrics.RowHeight + metrics.Spacing);
+        int steps = Math.Max(0, metrics.Count - rows);
         float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - viewport) * _listBox.BarScroll : 0f;
         int scroll = (int)scrolled;
         int window = steps == 0 ? 0 : Math.Clamp(scroll / stride, 0, steps);
 
-        bool topOn = window > 0;
-        bool bottomOn = count - window > rows;
-        bool topTiles = tiles && topOn;
-        bool bottomTiles = tiles && bottomOn;
+        bool topTiles = tiles && window > 0;
+        bool bottomTiles = tiles && metrics.Count - window > rows;
 
         int columns = _geometry.Columns;
         int nominal = _geometry.NominalTileRows;
-        int cells = columns * nominal;
-        int aboveItems = Math.Min(cells, window);
-        int belowItems = Math.Max(0, count - window - _geometry.MaxRows);
+        int aboveItems = Math.Min(columns * nominal, window);
+        int belowItems = Math.Max(0, metrics.Count - window - _geometry.MaxRows);
         int usedTop = topTiles ? Math.Clamp((aboveItems + columns - 1) / columns, 1, nominal) : 0;
         int usedBottom = bottomTiles ? Math.Clamp((belowItems + columns - 1) / columns, 1, nominal) : 0;
-        int pitch = _geometry.CellWidth + spacing;
-        int wantTop = usedTop > 0 ? usedTop * pitch - spacing : 0;
-        int wantBottom = usedBottom > 0 ? usedBottom * pitch - spacing : 0;
-        int minTop = usedTop > 0 ? usedTop * _geometry.MinCell + (usedTop - 1) * spacing : 0;
-        int minBottom = usedBottom > 0 ? usedBottom * _geometry.MinCell + (usedBottom - 1) * spacing : 0;
+        int pitch = _geometry.CellWidth + metrics.Spacing;
+        int wantTop = usedTop > 0 ? usedTop * pitch - metrics.Spacing : 0;
+        int wantBottom = usedBottom > 0 ? usedBottom * pitch - metrics.Spacing : 0;
+        int minTop = usedTop > 0 ? usedTop * _geometry.MinCell + (usedTop - 1) * metrics.Spacing : 0;
+        int minBottom = usedBottom > 0 ? usedBottom * _geometry.MinCell + (usedBottom - 1) * metrics.Spacing : 0;
         int bands = (topTiles ? 1 : 0) + (bottomTiles ? 1 : 0);
-        int gaps = bands == 2 ? 2 * spacing : spacing;
+        int gaps = bands == 2 ? 2 * metrics.Spacing : metrics.Spacing;
 
         int shown = bands == 0
-            ? Math.Min(count - window, _geometry.MaxRows)
-            : Math.Clamp((int)MathF.Floor((room - gaps - wantTop - wantBottom + spacing) / (float)stride), list.DetailRows, _geometry.MaxRows);
+            ? Math.Min(metrics.Count - window, _geometry.MaxRows)
+            : Math.Clamp((int)MathF.Floor((metrics.Room - gaps - wantTop - wantBottom + metrics.Spacing) / (float)stride), list.DetailRows, _geometry.MaxRows);
 
-        shown = Math.Min(shown, count - window);
+        shown = Math.Min(shown, metrics.Count - window);
 
-        int leftover = room - gaps - (shown * stride - spacing);
+        int leftover = metrics.Room - gaps - (shown * stride - metrics.Spacing);
         int weight = Math.Max(1, usedTop + usedBottom);
 
         int topHeight = topTiles ? Math.Clamp(leftover * usedTop / weight, minTop, wantTop) : 0;
@@ -180,23 +205,30 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int children = 2 + shown + bands;
 
         int content = viewport + steps * stride;
-        int budget = Math.Max(0, content - spacing * children - topShape.Height - bottomShape.Height - shown * height);
-        int pad = Math.Min(steps == 0 ? 0 : Math.Max(0, scroll - spacing), budget);
-        int tail = budget - pad;
+        int budget = Math.Max(0, content - metrics.Spacing * children - topShape.Height - bottomShape.Height - shown * metrics.RowHeight);
+        int pad = Math.Min(steps == 0 ? 0 : Math.Max(0, scroll - metrics.Spacing), budget);
 
-        int signature = HashCode.Combine(
-            HashCode.Combine(window, count, room, width, spacing),
-            HashCode.Combine(height, pad, tail, shown, topTiles ? 1 : 0),
-            HashCode.Combine(bottomTiles ? 1 : 0, topShape.GetHashCode(), bottomShape.GetHashCode()));
+        return new BandArrangement(
+            metrics,
+            viewport,
+            window,
+            shown,
+            tiles,
+            topTiles,
+            bottomTiles,
+            topShape,
+            bottomShape,
+            pad,
+            budget - pad);
+    }
 
-        if (!force && signature == _signature) { return; }
+    private void Commit(BandArrangement band)
+    {
+        RefreshDetailRows(band.Shown, band.Window);
 
-        _signature = signature;
+        if (band.Tiles) { RefreshTiles(band); }
 
-        RefreshDetailRows(shown, window);
-        if (tiles) { RefreshTiles(count, window, shown, topTiles, bottomTiles, topShape, bottomShape); }
-
-        Arrange(pad, tail, shown, width, topTiles, bottomTiles, topShape, bottomShape);
+        PlaceBands(band);
 
         rowPool.FlushLayout();
         _listBox.ScrollBarNeedsRecalculation = true;
@@ -238,24 +270,24 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         rect.RelativeSize = new Vector2(width / (float)contentWidth, rect.RelativeSize.Y);
     }
 
-    private void RefreshTiles(int count, int window, int shown, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
+    private void RefreshTiles(BandArrangement band)
     {
-        if (topTiles)
+        if (band.TopTiles)
         {
             _top ??= CreateFrame();
-            _above = Math.Min(topShape.Capacity, window);
-            FillBand(_topTiles, _top, _above, window - _above, topShape.Capacity);
+            _above = Math.Min(band.TopShape.Capacity, band.Window);
+            FillBand(_topTiles, _top, _above, band.Window - _above, band.TopShape.Capacity);
         }
         else
         {
             _above = 0;
         }
 
-        if (bottomTiles)
+        if (band.BottomTiles)
         {
             _bottom ??= CreateFrame();
-            _below = Math.Clamp(count - window - shown, 0, bottomShape.Capacity);
-            FillBand(_bottomTiles, _bottom, _below, window + shown, bottomShape.Capacity);
+            _below = Math.Clamp(band.Metrics.Count - band.Window - band.Shown, 0, band.BottomShape.Capacity);
+            FillBand(_bottomTiles, _bottom, _below, band.Window + band.Shown, band.BottomShape.Capacity);
         }
         else
         {
@@ -321,52 +353,53 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
     }
 
-    private void Arrange(int pad, int tail, int shown, int width, bool topTiles, bool bottomTiles, BandShape topShape, BandShape bottomShape)
+    private void PlaceBands(BandArrangement band)
     {
         GUIFrame padFrame = _pad ??= CreateFrame();
         GUIFrame tailFrame = _tail ??= CreateFrame();
 
         int inset = list.ContentPadding.Top;
         int offset = inset > 0 ? inset + _listBox.Spacing : 0;
+        int width = band.Metrics.Width;
 
-        SizeFrame(padFrame, width, pad + offset);
-        SizeFrame(tailFrame, width, Math.Max(0, tail - offset));
+        SizeFrame(padFrame, width, band.Pad + offset);
+        SizeFrame(tailFrame, width, Math.Max(0, band.Tail - offset));
 
         padFrame.Visible = true;
         tailFrame.Visible = true;
 
         if (_top is { } top)
         {
-            SizeFrame(top, width, topShape.Height);
-            top.Visible = topTiles;
+            SizeFrame(top, width, band.TopShape.Height);
+            top.Visible = band.TopTiles;
         }
 
         if (_bottom is { } bottom)
         {
-            SizeFrame(bottom, width, bottomShape.Height);
-            bottom.Visible = bottomTiles;
+            SizeFrame(bottom, width, band.BottomShape.Height);
+            bottom.Visible = band.BottomTiles;
         }
 
         _order.Clear();
         _order.Add(padFrame.RectTransform);
 
-        if (topTiles && _top is { } firstBand) { _order.Add(firstBand.RectTransform); }
+        if (band.TopTiles && _top is { } topBand) { _order.Add(topBand.RectTransform); }
 
-        for (int i = 0; i < shown; i++)
+        for (int i = 0; i < band.Shown; i++)
         {
             if (_slots[i] is not { } row || !row.Element.Control.Visible) { continue; }
 
             _order.Add(row.Element.Control.RectTransform);
         }
 
-        if (bottomTiles && _bottom is { } secondBand) { _order.Add(secondBand.RectTransform); }
+        if (band.BottomTiles && _bottom is { } bottomBand) { _order.Add(bottomBand.RectTransform); }
 
         _order.Add(tailFrame.RectTransform);
 
         if (!MatchesOrder()) { PlaceAll(); }
 
-        if (topTiles) { PlaceTiles(_topTiles, _top, _above, seamAtBottom: true, topShape.Rows, topShape.CellHeight); }
-        if (bottomTiles) { PlaceTiles(_bottomTiles, _bottom, _below, seamAtBottom: false, bottomShape.Rows, bottomShape.CellHeight); }
+        if (band.TopTiles) { PlaceTiles(_topTiles, _top, _above, seamAtBottom: true, band.TopShape); }
+        if (band.BottomTiles) { PlaceTiles(_bottomTiles, _bottom, _below, seamAtBottom: false, band.BottomShape); }
 
         _listBox.RecalculateChildren();
     }
@@ -400,7 +433,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         }
     }
 
-    private void PlaceTiles(List<BuiltRow> tiles, GUIFrame? band, int shown, bool seamAtBottom, int tileRows, int cellHeight)
+    private void PlaceTiles(IReadOnlyList<BuiltRow> tiles, GUIFrame? band, int shown, bool seamAtBottom, BandShape shape)
     {
         if (band is null || shown <= 0 || tiles.Count == 0) { return; }
 
@@ -410,7 +443,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         int count = Math.Min(shown, tiles.Count);
         int left = list.ContentPadding.Left;
         int pitch = _geometry.CellWidth + _listBox.Spacing;
-        int stride = cellHeight + _listBox.Spacing;
+        int stride = shape.CellHeight + _listBox.Spacing;
 
         for (int i = 0; i < count; i++)
         {
@@ -418,11 +451,11 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             int flowRow = i / columns;
             int within = i % columns;
             int column = (flowRow & 1) == 0 ? within : columns - 1 - within;
-            int row = seamAtBottom ? tileRows - 1 - flowRow : flowRow;
+            int row = seamAtBottom ? shape.Rows - 1 - flowRow : flowRow;
             RectTransform transform = tile.Element.Control.RectTransform;
 
             transform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
-            transform.RelativeSize = new Vector2(_geometry.CellWidth / (float)bandWidth, cellHeight / (float)bandHeight);
+            transform.RelativeSize = new Vector2(_geometry.CellWidth / (float)bandWidth, shape.CellHeight / (float)bandHeight);
             transform.AbsoluteOffset = new Point(left + column * pitch, row * stride);
         }
     }

@@ -52,7 +52,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     private readonly Dictionary<Character, CharacterDisplay> _displays = new(ReferenceEqualityComparer.Instance);
 
     private IReadOnlyList<CharacterTileViewModel> _visible = [];
-    private IReadOnlyList<PackageOption> _packageOptions = [];
+    private IReadOnlyList<PackageLabel> _packageOptions = [];
     private Action<Character> _onPicked = static _ => { };
     private string _query = string.Empty;
     private float _scroll;
@@ -152,7 +152,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         if (packageSignature != _packageSignature)
         {
             _packageSignature = packageSignature;
-            _packageOptions = PackageOptions.Build(_rows.Select(row => row.Display.Package));
+            _packageOptions = PackageLabels.From(_rows.Select(row => row.Display.Package));
         }
 
         _packages.Clear();

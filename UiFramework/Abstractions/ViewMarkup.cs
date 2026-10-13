@@ -1,6 +1,4 @@
-using System.Globalization;
-
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 public static class ViewMarkup
 {
@@ -29,12 +27,12 @@ public static class ViewMarkup
     public static bool ToBool(object? value, bool fallback) => value switch
     {
         bool flag => flag,
-        string text => bool.TryParse(text, out bool parsed) ? parsed : fallback,
+        string text => ValueParser.TryBool(text, fallback, out bool parsed) ? parsed : fallback,
         _ => fallback
     };
 
     public static float TextScaleOf(string? fontSize, GUIFont font)
-        => fontSize is { } raw && float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float dip)
+        => fontSize is { } raw && ValueParser.TryFloat(raw, out float dip)
             ? UiMetrics.FontScale(dip, font)
             : UiMetrics.TextScale;
 
@@ -68,6 +66,18 @@ public static class ViewMarkup
             _ => null
         };
 
-        return themed ?? XMLExtensions.ParseColor(text, errorMessages: false);
+        if (themed is { } color) { return color; }
+
+        return ValueParser.TryColor(text, out Color parsed) ? parsed : fallback;
+    }
+
+    public static float SecondsOf(string? text, float fallback, Action<string>? report = null)
+    {
+        if (text is not { Length: > 0 }) { return fallback; }
+
+        if (ValueParser.TrySeconds(text, out float seconds)) { return seconds; }
+
+        report?.Invoke($"'{text}' is not a duration (seconds, or h:mm:ss)");
+        return fallback;
     }
 }

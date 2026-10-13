@@ -22,15 +22,13 @@ internal sealed record ItemFilter(IReadOnlySet<ContentPackage> Packages, MapEnti
             && (Categories == MapEntityCategory.None || (entry.Category & Categories) != 0);
 }
 
-internal sealed record ItemPackage(ContentPackage Package, string Label);
-
 internal static class ItemPrefabCatalog
 {
     internal static readonly ImmutableArray<MapEntityCategory> AllCategories =
         [.. Enum.GetValues<MapEntityCategory>().Where(category => category != MapEntityCategory.None)];
 
     private static ImmutableArray<ItemPrefabEntry> _entries = ImmutableArray<ItemPrefabEntry>.Empty;
-    private static IReadOnlyList<ItemPackage> _packages = [];
+    private static IReadOnlyList<PackageLabel> _packages = [];
     private static MapEntityCategory _categoryMask = MapEntityCategory.None;
     private static FrozenDictionary<ContentPackage, MapEntityCategory> _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
 
@@ -41,11 +39,19 @@ internal static class ItemPrefabCatalog
         return _entries;
     }
 
-    internal static IReadOnlyList<ItemPackage> Packages()
+    internal static IReadOnlyList<PackageLabel> Packages()
     {
         EnsureBuilt();
 
         return _packages;
+    }
+
+    internal static void Reset()
+    {
+        _entries = ImmutableArray<ItemPrefabEntry>.Empty;
+        _packages = [];
+        _categoryMask = MapEntityCategory.None;
+        _categoryMasksByPackage = FrozenDictionary<ContentPackage, MapEntityCategory>.Empty;
     }
 
     internal static MapEntityCategory CategoryMaskIn(IReadOnlySet<ContentPackage> packages)
@@ -103,39 +109,8 @@ internal static class ItemPrefabCatalog
         list.Sort(static (a, b) => string.Compare(a.Identifier, b.Identifier, StringComparison.OrdinalIgnoreCase));
 
         _entries = list.ToImmutableArray();
-        _packages = BuildPackages(found);
+        _packages = PackageLabels.Build(found);
         _categoryMask = categoryMask;
         _categoryMasksByPackage = masks.ToFrozenDictionary(ReferenceEqualityComparer.Instance);
-    }
-
-    private static IReadOnlyList<ItemPackage> BuildPackages(List<(ContentPackage Package, string Name)> found)
-    {
-        Dictionary<string, int> counts = new(StringComparer.OrdinalIgnoreCase);
-
-        foreach ((ContentPackage _, string name) in found) { counts[name] = counts.GetValueOrDefault(name) + 1; }
-
-        List<ItemPackage> packages = new(found.Count);
-
-        foreach ((ContentPackage package, string name) in found)
-        {
-            string folder = FolderOf(package.Path);
-
-            string label = name.Length == 0
-                ? folder
-                : counts[name] > 1 ? $"{name} ({folder})" : name;
-
-            packages.Add(new ItemPackage(package, label));
-        }
-
-        packages.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
-
-        return packages;
-    }
-
-    private static string FolderOf(string path)
-    {
-        string folder = Path.GetFileName(Path.GetDirectoryName(path) ?? string.Empty);
-
-        return folder.Length == 0 ? path : folder;
     }
 }

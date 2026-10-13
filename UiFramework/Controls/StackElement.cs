@@ -6,6 +6,7 @@ namespace UiFramework.Controls;
 internal sealed class StackElement : ViewElement
 {
     private readonly GUILayoutGroup _group;
+    private readonly RectTransform _rect;
     private readonly List<ViewElement> _children = [];
     private bool _horizontal;
 
@@ -13,10 +14,17 @@ internal sealed class StackElement : ViewElement
         : base(Create(context))
     {
         _group = (GUILayoutGroup)Control;
+        _rect = Control.RectTransform;
         _horizontal = _group.IsHorizontal;
 
-        Control.RectTransform.SizeChanged += ApplyShares;
-        Control.RectTransform.ScaleChanged += ApplyShares;
+        _rect.SizeChanged += ApplyShares;
+        _rect.ScaleChanged += ApplyShares;
+    }
+
+    protected override void OnRelease()
+    {
+        _rect.SizeChanged -= ApplyShares;
+        _rect.ScaleChanged -= ApplyShares;
     }
 
     [ElementProperty]

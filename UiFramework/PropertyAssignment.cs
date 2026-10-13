@@ -1,5 +1,5 @@
 using System.Windows.Input;
-using UiFramework.Styling;
+using UiFramework.Data;
 
 namespace UiFramework;
 
@@ -8,9 +8,9 @@ internal sealed class PropertyAssignment(
     MarkupNode node,
     ViewElement element,
     PropertyMetadata property,
-    object? target = null)
+    object? target = null) : IValueAssignment
 {
-    internal PropertyMetadata Property { get; } = property;
+    public PropertyMetadata Property { get; } = property;
 
     internal ViewElement Element { get; } = element;
 
@@ -18,7 +18,7 @@ internal sealed class PropertyAssignment(
 
     private object Target { get; } = target ?? element;
 
-    internal void SetText(string text)
+    public void SetText(string text)
     {
         if (Property.KeyText && !string.IsNullOrEmpty(text))
         {
@@ -36,7 +36,7 @@ internal sealed class PropertyAssignment(
         Apply(value);
     }
 
-    internal void SetValue(object? value, string source)
+    public void SetValue(object? value, string source)
     {
         (object? converted, bool ok) = ValueConversion.Convert(value, Property.ValueType);
         if (!ok)
@@ -48,7 +48,7 @@ internal sealed class PropertyAssignment(
         Apply(converted);
     }
 
-    internal void Bind(BindingOptions options)
+    public void Bind(BindingOptions options)
     {
         object? source = ResolveSource(options, out string sourceName);
         Binding? binding = null;
@@ -99,7 +99,7 @@ internal sealed class PropertyAssignment(
         }
     }
 
-    internal void BindMulti(IReadOnlyList<BindingOptions> bindings, string? converter, string? parameter)
+    public void BindMulti(IReadOnlyList<BindingOptions> bindings, string? converter, string? parameter)
     {
         if (converter is not { } name || ValueConverters.FindMulti(name) is not { } multi)
         {
@@ -133,7 +133,7 @@ internal sealed class PropertyAssignment(
         }
     }
 
-    internal void SetResource(string key, bool reevaluate)
+    public void SetResource(string key, bool reevaluate)
     {
         if (view.FindResource(key, Element) is not { } resource)
         {
@@ -141,7 +141,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        if (resource is Style)
+        if (resource is IStyleResource)
         {
             Report($"'{key}' is a style and cannot be the value of '{Property.Name}'");
             return;
@@ -156,7 +156,7 @@ internal sealed class PropertyAssignment(
         SetValue(resource, $"resource {key}");
     }
 
-    internal void Report(string message) => view.Diagnostics.Report($"{Property.Name}: {message}", node);
+    public void Report(string message) => view.Diagnostics.Report($"{Property.Name}: {message}", node);
 
     private void Apply(object? value)
     {

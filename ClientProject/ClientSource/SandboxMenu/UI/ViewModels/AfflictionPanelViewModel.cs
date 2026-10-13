@@ -22,6 +22,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private readonly IDialogHost _host;
     private readonly HashSet<ContentPackage> _packages = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<Identifier> _types = [];
+    private readonly IAfflictionGateway _gateway = AfflictionGateway.Shared;
     private readonly HashSet<int> _targets = [];
     private readonly List<AfflictionTileViewModel> _tiles = [];
     private readonly List<AfflictionRowViewModel> _rows = [];
@@ -39,7 +40,18 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     private IReadOnlyList<AfflictionTileViewModel> _visibleTiles = [];
     private IReadOnlyList<AfflictionRowViewModel> _visibleRows = [];
-    private Character? _selected;
+    private WeakReference<Character>? _selectedRef;
+
+    private Character? _selected
+    {
+        get
+        {
+            if (_selectedRef is not { } reference) { return null; }
+            if (!reference.TryGetTarget(out Character? character) || character is null) { return null; }
+
+            return character.Removed || !Character.CharacterList.Contains(character) ? null : character;
+        }
+    }
     private CharacterDisplay? _display;
     private AfflictionItemRowViewModel? _picked;
     private readonly Action<LocalizedString> _report;
@@ -89,11 +101,11 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     public CharacterDisplay? Display => _display;
 
-    public bool ShowIcon => _selected is not null;
+    public bool ShowIcon => _display is not null;
 
     public RichString IconToolTip => _display?.ToolTip ?? RichString.Rich(string.Empty);
 
-    public RichString Title => _selected is null
+    public RichString Title => _display is null
         ? RichString.Rich(TextManager.Get("sandboxmenu.afflictions.none"))
         : RichString.Rich(TooltipText.Bright(_display?.Name ?? string.Empty) + " " + TooltipText.Dim(_display?.Identifier ?? string.Empty));
 
@@ -186,10 +198,8 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     internal void Tick()
     {
-        if (_selected is null || _selected.Removed || !Character.CharacterList.Contains(_selected))
-        {
-            Select(Character.Controlled);
-        }
+        if (_selected is not { } current) { SelectCore(Character.Controlled, force: _selectedRef is not null); }
+        else if (_display is null) { SelectCore(current); }
 
         Prepare();
 
@@ -212,15 +222,25 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     }
 
     internal void Select(Character? character)
-    {
-        if (ReferenceEquals(_selected, character)) { return; }
+        => SelectCore(character, force: _selectedRef is not null && _selected is null);
 
-        _selected = character;
+    private void SelectCore(Character? character, bool force = false)
+    {
+        if (!force && ReferenceEquals(_selected, character) && (character is null || _display is not null)) { return; }
+
+        _selectedRef = character is null ? null : new WeakReference<Character>(character);
         _display = character is null ? null : new CharacterDisplay(character);
         _targets.Clear();
+        _limbIndex.Clear();
         _picked = null;
         _iconToolTipHealth = float.NaN;
         _shape = 0;
+
+        if (character is null)
+        {
+            _afflictions = null;
+            _afflictionsFrom = null;
+        }
 
         using (NotificationBatch.Begin())
         {
@@ -272,7 +292,27 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _ready = false;
         _percent = -1f;
 
-        Select(null);
+        _display = null;
+        _targets.Clear();
+        _limbIndex.Clear();
+        _picked = null;
+        _afflictions = null;
+        _afflictionsFrom = null;
+        _iconToolTipHealth = float.NaN;
+        _shape = 0;
+        _rows.Clear();
+        _visibleRows = [];
+
+        using (NotificationBatch.Begin())
+        {
+            Raise(nameof(Display));
+            Raise(nameof(ShowIcon));
+            Raise(nameof(IconToolTip));
+            Raise(nameof(Title));
+            Raise(nameof(TargetLabel));
+            Raise(nameof(Rows));
+            Raise(nameof(RowsEmpty));
+        }
 
         using (NotificationBatch.Begin())
         {
@@ -341,38 +381,17 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         AfflictionPrefab prefab = tile.Entry.Prefab;
         float max = prefab.MaxStrength > 0f ? prefab.MaxStrength : 1f;
         float strength = MathHelper.Clamp(max * Math.Clamp(_percent, 1f, 100f) / 100f, 1f, max);
-        int[] targets = [.. _targets];
+        AfflictionTargets targets = new(_targets.Count == 0, Targets());
 
-        if (ClientAfflictionDispatcher.IsMultiplayerClient)
+        AfflictionOutcome outcome = _gateway.Apply(character, prefab, strength, targets);
+
+        Report(outcome switch
         {
-            AfflictionRefusal? refusal = ClientAfflictionDispatcher.TrySend(character, prefab, strength, targets, AfflictionMode.Apply);
-
-            Report(TextManager.Get(refusal is null
-                ? "sandboxmenu.afflictions.status.senttoserver"
-                : "sandboxmenu.afflictions.status.sendfailed"));
-
-            return;
-        }
-
-        if (character.GodMode || (!prefab.IsBuff && character.CharacterHealth.Unkillable))
-        {
-            Report(TextManager.Get("sandboxmenu.afflictions.status.blocked"));
-            return;
-        }
-
-        if (targets.Length == 0)
-        {
-            character.CharacterHealth.ApplyAffliction(null, prefab.Instantiate(strength, Character.Controlled));
-        }
-        else
-        {
-            foreach (Limb limb in Targets())
-            {
-                character.CharacterHealth.ApplyAffliction(limb, prefab.Instantiate(strength, Character.Controlled));
-            }
-        }
-
-        Report(TextManager.GetWithVariable("sandboxmenu.afflictions.status.applied", "[value]", tile.Display.Name));
+            AfflictionOutcome.Sent => TextManager.Get("sandboxmenu.afflictions.status.senttoserver"),
+            AfflictionOutcome.Applied => TextManager.GetWithVariable("sandboxmenu.afflictions.status.applied", "[value]", tile.Display.Name),
+            AfflictionOutcome.Blocked => TextManager.Get("sandboxmenu.afflictions.status.blocked"),
+            _ => TextManager.Get("sandboxmenu.afflictions.status.sendfailed")
+        });
     }
 
     private void PickTargets()
@@ -424,25 +443,17 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         }
 
         AfflictionPrefab prefab = row.Prefab;
-        int[] at = [row.HealthIndex];
 
         if (row.Selected) { _picked = null; }
 
-        if (ClientAfflictionDispatcher.IsMultiplayerClient)
+        AfflictionOutcome outcome = _gateway.Remove(character, prefab, row.HealthIndex);
+
+        Report(outcome switch
         {
-            AfflictionRefusal? refusal = ClientAfflictionDispatcher.TrySend(character, prefab, 0f, at, AfflictionMode.Remove);
-
-            Report(TextManager.Get(refusal is null
-                ? "sandboxmenu.afflictions.status.senttoserver"
-                : "sandboxmenu.afflictions.status.sendfailed"));
-
-            return;
-        }
-
-        AfflictionEditor.Clear(character.CharacterHealth, affliction
-            => affliction.Prefab == prefab && (character.CharacterHealth.GetAfflictionLimb(affliction)?.HealthIndex ?? -1) == row.HealthIndex);
-
-        Report(TextManager.GetWithVariable("sandboxmenu.afflictions.status.removed", "[value]", row.Display.Name));
+            AfflictionOutcome.Sent => TextManager.Get("sandboxmenu.afflictions.status.senttoserver"),
+            AfflictionOutcome.Removed => TextManager.GetWithVariable("sandboxmenu.afflictions.status.removed", "[value]", row.Display.Name),
+            _ => TextManager.Get("sandboxmenu.afflictions.status.sendfailed")
+        });
     }
 
     private void RefreshRows()

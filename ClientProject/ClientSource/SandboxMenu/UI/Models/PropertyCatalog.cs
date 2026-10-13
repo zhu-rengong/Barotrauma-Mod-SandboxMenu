@@ -35,7 +35,7 @@ internal sealed record PropertyOption(
     public string Label => $"{Name} ({TypeName}) = {DefaultValue}";
 }
 
-internal static class PropertyOverrideCatalog
+internal static class PropertyCatalog
 {
     private static readonly Dictionary<string, ImmutableArray<PropertyOption>> _propertyCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -196,19 +196,13 @@ internal static class PropertyOverrideCatalog
         if (string.IsNullOrWhiteSpace(componentName)) { return new ResolvedTarget(typeof(Item), root); }
         if (root is null) { return default; }
 
-        int wanted = Math.Max(1, componentIndex);
-        int index = 0;
-
-        foreach (ContentXElement element in root.Elements())
+        if (ComponentOrdinal.Find(root.Elements().Where(IsComponent), componentName, componentIndex, static element => element.Name.LocalName)
+            is not { } element)
         {
-            if (!IsComponent(element)) { continue; }
-            if (!string.Equals(element.Name.LocalName, componentName, StringComparison.OrdinalIgnoreCase)) { continue; }
-            if (++index != wanted) { continue; }
-
-            return ComponentTypeFor(componentName) is { } type ? new ResolvedTarget(type, element) : default;
+            return default;
         }
 
-        return default;
+        return ComponentTypeFor(componentName) is { } type ? new ResolvedTarget(type, element) : default;
     }
 
     private static bool IsComponent(ContentXElement element)

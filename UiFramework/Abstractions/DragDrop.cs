@@ -1,6 +1,4 @@
-using Microsoft.Xna.Framework;
-
-namespace UiFramework.Data;
+namespace UiFramework.Abstractions;
 
 public enum DropMode
 {

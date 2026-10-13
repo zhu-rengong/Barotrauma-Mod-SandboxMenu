@@ -118,7 +118,7 @@ internal sealed class BindingPath
                     {
                         indices.Add(index[1..^1]);
                     }
-                    else if (int.TryParse(index, NumberStyles.Integer, CultureInfo.InvariantCulture, out int position))
+                    else if (ValueParser.TryInt(index, out int position))
                     {
                         indices.Add(position);
                     }

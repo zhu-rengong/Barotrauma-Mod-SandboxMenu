@@ -49,12 +49,10 @@ internal sealed record AfflictionFilter(
         => selected.Count == 0 || selected.Contains(value);
 }
 
-internal sealed record AfflictionPackage(ContentPackage Package, string Label);
-
 internal static class AfflictionPrefabCatalog
 {
     private static ImmutableArray<AfflictionPrefabEntry> _entries = ImmutableArray<AfflictionPrefabEntry>.Empty;
-    private static IReadOnlyList<AfflictionPackage> _packages = [];
+    private static IReadOnlyList<PackageLabel> _packages = [];
     private static IReadOnlyList<Identifier> _types = [];
 
     internal static IReadOnlyList<AfflictionPrefabEntry> All()
@@ -64,7 +62,7 @@ internal static class AfflictionPrefabCatalog
         return _entries;
     }
 
-    internal static IReadOnlyList<AfflictionPackage> Packages()
+    internal static IReadOnlyList<PackageLabel> Packages()
     {
         EnsureBuilt();
 
@@ -130,39 +128,8 @@ internal static class AfflictionPrefabCatalog
         });
 
         _entries = [.. list];
-        _packages = BuildPackages(found);
+        _packages = PackageLabels.Build(found);
         _types = [.. types.OrderBy(type => type.Value, StringComparer.OrdinalIgnoreCase)];
-    }
-
-    private static IReadOnlyList<AfflictionPackage> BuildPackages(List<(ContentPackage Package, string Name)> found)
-    {
-        Dictionary<string, int> counts = new(StringComparer.OrdinalIgnoreCase);
-
-        foreach ((ContentPackage _, string name) in found) { counts[name] = counts.GetValueOrDefault(name) + 1; }
-
-        List<AfflictionPackage> packages = new(found.Count);
-
-        foreach ((ContentPackage package, string name) in found)
-        {
-            string folder = FolderOf(package.Path);
-
-            string label = name.Length == 0
-                ? folder
-                : counts[name] > 1 ? $"{name} ({folder})" : name;
-
-            packages.Add(new AfflictionPackage(package, label));
-        }
-
-        packages.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
-
-        return packages;
-    }
-
-    private static string FolderOf(string path)
-    {
-        string folder = Path.GetFileName(Path.GetDirectoryName(path) ?? string.Empty);
-
-        return folder.Length == 0 ? path : folder;
     }
 }
 

@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Input;
 namespace UiFramework.Controls;
 
 [Element("TextBox")]
-internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class TextBoxElement : ViewElement, IPropertyObserver
 {
     private readonly GUITextBox _box;
     private readonly ViewContext _view;
@@ -108,7 +108,7 @@ internal sealed class TextBoxElement : ViewElement, IPropertyObserver, IDisposab
         _box.OnTextChanged += _onTextChanged;
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _focusChanged = null;
         _committed = null;

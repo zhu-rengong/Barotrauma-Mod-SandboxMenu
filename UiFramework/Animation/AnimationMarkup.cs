@@ -1,7 +1,3 @@
-using System.Globalization;
-using Microsoft.Xna.Framework;
-using UiFramework.Styling;
-
 namespace UiFramework.Animation;
 
 internal static class AnimationMarkup
@@ -101,37 +97,7 @@ internal static class AnimationMarkup
     }
 
     internal static float Seconds(string? text, float fallback, MarkupNode node, Action<string>? report)
-    {
-        if (text is not { Length: > 0 }) { return fallback; }
-
-        string trimmed = text.Trim();
-
-        if (trimmed.Contains(':', StringComparison.Ordinal))
-        {
-            float total = 0f;
-
-            foreach (string part in trimmed.Split(':'))
-            {
-                if (!float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
-                {
-                    Report(node, report, $"'{text}' is not a duration");
-                    return fallback;
-                }
-
-                total = total * 60f + value;
-            }
-
-            return MathF.Max(0f, total);
-        }
-
-        if (!float.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out float seconds))
-        {
-            Report(node, report, $"'{text}' is not a duration (seconds, or h:mm:ss)");
-            return fallback;
-        }
-
-        return MathF.Max(0f, seconds);
-    }
+        => ViewMarkup.SecondsOf(text, fallback, message => Report(node, report, message));
 
     internal static Color? ReadColor(string? text, MarkupNode node, Action<string>? report, bool allowEmpty)
     {
@@ -150,11 +116,11 @@ internal static class AnimationMarkup
         return color;
     }
 
-    internal static Layout.Length? ReadLength(string? text, MarkupNode node, Action<string>? report, bool allowEmpty)
+    internal static Length? ReadLength(string? text, MarkupNode node, Action<string>? report, bool allowEmpty)
     {
-        if (text is not { Length: > 0 }) { return allowEmpty ? null : Layout.Length.Fill; }
+        if (text is not { Length: > 0 }) { return allowEmpty ? null : Length.Fill; }
 
-        return Layout.Length.Parse(text, Layout.Length.Fill, message => Report(node, report, message));
+        return Length.Parse(text, Length.Fill, message => Report(node, report, message));
     }
 
     internal static Insets? ReadInsets(string? text, MarkupNode node, Action<string>? report, bool allowEmpty)
@@ -210,7 +176,7 @@ internal static class AnimationMarkup
         {
             Property = property,
             From = ReadLength(node.Text("From"), node, report, allowEmpty: true),
-            To = ReadLength(node.Text("To"), node, report, allowEmpty: false) ?? Layout.Length.Fill
+            To = ReadLength(node.Text("To"), node, report, allowEmpty: false) ?? Length.Fill
         };
 
     private static AnimationBase? ReadThickness(MarkupNode node, Action<string>? report, string property)
@@ -239,7 +205,7 @@ internal static class AnimationMarkup
         => new LengthAnimationUsingKeyFrames
         {
             Property = property,
-            Frames = Frames(node, report, static (value, child, inner) => ReadLength(value, child, inner, allowEmpty: false) ?? Layout.Length.Fill)
+            Frames = Frames(node, report, static (value, child, inner) => ReadLength(value, child, inner, allowEmpty: false) ?? Length.Fill)
         };
 
     private static AnimationBase? ReadThicknessFrames(MarkupNode node, Action<string>? report, string property)
@@ -253,7 +219,7 @@ internal static class AnimationMarkup
     {
         if (text is not { Length: > 0 }) { return null; }
 
-        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+        if (!ValueParser.TryDouble(text, out double value))
         {
             Report(node, report, $"'{text}' is not a number");
             return null;

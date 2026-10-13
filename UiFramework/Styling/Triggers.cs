@@ -1,5 +1,5 @@
-using System.Globalization;
 using UiFramework.Animation;
+using UiFramework.Data;
 
 namespace UiFramework.Styling;
 
@@ -63,7 +63,7 @@ internal sealed class EventTrigger
     {
         if (Actions.Count == 0) { return; }
 
-        StoryboardActionContext actions = new(context.View, context.Element, context.Scope);
+        StoryboardActionContext actions = context.Actions();
 
         context.Listen(Event, () =>
         {
@@ -78,23 +78,24 @@ internal sealed class EventTrigger
 
 internal sealed record Condition(string? Path, string? Property, MarkupValue Value);
 
-internal sealed class TriggerContext
+internal sealed class TriggerContext(
+    IViewHost view,
+    IViewRuntime runtime,
+    IViewElement element,
+    MarkupNode node,
+    IPauseable? scope)
 {
-    internal TriggerContext(ViewContext view, ViewElement element, MarkupNode node, ViewScope? scope)
-    {
-        View = view;
-        Element = element;
-        Node = node;
-        Scope = scope;
-    }
+    internal IViewHost View { get; } = view;
 
-    internal ViewContext View { get; }
+    internal IViewRuntime Runtime { get; } = runtime;
 
-    internal ViewElement Element { get; }
+    internal IViewElement Element { get; } = element;
 
-    internal MarkupNode Node { get; }
+    internal MarkupNode Node { get; } = node;
 
-    internal ViewScope? Scope { get; }
+    internal IPauseable? Scope { get; } = scope;
+
+    internal StoryboardActionContext Actions() => new(Runtime, View, Element, Scope);
 
     internal void Bind(string path, Action<object?> match)
     {
@@ -133,7 +134,7 @@ internal sealed class TriggerContext
 
 internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger)
 {
-    private readonly StoryboardActionContext _actions = new(context.View, context.Element, context.Scope);
+    private readonly StoryboardActionContext _actions = context.Actions();
 
     private readonly List<(Condition Condition, object? Value)> _conditions = [];
     private readonly bool _checked = Check(context, trigger);
@@ -405,7 +406,7 @@ internal static class TriggerReader
     }
 
     private static int ReadPriority(MarkupNode node)
-        => int.TryParse(node.Text("Priority"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int priority) ? priority : 0;
+        => ValueParser.TryInt(node.Text("Priority"), out int priority) ? priority : 0;
 
     private static IReadOnlyList<StoryboardAction> ReadEnter(MarkupNode node, Action<string>? report)
         => node.Child("EnterActions") is { } enter ? AnimationMarkup.ReadActions(enter, report) : [];

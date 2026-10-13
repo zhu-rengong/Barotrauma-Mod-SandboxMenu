@@ -1,4 +1,4 @@
-namespace UiFramework.Data;
+namespace UiFramework.Abstractions;
 
 internal sealed class BindingOptions
 {

@@ -3,7 +3,7 @@ using System.Windows.Input;
 namespace UiFramework.Controls;
 
 [Element("Button")]
-internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
+internal sealed class ButtonElement : ViewElement, ICommandElement
 {
     private readonly GUIButton _button;
     private readonly ViewContext _view;
@@ -161,7 +161,7 @@ internal sealed class ButtonElement : ViewElement, ICommandElement, IDisposable
 
     public override void AddContent(ViewElement child) => throw new NotSupportedException("Button takes no content");
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _button.OnClicked = null;
         _button.OnSecondaryClicked = null;

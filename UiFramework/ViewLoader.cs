@@ -1,3 +1,6 @@
+using UiFramework.Animation;
+using UiFramework.Styling;
+
 namespace UiFramework;
 
 public static class ViewLoader
@@ -13,8 +16,8 @@ public static class ViewLoader
         return Build(root, fileName, dataContext, configure, diagnosticSink, parent);
     }
 
-    public static Styling.ResourceDictionary LoadResources(string fileName)
-        => Styling.ResourceDictionary.Read(MarkupSource.Load(fileName));
+    public static ResourceDictionary LoadResources(string fileName)
+        => ResourceReader.Read(MarkupSource.Load(fileName));
 
     internal static ViewContext Build(
         MarkupNode root,
@@ -24,7 +27,11 @@ public static class ViewLoader
         Action<string>? diagnosticSink = null,
         RectTransform? parent = null)
     {
-        ViewContext context = new(view) { DataContext = dataContext, DiagnosticSink = diagnosticSink };
+        ViewContext context = new(view, new AnimationHost())
+        {
+            DataContext = dataContext,
+            DiagnosticSink = diagnosticSink
+        };
 
         try
         {

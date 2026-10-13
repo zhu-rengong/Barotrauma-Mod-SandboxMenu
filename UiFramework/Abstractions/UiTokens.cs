@@ -1,6 +1,4 @@
-using UiFramework.Layout;
-
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 public readonly record struct UiToken(float Value, bool IsDip)
 {

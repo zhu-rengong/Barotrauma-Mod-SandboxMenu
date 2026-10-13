@@ -1,17 +1,7 @@
 namespace UiFramework.Styling;
 
-public sealed class ResourceDictionary
+internal static class ResourceReader
 {
-    private readonly Dictionary<string, object> _values = new(StringComparer.Ordinal);
-
-    public object? Find(string key) => _values.GetValueOrDefault(key);
-
-    public void Set(string key, object? value)
-    {
-        if (value is null) { _values.Remove(key); }
-        else { _values[key] = value; }
-    }
-
     internal static ResourceDictionary Read(MarkupNode root, Action<string>? report = null)
         => Read(root, root.View, report, []);
 
@@ -73,10 +63,5 @@ public sealed class ResourceDictionary
         ResourceDictionary read = Read(MarkupSource.Load(file), file, report, merged);
 
         foreach ((string key, object _) in read.Entries()) { dictionary.Set(key, read.Find(key)); }
-    }
-
-    internal IEnumerable<(string Key, object Value)> Entries()
-    {
-        foreach ((string key, object value) in _values) { yield return (key, value); }
     }
 }

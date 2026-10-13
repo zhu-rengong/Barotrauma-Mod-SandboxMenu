@@ -17,7 +17,7 @@ internal sealed class OptionsPickerViewModel : Notifiable
         ShowFilters = filterable;
 
         _onlySaveable = filterable;
-        _onlyEditable = filterable && ClientSpawnDispatcher.IsMultiplayerClient;
+        _onlyEditable = filterable && SpawnGateway.Shared.IsRemote;
 
         foreach (PickerOption option in options)
         {

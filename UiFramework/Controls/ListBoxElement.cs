@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 namespace UiFramework.Controls;
 
 [Element("List")]
-internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class ListBoxElement : ViewElement, IPropertyObserver
 {
     private readonly GUIListBox _listBox;
     private readonly ViewContext _view;
@@ -18,9 +18,9 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     private readonly List<BuiltRow> _previous = [];
 
     private readonly List<object> _index = [];
+    private readonly DeferredCall _rebuild = new();
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
-    private bool _rebuildQueued;
     private bool _retriedEmpty;
     private bool _probed;
     private int _rowHeight;
@@ -47,17 +47,9 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         _bands = new ListBandLayout(this, _rowPool);
         _drag = new ListDrag(this);
 
-        _detailRows = int.TryParse(context.Text("Rows"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows)
-            ? Math.Max(0, rows)
-            : 0;
+        _detailRows = DeclaredDetailRows(context, tileKey);
 
-        if (_detailRows > 0 && string.IsNullOrWhiteSpace(tileKey))
-        {
-            _detailRows = 0;
-            context.View.Diagnostics.Report($"'{context.Node.Name}' asks for {rows} rows without a TileTemplate", context.Node);
-        }
-
-        Windowed = ViewMarkup.ToBool(context.Text("Virtual"), false) || _detailRows > 0;
+        Windowed = Flag(context.Node, "Virtual") || _detailRows > 0;
 
         _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiTokens.Dip("gap", 4f)));
 
@@ -71,19 +63,33 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
             _listBox.DimensionsNeedRecalculation = true;
         }
 
+        Subscribe(context);
+    }
+
+    private static int DeclaredDetailRows(ElementContext context, string? tileKey)
+    {
+        int rows = context.Node.Count("Rows");
+
+        if (rows == 0 || !string.IsNullOrWhiteSpace(tileKey)) { return rows; }
+
+        context.View.Diagnostics.Report($"'{context.Node.Name}' asks for {rows} rows without a TileTemplate", context.Node);
+        return 0;
+    }
+
+    private void Subscribe(ElementContext context)
+    {
         if (Windowed) { _view.EveryFrame(UpdateWindow); }
 
-        if (ViewMarkup.ToBool(context.Text("Draggable"), false))
+        if (Flag(context.Node, "Draggable"))
         {
             _view.EveryFrame(_drag.Update);
-            _view.Overlays.Add(_drag.Draw);
+            _view.AddOverlay(_drag.Draw);
         }
 
-        if (ViewMarkup.ToBool(context.Text("BackgroundMenu"), false))
-        {
-            _view.EveryFrame(_drag.UpdateBackgroundClick);
-        }
+        if (Flag(context.Node, "BackgroundMenu")) { _view.EveryFrame(_drag.UpdateBackgroundClick); }
     }
+
+    private static bool Flag(MarkupNode? node, string name) => node is { } root && root.Flag(name, false);
 
     internal bool Windowed { get; private set; }
 
@@ -129,16 +135,16 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
     }
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
-    internal bool Virtual => ViewMarkup.ToBool(Node?.Text("Virtual"), false);
+    internal bool Virtual => Flag(Node, "Virtual");
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
-    internal bool Draggable => ViewMarkup.ToBool(Node?.Text("Draggable"), false);
+    internal bool Draggable => Flag(Node, "Draggable");
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
-    internal bool BackgroundMenu => ViewMarkup.ToBool(Node?.Text("BackgroundMenu"), false);
+    internal bool BackgroundMenu => Flag(Node, "BackgroundMenu");
 
     [ElementProperty("Rows", Phase = ApplyPhase.Construct)]
-    internal int DeclaredRows => int.TryParse(Node?.Text("Rows"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows) ? Math.Max(0, rows) : 0;
+    internal int DeclaredRows => Node is { } root ? root.Count("Rows") : 0;
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
     internal string? TileTemplate => Node?.Text("TileTemplate");
@@ -175,12 +181,19 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     public override void AddContent(ViewElement child) => throw new NotSupportedException("List takes no content");
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         if (_observed is not null) { _observed.CollectionChanged -= OnCollectionChanged; }
 
         _observed = null;
         _reportScroll = null;
+
+        StopEveryFrame(UpdateWindow);
+        StopEveryFrame(_drag.Update);
+        StopEveryFrame(_drag.UpdateBackgroundClick);
+        StopEveryFrame(ReportScroll);
+
+        _view.RemoveOverlay(_drag.Draw);
         _drag.Reset();
 
         for (int i = 0; i < _rows.Count; i++) { _rowPool.Drop(_rows[i]); }
@@ -192,19 +205,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
         _bands.DropAll();
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (_rebuildQueued) { return; }
-
-        _rebuildQueued = true;
-        _view.Once(() =>
-        {
-            if (!_rebuildQueued) { return; }
-
-            _rebuildQueued = false;
-            Rebuild();
-        });
-    }
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view, Rebuild);
 
     private void Rebuild()
     {
@@ -354,7 +355,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver, IDisposab
 
     private void UpdateWindow()
     {
-        if (_drag.IsDragging || _rebuildQueued) { return; }
+        if (_drag.IsDragging || _rebuild.IsQueued) { return; }
 
         if (_detailRows > 0) { _bands.Update(); return; }
 

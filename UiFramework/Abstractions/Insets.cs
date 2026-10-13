@@ -1,6 +1,4 @@
-using System.Globalization;
-
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 {
@@ -25,11 +23,7 @@ internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
 
         for (int i = 0; i < parts.Length; i++)
         {
-            string part = parts[i];
-
-            if (part.EndsWith("dip", StringComparison.OrdinalIgnoreCase)) { part = part[..^3]; }
-
-            if (!float.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out float value)) { return None; }
+            if (!ValueParser.TryFloat(parts[i], out float value)) { return None; }
 
             values[i] = UiMetrics.DipInt(value);
         }

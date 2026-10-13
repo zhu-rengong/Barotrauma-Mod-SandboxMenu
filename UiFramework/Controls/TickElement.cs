@@ -1,7 +1,7 @@
 namespace UiFramework.Controls;
 
 [Element("Tick")]
-internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class TickElement : ViewElement, IPropertyObserver
 {
     private readonly GUITickBox _tick;
     private Action<object?>? _changed;
@@ -81,7 +81,7 @@ internal sealed class TickElement : ViewElement, IPropertyObserver, IDisposable
         if (string.Equals(property, nameof(Selected), StringComparison.OrdinalIgnoreCase)) { _changed = changed; }
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _tick.RectTransform.SizeChanged -= Fit;
         _tick.RectTransform.ScaleChanged -= Fit;

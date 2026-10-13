@@ -5,12 +5,25 @@ namespace UiFramework;
 
 internal static class ViewBuilder
 {
+    private sealed class TriggerSet
+    {
+        internal List<TriggerBase> Triggers { get; private set; } = [];
+
+        internal List<EventTrigger> Events { get; private set; } = [];
+
+        internal void Replace(List<TriggerBase> triggers, List<EventTrigger> events)
+        {
+            if (triggers.Count > 0) { Triggers = triggers; }
+            if (events.Count > 0) { Events = events; }
+        }
+    }
+
     internal static ViewElement BuildElement(ViewContext view, MarkupNode node, RectTransform? parent, object? dataContext = null, ViewElement? parentElement = null)
     {
         if (ElementRegistry.Find(node.Name) is not { } metadata)
         {
             view.Diagnostics.Report($"unknown element <{node.Name}>", node);
-            return new PlaceholderElement(node, parent ?? GUI.Canvas);
+            return Owned(view, new PlaceholderElement(node, parent ?? GUI.Canvas));
         }
 
         ViewElement element;
@@ -22,7 +35,7 @@ internal static class ViewBuilder
         catch (Exception e)
         {
             view.Diagnostics.Report($"<{node.Name}> could not be built ({e.Message})", node);
-            return new PlaceholderElement(node, parent ?? GUI.Canvas);
+            return Owned(view, new PlaceholderElement(node, parent ?? GUI.Canvas));
         }
 
         if (node.ElementName is { } name) { view.Names.Add(name, element, view.Diagnostics, node); }
@@ -33,16 +46,22 @@ internal static class ViewBuilder
         element.Context = view;
         element.Parent = parentElement;
         element.Scope = view.CurrentScope;
+        view.Own(element);
 
-        if (element is IDisposable disposable) { view.Own(disposable); }
-
+        TriggerSet inline = new();
         Style? style = ResolveStyle(view, node, element);
 
         ApplySetters(view, node, element, style);
         ApplyAttributes(view, node, element, metadata);
-        ApplyContent(view, node, element, metadata);
-        AttachTriggers(view, node, element, style);
+        ApplyContent(view, node, element, metadata, inline);
+        AttachTriggers(view, node, element, style, inline);
 
+        return element;
+    }
+
+    private static ViewElement Owned(ViewContext view, ViewElement element)
+    {
+        view.Own(element);
         return element;
     }
 
@@ -94,7 +113,7 @@ internal static class ViewBuilder
         }
     }
 
-    private static void AttachTriggers(ViewContext view, MarkupNode node, ViewElement element, Style? style)
+    private static void AttachTriggers(ViewContext view, MarkupNode node, ViewElement element, Style? style, TriggerSet inline)
     {
         List<TriggerBase> triggers = [];
         List<EventTrigger> events = [];
@@ -105,12 +124,12 @@ internal static class ViewBuilder
             events.AddRange(style.Events);
         }
 
-        triggers.AddRange(element.Triggers);
-        events.AddRange(element.Events);
+        triggers.AddRange(inline.Triggers);
+        events.AddRange(inline.Events);
 
         if (triggers.Count == 0 && events.Count == 0) { return; }
 
-        TriggerContext context = new(view, element, node, element.Scope);
+        TriggerContext context = new(view, view.Animations, element, node, element.Scope);
 
         foreach (TriggerBase trigger in triggers)
         {
@@ -171,40 +190,6 @@ internal static class ViewBuilder
 
     private static void ApplyAttributes(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
     {
-        static void GivePadding(ViewElement target, Insets padding)
-        {
-            if (padding.IsEmpty) { return; }
-
-            if (target.Control is GUITextBlock block) { block.Padding = padding.ToVector4(); }
-        }
-
-        static void GiveMargin(ViewContext view, MarkupNode node, ViewElement element, Insets margin)
-        {
-            if (margin.IsEmpty) { return; }
-
-            RectTransform rect = element.Control.RectTransform;
-
-            if (rect.Parent is not { } parent || parent.Rect.Width <= 0 || parent.Rect.Height <= 0)
-            {
-                if (element.Control.Parent is not GUILayoutGroup)
-                {
-                    view.Diagnostics.Report($"a margin on <{node.Name}> cannot be taken off here", node);
-                }
-
-                return;
-            }
-
-            float width = parent.Rect.Width;
-            float height = parent.Rect.Height;
-            Vector2 size = rect.RelativeSize;
-
-            rect.RelativeSize = new Vector2(
-                Math.Max(0f, size.X - margin.Horizontal / width),
-                Math.Max(0f, size.Y - margin.Vertical / height));
-
-            rect.AbsoluteOffset += new Point((margin.Left - margin.Right) / 2, (margin.Top - margin.Bottom) / 2);
-        }
-
         foreach (MarkupAttribute attribute in node.Attributes)
         {
             if (IsReserved(attribute.Name)) { continue; }
@@ -223,29 +208,78 @@ internal static class ViewBuilder
 
             if (attribute.Name.Contains('.', StringComparison.Ordinal))
             {
-                if (AttachedProperties.Find(attribute.Name) is not { } attached)
-                {
-                    view.Diagnostics.Report($"<{node.Name}> has no attached property '{attribute.Name}'", node);
-                    continue;
-                }
-
-                Give(new PropertyAssignment(view, node, element, attached), attribute.Value);
+                GiveAttached(view, node, element, attribute);
                 continue;
             }
 
-            if (!metadata.Properties.TryGetValue(attribute.Name, out PropertyMetadata? property))
-            {
-                view.Diagnostics.Report($"<{node.Name}> has no property '{attribute.Name}'", node);
-                continue;
-            }
-
-            if (property.Phase == ApplyPhase.Construct) { continue; }
-
-            Give(new PropertyAssignment(view, node, element, property), attribute.Value);
+            GiveDeclared(view, node, element, metadata, attribute);
         }
     }
 
-    private static void ApplyContent(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata)
+    private static void GiveAttached(ViewContext view, MarkupNode node, ViewElement element, MarkupAttribute attribute)
+    {
+        if (AttachedProperties.Find(attribute.Name) is not { } attached)
+        {
+            view.Diagnostics.Report($"<{node.Name}> has no attached property '{attribute.Name}'", node);
+            return;
+        }
+
+        Give(new PropertyAssignment(view, node, element, attached), attribute.Value);
+    }
+
+    private static void GiveDeclared(
+        ViewContext view,
+        MarkupNode node,
+        ViewElement element,
+        ElementMetadata metadata,
+        MarkupAttribute attribute)
+    {
+        if (!metadata.Properties.TryGetValue(attribute.Name, out PropertyMetadata? property))
+        {
+            view.Diagnostics.Report($"<{node.Name}> has no property '{attribute.Name}'", node);
+            return;
+        }
+
+        if (property.Phase == ApplyPhase.Construct) { return; }
+
+        Give(new PropertyAssignment(view, node, element, property), attribute.Value);
+    }
+
+    private static void GivePadding(ViewElement target, Insets padding)
+    {
+        if (padding.IsEmpty) { return; }
+
+        if (target.Control is GUITextBlock block) { block.Padding = padding.ToVector4(); }
+    }
+
+    private static void GiveMargin(ViewContext view, MarkupNode node, ViewElement element, Insets margin)
+    {
+        if (margin.IsEmpty) { return; }
+
+        RectTransform rect = element.Control.RectTransform;
+
+        if (rect.Parent is not { } parent || parent.Rect.Width <= 0 || parent.Rect.Height <= 0)
+        {
+            if (element.Control.Parent is not GUILayoutGroup)
+            {
+                view.Diagnostics.Report($"a margin on <{node.Name}> cannot be taken off here", node);
+            }
+
+            return;
+        }
+
+        float width = parent.Rect.Width;
+        float height = parent.Rect.Height;
+        Vector2 size = rect.RelativeSize;
+
+        rect.RelativeSize = new Vector2(
+            Math.Max(0f, size.X - margin.Horizontal / width),
+            Math.Max(0f, size.Y - margin.Vertical / height));
+
+        rect.AbsoluteOffset += new Point((margin.Left - margin.Right) / 2, (margin.Top - margin.Bottom) / 2);
+    }
+
+    private static void ApplyContent(ViewContext view, MarkupNode node, ViewElement element, ElementMetadata metadata, TriggerSet inline)
     {
         foreach (MarkupNode property in node.Children.Where(child => child.IsProperty))
         {
@@ -264,7 +298,7 @@ internal static class ViewBuilder
 
             if (string.Equals(property.Name, "Triggers", StringComparison.OrdinalIgnoreCase))
             {
-                ReadTriggers(view, element, property);
+                ReadTriggers(view, property, inline);
                 continue;
             }
 
@@ -284,6 +318,7 @@ internal static class ViewBuilder
             try
             {
                 element.AddContent(built);
+                element.RememberContent(built);
             }
             catch (NotSupportedException)
             {
@@ -292,14 +327,14 @@ internal static class ViewBuilder
         }
     }
 
-    private static void ReadTriggers(ViewContext view, ViewElement element, MarkupNode propertyNode)
+    private static void ReadTriggers(ViewContext view, MarkupNode propertyNode, TriggerSet inline)
     {
         List<TriggerBase> triggers = [];
         List<EventTrigger> events = [];
 
         Style.ReadTriggers(propertyNode, message => view.Diagnostics.Report(message, propertyNode), triggers, events);
 
-        element.AddTriggers(triggers, events);
+        inline.Replace(triggers, events);
     }
 
     private static void ApplyPropertyElement(
@@ -367,7 +402,7 @@ internal static class ViewBuilder
     {
         try
         {
-            foreach ((string key, object value) in ResourceDictionary.Read(propertyNode).Entries()) { dictionary.Set(key, value); }
+            foreach ((string key, object value) in ResourceReader.Read(propertyNode).Entries()) { dictionary.Set(key, value); }
         }
         catch (InvalidDataException e)
         {

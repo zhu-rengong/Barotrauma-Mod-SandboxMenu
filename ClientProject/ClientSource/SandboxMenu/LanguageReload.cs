@@ -2,7 +2,7 @@ using SandboxMenu.UI.Framework;
 
 namespace SandboxMenu;
 
-internal static class TextReload
+internal static class LanguageReload
 {
     private static readonly RebuildSignal _signal = new();
 
@@ -15,7 +15,6 @@ internal static class TextReload
         if (version == _version) { return; }
 
         _version = version;
-
         _signal.Signal();
     }
 

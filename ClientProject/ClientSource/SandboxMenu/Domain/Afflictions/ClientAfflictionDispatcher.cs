@@ -9,9 +9,16 @@ internal static class ClientAfflictionDispatcher
 {
     private static uint _nextRequestId;
     private static uint _waitingFor;
-    private static AfflictionStatus? _result;
+    private static IAfflictionResultSink? _sink;
 
-    internal static bool IsMultiplayerClient => GameMain.NetworkMember is { IsClient: true };
+    internal static void Listen(IAfflictionResultSink sink) => _sink = sink;
+
+    internal static void Forget(IAfflictionResultSink sink)
+    {
+        if (ReferenceEquals(_sink, sink)) { _sink = null; }
+
+        _waitingFor = 0;
+    }
 
     internal static AfflictionRefusal? TrySend(
         Character character,
@@ -20,7 +27,7 @@ internal static class ClientAfflictionDispatcher
         int[] limbs,
         AfflictionMode mode)
     {
-        Forget();
+        _waitingFor = 0;
 
         uint requestId = ++_nextRequestId;
 
@@ -43,7 +50,6 @@ internal static class ClientAfflictionDispatcher
         }
 
         _waitingFor = requestId;
-        _result = null;
 
         return null;
     }
@@ -52,26 +58,8 @@ internal static class ClientAfflictionDispatcher
     {
         if (_waitingFor == 0 || response.RequestId != _waitingFor) { return; }
 
-        _result = (AfflictionStatus)response.Status;
-    }
-
-    internal static bool TryTakeResult(out AfflictionStatus status)
-    {
-        if (_result is not { } result)
-        {
-            status = AfflictionStatus.Ok;
-            return false;
-        }
-
-        status = result;
-        Forget();
-
-        return true;
-    }
-
-    private static void Forget()
-    {
         _waitingFor = 0;
-        _result = null;
+
+        _sink?.OnAfflictionResult((AfflictionStatus)response.Status);
     }
 }

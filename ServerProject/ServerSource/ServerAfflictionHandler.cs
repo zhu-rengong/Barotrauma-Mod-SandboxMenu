@@ -5,34 +5,23 @@ namespace SandboxMenu;
 
 internal static class ServerAfflictionHandler
 {
-    private const double MinInterval = 0.5;
-
     private const string CooldownField = $"{Plugin.ModPrefix}.afflictioncooldown";
 
     internal static void Handle(AfflictionRequest request, Client client)
-    {
-        try
-        {
-            Respond(request, client);
-        }
-        catch (Exception e)
-        {
-            DebugConsole.AddWarning($"Handling an affliction request failed: {e}");
-        }
-    }
+        => ServerPolicy.Guard("Handling an affliction request", () => Respond(request, client));
 
     private static void Respond(AfflictionRequest request, Client client)
     {
         if (client is null) { return; }
 
-        if (!IsAllowed(client))
+        if (!ServerPolicy.IsAllowed(client))
         {
             DebugConsole.NewMessage($"{client.Name} asked to apply an affliction without the permission to do so.");
             Reply(client, request.RequestId, AfflictionStatus.Denied);
             return;
         }
 
-        if (IsThrottled(client))
+        if (ServerPolicy.IsThrottled(client, CooldownField))
         {
             Reply(client, request.RequestId, AfflictionStatus.Throttled);
             return;
@@ -86,19 +75,6 @@ internal static class ServerAfflictionHandler
 
     private static Limb? Limbs(Character character, int healthIndex)
         => character.AnimController?.Limbs.FirstOrDefault(candidate => candidate.HealthIndex == healthIndex);
-
-    private static bool IsAllowed(Client client)
-        => ServerOptions.AllowAllClients || client.Permissions.HasFlag(ClientPermissions.ConsoleCommands);
-
-    private static bool IsThrottled(Client client)
-    {
-        double now = Timing.TotalTime;
-
-        if (now < client.GetOrAddExtraField(CooldownField, 0.0)) { return true; }
-
-        client.SetExtraField(CooldownField, now + MinInterval);
-        return false;
-    }
 
     private static void Reply(Client client, uint requestId, AfflictionStatus status)
     {

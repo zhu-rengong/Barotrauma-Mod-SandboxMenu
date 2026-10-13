@@ -1,8 +1,4 @@
-using System.Globalization;
-using Microsoft.Xna.Framework;
-using UiFramework.Layout;
-
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal readonly record struct MarkupPlacement(float Width, float Height, Anchor Anchor)
 {
@@ -51,8 +47,8 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
         {
             if (!ratio) { return Reject(text, fallback, attribute, "a length; a percentage of the parent is not one", diagnostics, node); }
 
-            return float.TryParse(text[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out float percent)
-                ? percent / 100f
+            return ValueParser.TryPercent(text, out float percent)
+                ? percent
                 : Reject(text, fallback, attribute, "a percentage", diagnostics, node);
         }
 
@@ -60,12 +56,12 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
         {
             if (ratio) { return Reject(text, fallback, attribute, "a fraction of the parent; DIP is taken at the window", diagnostics, node); }
 
-            return float.TryParse(text[..^3], NumberStyles.Float, CultureInfo.InvariantCulture, out float dip)
+            return ValueParser.TryDip(text, out float dip)
                 ? dip
                 : Reject(text, fallback, attribute, "a DIP length", diagnostics, node);
         }
 
-        if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+        if (!ValueParser.TryFloat(text, out float value))
         {
             return Reject(text, fallback, attribute, ratio ? "a fraction of the parent" : "a DIP length", diagnostics, node);
         }

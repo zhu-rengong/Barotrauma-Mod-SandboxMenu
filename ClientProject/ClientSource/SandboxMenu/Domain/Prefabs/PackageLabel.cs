@@ -1,10 +1,10 @@
 namespace SandboxMenu.Domain.Prefabs;
 
-internal sealed record PackageOption(ContentPackage Package, string Label);
+internal sealed record PackageLabel(ContentPackage Package, string Label);
 
-internal static class PackageOptions
+internal static class PackageLabels
 {
-    internal static IReadOnlyList<PackageOption> Build(IEnumerable<ContentPackage?> packages)
+    internal static IReadOnlyList<PackageLabel> From(IEnumerable<ContentPackage?> packages)
     {
         List<(ContentPackage Package, string Name)> found = [];
         HashSet<ContentPackage> seen = new(ReferenceEqualityComparer.Instance);
@@ -16,26 +16,29 @@ internal static class PackageOptions
             found.Add((package, package.Name));
         }
 
+        return Build(found);
+    }
+
+    internal static IReadOnlyList<PackageLabel> Build(IReadOnlyList<(ContentPackage Package, string Name)> found)
+    {
         Dictionary<string, int> counts = new(StringComparer.OrdinalIgnoreCase);
 
         foreach ((ContentPackage _, string name) in found) { counts[name] = counts.GetValueOrDefault(name) + 1; }
 
-        List<PackageOption> options = new(found.Count);
+        List<PackageLabel> labels = new(found.Count);
 
         foreach ((ContentPackage package, string name) in found)
         {
             string folder = FolderOf(package.Path);
 
-            string label = name.Length == 0
+            labels.Add(new PackageLabel(package, name.Length == 0
                 ? folder
-                : counts[name] > 1 ? $"{name} ({folder})" : name;
-
-            options.Add(new PackageOption(package, label));
+                : counts[name] > 1 ? $"{name} ({folder})" : name));
         }
 
-        options.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
+        labels.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
 
-        return options;
+        return labels;
     }
 
     private static string FolderOf(string path)

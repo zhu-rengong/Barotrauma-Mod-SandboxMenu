@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-internal sealed class MenuWindow : IDialogHost
+internal sealed class MenuWindow : IDialogHost, ISpawnResultSink, IAfflictionResultSink
 {
     private const int WindowOrder = 10;
     private const int DialogOrder = 30;
@@ -38,7 +38,13 @@ internal sealed class MenuWindow : IDialogHost
     private bool _screenshotQueued;
     private WeakReference<Character>? _hintedFor;
 
-    private MenuWindow() => _viewModel = new SandboxMenuViewModel(this);
+    private MenuWindow()
+    {
+        _viewModel = new SandboxMenuViewModel(this);
+
+        ClientSpawnDispatcher.Listen(this);
+        ClientAfflictionDispatcher.Listen(this);
+    }
 
     public bool IsOpen => _window?.IsOpen == true;
 
@@ -143,6 +149,8 @@ internal sealed class MenuWindow : IDialogHost
     {
         _window?.Close();
         ClosePopups();
+        _multiPicker?.Dispose();
+        _multiPicker = null;
         FrameActions.Clear();
     }
 
@@ -150,6 +158,9 @@ internal sealed class MenuWindow : IDialogHost
     {
         if (_instance is { } instance)
         {
+            ClientSpawnDispatcher.Forget(instance);
+            ClientAfflictionDispatcher.Forget(instance);
+
             instance.Close();
             instance._window?.Dispose();
             instance._window = null;
@@ -175,29 +186,26 @@ internal sealed class MenuWindow : IDialogHost
         FrameActions.Drain();
     }
 
+    internal static void HandleReloads()
+    {
+        if (_instance is not { } menu) { return; }
+
+        menu.HandleNotices();
+    }
+
+    void ISpawnResultSink.OnSpawnResult(SpawnStatus status, int queued, int problems)
+        => _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
+
+    void IAfflictionResultSink.OnAfflictionResult(AfflictionStatus status)
+        => _viewModel.Afflictions.ApplyResult(status);
+
     private void HandleNotices()
     {
-        if (ContentReload.TakeRebuild())
-        {
-            ReleaseCachedContent();
-            _viewModel.Spawn.ContentChanged();
-        }
-
-        if (TextReload.TakeRebuild())
+        if (LanguageReload.TakeRebuild())
         {
             ReleaseCachedContent();
             _viewModel.Spawn.ContentChanged();
             _viewModel.RefreshStatusKind();
-        }
-
-        if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
-        {
-            _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
-        }
-
-        if (ClientAfflictionDispatcher.TryTakeResult(out AfflictionStatus afflictionStatus))
-        {
-            _viewModel.Afflictions.ApplyResult(afflictionStatus);
         }
 
         if (ResolutionChanged.Take()) { DropWindows(); }
@@ -207,10 +215,11 @@ internal sealed class MenuWindow : IDialogHost
     {
         DropWindows();
 
+        ItemPrefabCatalog.Reset();
         AfflictionDisplay.Reset();
         AfflictionPrefabCatalog.Reset();
         ItemDisplay.Reset();
-        PropertyOverrideCatalog.Reset();
+        PropertyCatalog.Reset();
 
         _viewModel.Spawn.ReleaseContent();
         _viewModel.Afflictions.ReleaseContent();
@@ -232,6 +241,9 @@ internal sealed class MenuWindow : IDialogHost
         _characterBrowser?.Dispose();
         _characterBrowser = null;
         _characterBrowserModel = null;
+
+        _multiPicker?.Dispose();
+        _multiPicker = null;
     }
 
     private void DrivePopups()

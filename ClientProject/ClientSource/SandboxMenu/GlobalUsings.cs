@@ -7,5 +7,5 @@ global using SandboxMenu.UI.Models;
 global using SandboxMenu.UI.Framework;
 global using SandboxMenu.UI.ViewModels;
 global using UiFramework;
-global using UiFramework.Data;
+global using UiFramework.Abstractions;
 global using UiFramework.Styling;

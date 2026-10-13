@@ -47,8 +47,8 @@ internal static class PluginHooks
         {
             UiHost.AdvanceFrame(deltaTime);
 
-            ContentReload.Poll();
-            TextReload.Poll();
+            LanguageReload.Poll();
+            MenuWindow.HandleReloads();
             CharacterPreview.RenderPending();
             MenuWindow.Current?.ServePendingScreenshot();
 

@@ -1,7 +1,7 @@
 using System.Xml;
 using System.Xml.Linq;
 
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal sealed class MarkupValue
 {
@@ -89,6 +89,10 @@ internal sealed class MarkupNode
     internal MarkupValue? Value(string name) => Attribute(name)?.Value;
 
     internal string? Text(string name) => Attribute(name)?.Value.Raw;
+
+    internal bool Flag(string name, bool fallback) => ViewMarkup.ToBool(Text(name), fallback);
+
+    internal int Count(string name) => ValueParser.TryInt(Text(name), out int value) ? Math.Max(0, value) : 0;
 
     internal Insets Padding => _padding ??= Insets.Parse(Text("Padding"));
 

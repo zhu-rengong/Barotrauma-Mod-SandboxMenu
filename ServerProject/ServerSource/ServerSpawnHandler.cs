@@ -4,34 +4,23 @@ namespace SandboxMenu;
 
 internal static class ServerSpawnHandler
 {
-    private const double MinInterval = 0.5;
-
     private const string CooldownField = $"{Plugin.ModPrefix}.spawncooldown";
 
     internal static void Handle(SpawnRequest request, Client client)
-    {
-        try
-        {
-            Respond(request, client);
-        }
-        catch (Exception e)
-        {
-            DebugConsole.AddWarning($"Handling a spawn request failed: {e}");
-        }
-    }
+        => ServerPolicy.Guard("Handling a spawn request", () => Respond(request, client));
 
     private static void Respond(SpawnRequest request, Client client)
     {
         if (client is null) { return; }
 
-        if (!IsAllowed(client))
+        if (!ServerPolicy.IsAllowed(client))
         {
             DebugConsole.NewMessage($"{client.Name} asked to spawn items without the permission to do so.");
             Reply(client, request.RequestId, SpawnStatus.Denied);
             return;
         }
 
-        if (IsThrottled(client))
+        if (ServerPolicy.IsThrottled(client, CooldownField))
         {
             Reply(client, request.RequestId, SpawnStatus.Throttled);
             return;
@@ -74,19 +63,6 @@ internal static class ServerSpawnHandler
 
         SpawnResult result = ItemSpawnService.Spawn(target, payload.Entries, payload.ResolveTemplate);
         Reply(client, request.RequestId, SpawnStatus.Ok, result);
-    }
-
-    private static bool IsAllowed(Client client)
-        => ServerOptions.AllowAllClients || client.Permissions.HasFlag(ClientPermissions.ConsoleCommands);
-
-    private static bool IsThrottled(Client client)
-    {
-        double now = Timing.TotalTime;
-
-        if (now < client.GetOrAddExtraField(CooldownField, 0.0)) { return true; }
-
-        client.SetExtraField(CooldownField, now + MinInterval);
-        return false;
     }
 
     private static void Reply(Client client, uint requestId, SpawnStatus status, SpawnResult? result = null)

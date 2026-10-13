@@ -1,7 +1,7 @@
 namespace SandboxMenu.UI.Controls;
 
 [Element("ColorPicker")]
-public sealed class ColorPickerElement : ViewElement, IDisposable
+public sealed class ColorPickerElement : ViewElement
 {
     private readonly GUIFrame _holder;
 
@@ -41,7 +41,7 @@ public sealed class ColorPickerElement : ViewElement, IDisposable
     [ElementProperty]
     public float FrameThickness { set => _frameThickness = Math.Max(0f, value); }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _holder.RectTransform.SizeChanged -= EnsurePicker;
         _holder.RectTransform.ScaleChanged -= EnsurePicker;

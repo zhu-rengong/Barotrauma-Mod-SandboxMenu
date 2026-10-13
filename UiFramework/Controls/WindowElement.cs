@@ -42,7 +42,7 @@ internal sealed class WindowElement : ViewElement, IViewWindow
     {
         if (!Control.Visible) { return; }
 
-        List<Action<SpriteBatch>> overlays = _view.Overlays;
+        IReadOnlyList<Action<SpriteBatch>> overlays = _view.Overlays;
 
         for (int i = 0; i < overlays.Count; i++)
         {

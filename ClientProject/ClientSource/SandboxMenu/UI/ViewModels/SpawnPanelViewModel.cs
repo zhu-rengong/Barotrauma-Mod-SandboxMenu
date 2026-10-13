@@ -23,7 +23,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         Editor = new EntryEditorViewModel(this);
         _treeEditor = new EntryTreeEditor(this);
         _presets = new PresetFiles(this, Set);
-        _requests = new SpawnRequests(this, Set);
+        _requests = new SpawnRequests(this, Set, SpawnGateway.Shared);
 
         SavePresetCommand = new RelayCommand(_presets.Save);
         LoadPresetCommand = new RelayCommand(_presets.Load);

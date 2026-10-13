@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework;
-using UiFramework.Layout;
 
 namespace UiFramework.Animation;
 
@@ -37,7 +36,7 @@ internal readonly record struct RepeatBehavior(RepeatMode Mode, float Count)
 
         if (trimmed.EndsWith('x') || trimmed.EndsWith('X')) { trimmed = trimmed[..^1]; }
 
-        if (!float.TryParse(trimmed, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float count))
+        if (!ValueParser.TryFloat(trimmed, out float count))
         {
             return false;
         }

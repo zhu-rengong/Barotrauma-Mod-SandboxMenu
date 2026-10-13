@@ -1,7 +1,7 @@
 namespace UiFramework.Controls;
 
 [Element("Number")]
-internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class NumberElement : ViewElement, IPropertyObserver
 {
     private readonly GUINumberInput _input;
     private readonly bool _integer;
@@ -111,7 +111,7 @@ internal sealed class NumberElement : ViewElement, IPropertyObserver, IDisposabl
         if (string.Equals(property, nameof(Value), StringComparison.OrdinalIgnoreCase)) { _changed = changed; }
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _input.OnValueChanged = null;
         _changed = null;

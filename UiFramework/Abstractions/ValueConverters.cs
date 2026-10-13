@@ -1,15 +1,15 @@
 using System.Globalization;
 
-namespace UiFramework.Data;
+namespace UiFramework.Abstractions;
 
-public interface IValueConverter
+internal interface IValueConverter
 {
     object? Convert(object? value, Type targetType, object? parameter);
 
     object? ConvertBack(object? value, Type targetType, object? parameter);
 }
 
-public interface IMultiValueConverter
+internal interface IMultiValueConverter
 {
     object? Convert(IReadOnlyList<object?> values, Type targetType, object? parameter);
 }
@@ -26,10 +26,6 @@ internal static class ValueConverters
     {
         ["Join"] = new JoinConverter()
     };
-
-    internal static void Register(string name, IValueConverter converter) => _single[name] = converter;
-
-    internal static void RegisterMulti(string name, IMultiValueConverter converter) => _multi[name] = converter;
 
     internal static IValueConverter? Find(string name) => _single.GetValueOrDefault(name);
 

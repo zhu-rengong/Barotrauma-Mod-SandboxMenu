@@ -148,8 +148,8 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
                 editor,
                 index,
                 target,
-                PropertyOverrideCatalog.TargetLabel(item.Identifier, target.ComponentName, target.ComponentIndex),
-                PropertyOverrideCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, target.PropertyName),
+                PropertyCatalog.TargetLabel(item.Identifier, target.ComponentName, target.ComponentIndex),
+                PropertyCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, target.PropertyName),
                 () => BrowseComponents(item, row),
                 () => BrowseProperties(item, row),
                 () => BrowseEnums(row),
@@ -188,14 +188,14 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
 
         menu.Host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.component"),
-            PropertyOverrideCatalog.Targets(item.Identifier)
+            PropertyCatalog.Targets(item.Identifier)
                 .Select(target => new PickerOption(target.Label, () => SetComponent(item, row, target))));
     }
 
     private static void SetComponent(ItemEntry item, PropertyRowViewModel row, OverrideTarget target)
         => row.SetComponent(
             target,
-            PropertyOverrideCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, row.PropertyName));
+            PropertyCatalog.Describe(item.Identifier, target.ComponentName, target.ComponentIndex, row.PropertyName));
 
     private void BrowseEnums(PropertyRowViewModel? row)
     {
@@ -243,7 +243,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
         if (row is null) { return; }
 
         IReadOnlyList<PropertyOption> options =
-            PropertyOverrideCatalog.Properties(item.Identifier, row.ComponentName, row.ComponentIndex);
+            PropertyCatalog.Properties(item.Identifier, row.ComponentName, row.ComponentIndex);
 
         if (options.Count == 0)
         {

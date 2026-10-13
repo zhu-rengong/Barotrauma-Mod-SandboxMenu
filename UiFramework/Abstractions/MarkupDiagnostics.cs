@@ -1,4 +1,4 @@
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal sealed record MarkupDiagnostic(string Message, MarkupNode? Node)
 {

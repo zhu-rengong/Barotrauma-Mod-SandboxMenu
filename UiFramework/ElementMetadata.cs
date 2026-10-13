@@ -1,22 +1,6 @@
 using System.Collections.Frozen;
-using Microsoft.Xna.Framework;
-using UiFramework.Data;
-using UiFramework.Layout;
 
 namespace UiFramework;
-
-public enum ApplyPhase
-{
-    Construct,
-    Live
-}
-
-internal enum ValueSource
-{
-    Base,
-    Trigger,
-    Animation
-}
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class ElementAttribute(string name) : Attribute
@@ -36,25 +20,6 @@ public sealed class ElementPropertyAttribute(string? name = null) : Attribute
     public bool SettableFromStyle { get; init; } = true;
 
     public bool KeyText { get; init; }
-}
-
-internal sealed record PropertyMetadata(
-    string Name,
-    Type ValueType,
-    ApplyPhase Phase,
-    BindingMode DefaultMode,
-    bool SettableFromStyle,
-    bool KeyText,
-    Action<object, object?> Apply,
-    Func<object, object?>? Read)
-{
-    internal bool CanAnimate
-        => ValueType == typeof(float)
-            || ValueType == typeof(double)
-            || ValueType == typeof(int)
-            || ValueType == typeof(Color)
-            || ValueType == typeof(Length)
-            || ValueType == typeof(Insets);
 }
 
 internal sealed record ElementMetadata(

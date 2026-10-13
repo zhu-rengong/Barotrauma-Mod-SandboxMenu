@@ -1,8 +1,6 @@
 using System.Globalization;
-using Microsoft.Xna.Framework;
-using UiFramework.Layout;
 
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal static class ValueConversion
 {
@@ -13,10 +11,10 @@ internal static class ValueConversion
         if (type == typeof(string)) { return (text, true); }
         if (type == typeof(RichString)) { return (RichString.Rich(trimmed), true); }
         if (type == typeof(LocalizedString)) { return (TextManager.Get(trimmed), true); }
-        if (type == typeof(bool)) { return bool.TryParse(trimmed, out bool flag) ? (flag, true) : (fallback(), false); }
-        if (type == typeof(int)) { return int.TryParse(WithoutDip(trimmed), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? (number, true) : (fallback(), false); }
-        if (type == typeof(float)) { return float.TryParse(WithoutDip(trimmed), NumberStyles.Float, CultureInfo.InvariantCulture, out float value) ? (value, true) : (fallback(), false); }
-        if (type == typeof(double)) { return double.TryParse(WithoutDip(trimmed), NumberStyles.Float, CultureInfo.InvariantCulture, out double big) ? (big, true) : (fallback(), false); }
+        if (type == typeof(bool)) { return ValueParser.TryBool(trimmed, false, out bool flag) ? (flag, true) : (fallback(), false); }
+        if (type == typeof(int)) { return ValueParser.TryInt(trimmed, out int number) ? (number, true) : (fallback(), false); }
+        if (type == typeof(float)) { return ValueParser.TryFloat(trimmed, out float value) ? (value, true) : (fallback(), false); }
+        if (type == typeof(double)) { return ValueParser.TryDouble(trimmed, out double big) ? (big, true) : (fallback(), false); }
         if (type == typeof(Length)) { return (Length.Parse(trimmed, Length.Fill), true); }
         if (type == typeof(Insets)) { return (Insets.Parse(trimmed), true); }
         if (type == typeof(Color)) { return (ViewMarkup.ColorOf(trimmed, Color.Transparent), true); }
@@ -47,7 +45,4 @@ internal static class ValueConversion
             return (null, false);
         }
     }
-
-    private static string WithoutDip(string text)
-        => text.EndsWith("dip", StringComparison.OrdinalIgnoreCase) ? text[..^3].TrimEnd() : text;
 }

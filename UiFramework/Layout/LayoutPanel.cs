@@ -3,16 +3,18 @@ namespace UiFramework.Layout;
 internal abstract class LayoutPanel : ViewElement
 {
     private readonly ViewContext _view;
-    private bool _arranged;
+    private readonly DeferredCall _arrange = new();
+    private readonly RectTransform _rect;
     private bool _dirty = true;
     private float _gap;
 
     protected LayoutPanel(ElementContext context, GUIComponent control) : base(control)
     {
         _view = context.View;
+        _rect = control.RectTransform;
 
-        control.RectTransform.SizeChanged += Invalidate;
-        control.RectTransform.ScaleChanged += Invalidate;
+        _rect.SizeChanged += Invalidate;
+        _rect.ScaleChanged += Invalidate;
     }
 
     protected List<ViewElement> Children { get; } = [];
@@ -34,24 +36,21 @@ internal abstract class LayoutPanel : ViewElement
     protected void Invalidate()
     {
         _dirty = true;
-        QueueArrange();
+        _arrange.Queue(_view, ArrangeNow);
     }
 
-    private void QueueArrange()
+    private void ArrangeNow()
     {
-        if (_arranged) { return; }
+        if (!_dirty) { return; }
 
-        _arranged = true;
-        _view.Once(() =>
-        {
-            _arranged = false;
+        _dirty = false;
+        Arrange(new Rectangle(Point.Zero, Control.Rect.Size));
+    }
 
-            if (_dirty)
-            {
-                _dirty = false;
-                Arrange(new Rectangle(Point.Zero, Control.Rect.Size));
-            }
-        });
+    protected override void OnRelease()
+    {
+        _rect.SizeChanged -= Invalidate;
+        _rect.ScaleChanged -= Invalidate;
     }
 
     protected abstract void Arrange(Rectangle area);

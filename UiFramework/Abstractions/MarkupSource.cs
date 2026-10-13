@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Xml.Linq;
 
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 internal static class MarkupSource
 {
@@ -32,7 +32,7 @@ internal static class MarkupSource
             ?? throw new FileNotFoundException($"View '{fileName}' is not embedded in {assembly.GetName().Name}");
 
         using Stream stream = assembly.GetManifestResourceStream(resource)
-                              ?? throw new FileNotFoundException($"View '{fileName}' cannot be opened");
+                              ?? throw new FileNotFoundException("View '" + fileName + "' cannot be opened");
         using StreamReader reader = new(stream);
         return reader.ReadToEnd();
     }

@@ -13,6 +13,7 @@ internal sealed class TextElement : ViewElement
     private string? _color;
     private RichString _applied = string.Empty;
     private bool _armed;
+    private bool _awaitingWrap;
 
     public TextElement(ElementContext context)
         : this(context, CreateBlock(context))
@@ -118,14 +119,31 @@ internal sealed class TextElement : ViewElement
         _armed = true;
         _block.RectTransform.SizeChanged += Rewrap;
 
-        _view.EveryFrame(() =>
+        _view.EveryFrame(UntilWrapped);
+        _awaitingWrap = true;
+    }
+
+    protected override void OnRelease()
+    {
+        if (!_armed) { return; }
+
+        _block.RectTransform.SizeChanged -= Rewrap;
+
+        if (_awaitingWrap)
         {
-            if (_block.Rect.Width <= 0) { return false; }
+            StopEveryFrame(UntilWrapped);
+            _awaitingWrap = false;
+        }
+    }
 
-            _block.SetTextPos();
+    private bool UntilWrapped()
+    {
+        if (_block.Rect.Width <= 0) { return false; }
 
-            return true;
-        });
+        _block.SetTextPos();
+        _awaitingWrap = false;
+
+        return true;
     }
 
     private void Rewrap()

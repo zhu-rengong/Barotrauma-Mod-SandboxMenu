@@ -1,4 +1,4 @@
-namespace UiFramework;
+namespace UiFramework.Abstractions;
 
 public static class UiMetrics
 {
