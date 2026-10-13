@@ -24,6 +24,7 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
     private bool _showName = true;
     private bool _smallBadge;
     private bool _stretch;
+    private GUICustomComponent _border = null!;
     private CharacterPreviewFraming _framing = CharacterPreviewFraming.Body;
     private bool? _badgeShadow;
     private Color? _badgeShadowColor;
@@ -43,6 +44,13 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
         };
 
         _preview.OnDraw = DrawPreview;
+
+        _border = new GUICustomComponent(new RectTransform(Vector2.One, Control.RectTransform, Anchor.Center), null, null)
+        {
+            CanBeFocused = false
+        };
+
+        _border.OnDraw = DrawBorder;
 
         _name = new GUITextBlock(
             new RectTransform(new Vector2(1f, Theme.TileTextRatio), Control.RectTransform, Anchor.BottomCenter),
@@ -124,6 +132,20 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
             _tile.Highlight = value;
 
             if (!value) { _tile.HoverCursor = CursorState.Default; }
+        }
+    }
+
+    [ElementProperty]
+    public bool Disabled
+    {
+        set
+        {
+            _tile.Enabled = !value;
+            _tile.CanBeSelected = !value;
+            _tile.Highlight = !value;
+            _name.Enabled = !value;
+
+            if (value) { _tile.HoverCursor = CursorState.Default; }
         }
     }
 
@@ -288,6 +310,7 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
         _tile.OnClicked = null;
 
         if (_preview is not null) { _preview.OnDraw = null; }
+        if (_border is not null) { _border.OnDraw = null; }
 
         _job?.Dispose();
         _job = null;
@@ -326,6 +349,24 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
         if (_badgeShadowColor is { } shadowColor) { job.ShadowColor = shadowColor; }
 
         return _job = job;
+    }
+
+    private void DrawBorder(SpriteBatch spriteBatch, GUICustomComponent component)
+    {
+        if (_tile.OutlineColor.A == 0) { return; }
+
+        Rectangle rect = component.Rect;
+
+        if (rect.Width <= 0 || rect.Height <= 0) { return; }
+
+        try
+        {
+            Theme.Outline(spriteBatch, rect, _tile.OutlineColor);
+        }
+        catch (Exception e)
+        {
+            DebugConsole.AddWarning($"Drawing a character tile border failed: {e}");
+        }
     }
 
     private void DrawPreview(SpriteBatch spriteBatch, GUICustomComponent component)

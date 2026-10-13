@@ -10,6 +10,8 @@ internal sealed class TextElement : ViewElement
     private readonly ViewContext _view;
 
     private float _scale;
+    private string? _color;
+    private RichString _applied = string.Empty;
     private bool _armed;
 
     public TextElement(ElementContext context)
@@ -76,7 +78,15 @@ internal sealed class TextElement : ViewElement
     public bool Clip { set => _block.OverflowClip = value; }
 
     [ElementProperty]
-    public new string Color { set => _block.TextColor = ViewMarkup.ColorOf(value, UiMetrics.Text); }
+    public new string Color
+    {
+        get => _color ?? "Bright";
+        set
+        {
+            _color = value;
+            _block.TextColor = ViewMarkup.ColorOf(value, UiMetrics.Text);
+        }
+    }
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
     internal string? Font => Node?.Text("Font");
@@ -91,8 +101,14 @@ internal sealed class TextElement : ViewElement
 
     private void Apply(RichString value)
     {
+        bool changed = value != _applied;
+
         _block.Text = value;
         _block.TextScale = _scale;
+
+        _applied = value;
+
+        if (changed) { RaiseEvent("TextChanged"); }
     }
 
     private void ArmWrap()

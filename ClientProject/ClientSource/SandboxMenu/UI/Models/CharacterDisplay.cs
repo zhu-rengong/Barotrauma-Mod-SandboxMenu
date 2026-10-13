@@ -3,8 +3,11 @@ namespace SandboxMenu.UI.Models;
 public sealed class CharacterDisplay(Character character)
 {
     private RichString? _toolTip;
+    private float _toolTipHealth = float.NaN;
 
     internal Character Character => character;
+
+    internal bool Removed => character.Removed;
 
     internal CharacterInfo? Info => character.Info;
 
@@ -62,7 +65,19 @@ public sealed class CharacterDisplay(Character character)
         => TooltipText.Number(Health) + " / " + TooltipText.Number(MaxHealth)
             + " (" + TooltipText.Number(MathF.Round(HealthPercentage), "0") + "%)";
 
-    internal RichString ToolTip => _toolTip ??= RichString.Rich(BuildToolTip());
+    internal RichString ToolTip
+    {
+        get
+        {
+            float health = Health;
+
+            if (_toolTip is { } cached && health == _toolTipHealth) { return cached; }
+
+            _toolTipHealth = health;
+
+            return _toolTip = RichString.Rich(BuildToolTip());
+        }
+    }
 
     internal static LocalizedString TeamName(CharacterTeamType team)
         => team switch

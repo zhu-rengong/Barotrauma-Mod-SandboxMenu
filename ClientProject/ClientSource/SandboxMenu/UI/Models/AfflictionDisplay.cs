@@ -83,7 +83,9 @@ internal sealed class AfflictionDisplay
         {
             if (_prefab.Descriptions is not { Count: > 0 } descriptions)
             {
-                return _prefab.GetDescription(0f, AfflictionPrefab.Description.TargetType.OtherCharacter);
+                LocalizedString fallback = _prefab.GetDescription(0f, AfflictionPrefab.Description.TargetType.OtherCharacter);
+
+                return fallback.IsNullOrWhiteSpace() ? LocalizedString.EmptyString : "\n" + fallback;
             }
 
             LocalizedString text = LocalizedString.EmptyString;

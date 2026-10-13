@@ -30,7 +30,10 @@ internal sealed class MenuWindow : IDialogHost
 
     private MarkupWindow? _multiPicker;
 
+    private const int ToolTipTickInterval = 4;
+
     private int _popupGrace;
+    private int _toolTipTick;
     private bool _pressedInsidePopup;
     private bool _screenshotQueued;
     private WeakReference<Character>? _hintedFor;
@@ -184,6 +187,7 @@ internal sealed class MenuWindow : IDialogHost
         {
             ReleaseCachedContent();
             _viewModel.Spawn.ContentChanged();
+            _viewModel.RefreshStatusKind();
         }
 
         if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
@@ -262,6 +266,7 @@ internal sealed class MenuWindow : IDialogHost
         _window?.Update();
         RefreshHints();
         RefreshAfflictions();
+        RefreshCharacterToolTips();
 
         for (int i = 0; i < _popups.Count; i++)
         {
@@ -275,6 +280,18 @@ internal sealed class MenuWindow : IDialogHost
         if (!_viewModel.Functions.ShowAfflictions) { return; }
 
         _viewModel.Afflictions.Tick();
+
+        if (_window.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { _viewModel.Afflictions.RefreshIconToolTip(); }
+    }
+
+    private void RefreshCharacterToolTips()
+    {
+        if (_characterBrowserModel is null || _characterBrowser is not { IsOpen: true }) { return; }
+        if (!_characterBrowser.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { return; }
+
+        if (++_toolTipTick % ToolTipTickInterval != 0) { return; }
+
+        _characterBrowserModel.RefreshStates();
     }
 
     private void RefreshHints()

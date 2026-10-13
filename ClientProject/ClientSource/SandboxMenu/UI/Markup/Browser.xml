@@ -31,10 +31,9 @@
             <EventTrigger.Actions>
               <BeginStoryboard>
                 <Storyboard>
-                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.5" FillBehavior="Stop">
-                    <EasingColorKeyFrame KeyTime="0" Value="Transparent" />
-                    <EasingColorKeyFrame KeyTime="0.3" Value="Accent" Easing="SineOut" />
-                    <EasingColorKeyFrame KeyTime="0.5" Value="Transparent" Easing="SineIn" />
+                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
+                    <EasingColorKeyFrame KeyTime="0" Value="Accent" />
+                    <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
                   </ColorAnimationUsingKeyFrames>
                 </Storyboard>
               </BeginStoryboard>

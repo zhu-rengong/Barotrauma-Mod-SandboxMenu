@@ -103,6 +103,11 @@ internal sealed class CharacterPreview : IDisposable
     {
         bounds = Rectangle.Empty;
 
+        foreach (Limb limb in controller.Limbs)
+        {
+            if (limb.Alpha > 0f && limb.ActiveSprite is not null) { limb.body.UpdateDrawPosition(true); }
+        }
+
         if (framing == CharacterPreviewFraming.Head)
         {
             if (!TryTargetBounds(controller, info, LimbType.Head, ref bounds)
@@ -136,6 +141,7 @@ internal sealed class CharacterPreview : IDisposable
         foreach (Limb limb in controller.Limbs)
         {
             if (limb.Alpha <= 0f || limb.ActiveSprite is not { } sprite) { continue; }
+            if (limb.IsSevered && limb.type != type) { continue; }
             if (type is { } wanted && limb.type != wanted) { continue; }
 
             if (limb.type == LimbType.Head && info is not null) { info.CalculateHeadPosition(sprite); }
@@ -156,7 +162,7 @@ internal sealed class CharacterPreview : IDisposable
 
     private static Rectangle LimbRect(Limb limb, Sprite sprite)
     {
-        Rectangle box = new(limb.WorldPosition.ToPoint(), Point.Zero);
+        Rectangle box = new(limb.DrawPosition.ToPoint(), Point.Zero);
 
         AddPoints(ref box, limb, sprite);
 
@@ -172,13 +178,13 @@ internal sealed class CharacterPreview : IDisposable
         float extentX = sprite.SourceRect.Width * scale * 0.5f;
         float extentY = sprite.SourceRect.Height * scale * 0.5f;
         Vector2 origin = (sprite.Origin - sprite.SourceRect.Size.ToVector2() * 0.5f) * scale;
-        float rotation = limb.body.Rotation;
+        float rotation = limb.body.DrawRotation;
         float sin = MathF.Sin(rotation);
         float cos = MathF.Cos(rotation);
 
         origin = new Vector2(origin.X * cos + origin.Y * sin, origin.X * sin - origin.Y * cos);
 
-        Point position = limb.WorldPosition.ToPoint();
+        Point position = limb.DrawPosition.ToPoint();
         Vector2 across = new(extentX * cos, extentX * sin);
         Vector2 along = new(extentY * sin, -extentY * cos);
 
@@ -239,6 +245,7 @@ internal sealed class CharacterPreview : IDisposable
 
             foreach (Limb limb in controller.Limbs)
             {
+                if (limb.IsSevered && !(_framing == CharacterPreviewFraming.Head && limb.type == LimbType.Head)) { continue; }
                 if (_framing == CharacterPreviewFraming.Head && !IsInside(limb, view)) { continue; }
 
                 limb.Draw(batch, camera);

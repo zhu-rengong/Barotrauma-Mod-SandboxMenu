@@ -81,6 +81,11 @@ internal sealed class RowControl : GUIButton
             {
                 GUI.DrawRectangle(spriteBatch, SelectedBarRect(rect), SelectedBarFill, true, 0f, 1f);
             }
+
+            if (OutlineColor.A > 0)
+            {
+                Theme.Outline(spriteBatch, rect, OutlineColor);
+            }
         }
         catch (Exception e)
         {

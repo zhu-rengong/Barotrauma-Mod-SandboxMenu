@@ -13,7 +13,6 @@ internal sealed class MarkupWindow : IDialogWindow
     private readonly int _order;
     private readonly int _id = ++_instances;
 
-    private GUIDragHandle? _dragHandle;
     private bool _closing;
     private bool? _interactive;
 
@@ -41,7 +40,6 @@ internal sealed class MarkupWindow : IDialogWindow
         view.Dispatch = FrameActions.Run;
         view.IsInputBlocked = () => InputBlocked;
         view.Close = Close;
-        view.MakeDraggable = (region, target) => _dragHandle = new GUIDragHandle(new RectTransform(Vector2.One, region), target, null);
     }
 
     public Action? Closing { get; set; }
@@ -148,8 +146,6 @@ internal sealed class MarkupWindow : IDialogWindow
         Rectangle canvas = GUI.Canvas.Rect;
         Point fit = WindowDraw.Fit(_chrome.NominalSize, canvas);
         if (_frame.RectTransform.NonScaledSize != fit) { _frame.RectTransform.NonScaledSize = fit; }
-
-        if (_dragHandle is { } handle) { handle.DragArea = canvas; }
 
         Rectangle rect = _frame.Rect;
         _frame.RectTransform.ScreenSpaceOffset += WindowDraw.ClampToCanvas(rect.Location, rect.Size, canvas) - rect.Location;

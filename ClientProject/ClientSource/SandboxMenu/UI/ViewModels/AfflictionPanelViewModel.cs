@@ -42,11 +42,12 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private Character? _selected;
     private CharacterDisplay? _display;
     private AfflictionItemRowViewModel? _picked;
-    private LocalizedString _status = LocalizedString.EmptyString;
+    private readonly Action<LocalizedString> _report;
     private string _query = string.Empty;
     private float _percent = -1f;
     private float _tileScroll;
     private float _rowScroll;
+    private float _iconToolTipHealth = float.NaN;
     private int _shape;
     private bool _sortByName;
     private bool _hideEmptyLimbs = true;
@@ -55,9 +56,10 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private readonly HashSet<AfflictionKind> _kinds = [];
     private bool _ready;
 
-    internal AfflictionPanelViewModel(IDialogHost host)
+    internal AfflictionPanelViewModel(IDialogHost host, Action<LocalizedString> report)
     {
         _host = host;
+        _report = report;
 
         OpenBrowserCommand = new RelayCommand(() => _host.ShowCharacterBrowser(Select));
         SelectControlledCommand = new RelayCommand(() => Select(Character.Controlled));
@@ -95,11 +97,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         ? RichString.Rich(TextManager.Get("sandboxmenu.afflictions.none"))
         : RichString.Rich(TooltipText.Bright(_display?.Name ?? string.Empty) + " " + TooltipText.Dim(_display?.Identifier ?? string.Empty));
 
-    public LocalizedString Status
-    {
-        get => _status;
-        private set => Set(ref _status, value);
-    }
+
 
     public RichString TargetLabel
         => RichString.Rich(_targets.Count == 0 ? TooltipText.Dim(TextManager.Get("sandboxmenu.afflictions.target.body")) : TargetName);
@@ -200,6 +198,19 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         if (_tickParity == 0) { RefreshRows(); }
     }
 
+    internal void RefreshIconToolTip()
+    {
+        if (_selected is not { } selected) { return; }
+
+        float health = selected.Vitality;
+
+        if (health == _iconToolTipHealth) { return; }
+
+        _iconToolTipHealth = health;
+
+        Raise(nameof(IconToolTip));
+    }
+
     internal void Select(Character? character)
     {
         if (ReferenceEquals(_selected, character)) { return; }
@@ -208,6 +219,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _display = character is null ? null : new CharacterDisplay(character);
         _targets.Clear();
         _picked = null;
+        _iconToolTipHealth = float.NaN;
         _shape = 0;
 
         using (NotificationBatch.Begin())
@@ -236,7 +248,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         RebuildRows();
     }
 
-    internal void Report(LocalizedString message) => Status = message;
+    internal void Report(LocalizedString message) => _report(message);
 
     internal void ApplyResult(AfflictionStatus status)
         => Report(status switch

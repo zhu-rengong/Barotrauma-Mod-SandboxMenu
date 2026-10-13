@@ -118,14 +118,30 @@
     <DataTemplate Key="AfflictionTile">
       <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" Value="{Binding StrengthText}"
         ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6"
-        SlotFill="14,14,16,200" SlotLine="62,62,66,255" IconShadow="False" />
+        SlotFill="14,14,16,200" SlotLine="62,62,66,255" IconShadow="False">
+        <Tile.Triggers>
+          <EventTrigger Event="Click">
+            <EventTrigger.Actions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
+                    <EasingColorKeyFrame KeyTime="0" Value="Accent" />
+                    <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
+                  </ColorAnimationUsingKeyFrames>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger.Actions>
+          </EventTrigger>
+        </Tile.Triggers>
+      </Tile>
     </DataTemplate>
   </Stack.Resources>
-  <!-- Title band: the title, the function entries right behind it, the drag area and the close button take the band
-       in that order. It is a stack because the four regions divide the axis in sequence, and the drag area is the
-       share that soaks up what the fixed regions leave, which is what keeps the close button on the right edge. The
-       drag area is its own panel so that the (invisible, but clickable) drag handle never covers the entries or the
-       close button, and the entries sit flush because the stack puts no spacing between them. -->
+  <!-- Title band: the title, the function entries right behind it, the shared status line and the close button take
+       the band in that order. It is a stack because the four regions divide the axis in sequence, and the status line
+       is the share that soaks up what the fixed regions leave, which is what keeps the close button on the right
+       edge. The status line is shared by every function: whichever panel reports writes into the window's own
+       status, so a switch neither blanks it nor shows the other function's leftovers. The entries sit flush because
+       the stack puts no spacing between them. -->
   <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
     <Panel Skin="None" Width="0.24" Height="1">
       <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
@@ -136,7 +152,8 @@
     <Row Text="{Binding Functions.AfflictionsTab.Label}" Selected="{Binding Functions.AfflictionsTab.IsActive}"
          Command="{Binding Functions.AfflictionsTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
          Width="0.17" Height="0.6" />
-    <Panel Skin="None" Width="1*" Height="1" Drag="True" />
+    <Text Text="{Binding Status}" Style="StatusText" Width="1*" Height="1" Padding="12" Color="Accent"
+          Wrap="True" Clip="True" />
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
   </Stack>
 
@@ -190,7 +207,7 @@
       <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
               Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
       <Button Text="sandboxmenu.spawnatcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
-      <Text Text="{Binding Spawn.Status}" FontSize="18" Width="45*" Color="Accent" Padding="8" />
+
     </Stack>
   </Stack>
 
@@ -209,7 +226,7 @@
                        BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
       </Panel>
       <Text Text="{Binding Afflictions.Title}" FontSize="26" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
-      <Text Text="{Binding Afflictions.Status}" FontSize="18" Width="0.24" Height="0.9" Color="Accent" Wrap="True" />
+
     </Stack>
 
     <Stack Orientation="Horizontal" Height="91*" Spacing="10">

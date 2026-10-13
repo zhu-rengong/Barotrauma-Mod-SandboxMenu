@@ -141,7 +141,7 @@
   <sandboxmenu.afflictions.filter.scope>範圍</sandboxmenu.afflictions.filter.scope>
   <sandboxmenu.afflictions.filter.kind>效果類型</sandboxmenu.afflictions.filter.kind>
   <sandboxmenu.afflictions.strength>施加強度 %</sandboxmenu.afflictions.strength>
-  <sandboxmenu.afflictions.apply.hint>左鍵把該狀態效果施加給所選角色。</sandboxmenu.afflictions.apply.hint>
+  <sandboxmenu.afflictions.apply.hint>[滑鼠左鍵] 把該狀態效果施加給所選角色。</sandboxmenu.afflictions.apply.hint>
   <sandboxmenu.afflictions.rows.empty>請先選擇一個角色，才能查看其狀態效果。</sandboxmenu.afflictions.rows.empty>
   <sandboxmenu.afflictions.tiles.empty>沒有符合篩選的狀態效果。</sandboxmenu.afflictions.tiles.empty>
 

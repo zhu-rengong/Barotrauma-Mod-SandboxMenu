@@ -12,6 +12,47 @@
     <Setter Property="FontSize" Value="24" />
   </Style>
 
+  <Style Key="StatusText" TargetType="Text" BasedOn="Text">
+    <Setter Property="FontSize" Value="18" />
+    <Style.Triggers>
+      <DataTrigger Binding="StatusKind" Value="Success">
+        <Setter Property="Color" Value="80,255,120,255" />
+      </DataTrigger>
+      <DataTrigger Binding="StatusKind" Value="Failure">
+        <Setter Property="Color" Value="255,70,60,255" />
+      </DataTrigger>
+      <DataTrigger Binding="StatusKind" Value="Warning">
+        <Setter Property="Color" Value="255,215,70,255" />
+      </DataTrigger>
+      <DataTrigger Binding="StatusPulse" Value="True">
+        <DataTrigger.EnterActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimationUsingKeyFrames Property="FontSize" Duration="0.3" FillBehavior="Stop">
+                <EasingDoubleKeyFrame KeyTime="0" Value="18" />
+                <EasingDoubleKeyFrame KeyTime="0.08" Value="23" Easing="SineOut" />
+                <EasingDoubleKeyFrame KeyTime="0.3" Value="18" Easing="SineIn" />
+              </DoubleAnimationUsingKeyFrames>
+            </Storyboard>
+          </BeginStoryboard>
+        </DataTrigger.EnterActions>
+      </DataTrigger>
+      <DataTrigger Binding="StatusPulse" Value="False">
+        <DataTrigger.EnterActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimationUsingKeyFrames Property="FontSize" Duration="0.3" FillBehavior="Stop">
+                <EasingDoubleKeyFrame KeyTime="0" Value="18" />
+                <EasingDoubleKeyFrame KeyTime="0.08" Value="23" Easing="SineOut" />
+                <EasingDoubleKeyFrame KeyTime="0.3" Value="18" Easing="SineIn" />
+              </DoubleAnimationUsingKeyFrames>
+            </Storyboard>
+          </BeginStoryboard>
+        </DataTrigger.EnterActions>
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- A row's own feedback: the fill under the row and the accent bar a selected row carries. The three states
        overlap (a hovered row is usually also the selected one), so each trigger carries a priority and the widest
        state wins: pressed over hover over selected. -->
@@ -51,6 +92,7 @@
 
   <Style TargetType="CharacterTile">
     <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="OutlineColor" Value="Transparent" />
     <Setter Property="SelectedBarFill" Value="Accent" />
     <Setter Property="SelectedBarWidth" Value="3" />
     <Style.Triggers>
@@ -59,6 +101,7 @@
       </Trigger>
       <Trigger Property="IsMouseOver" Value="True" Priority="2">
         <Setter Property="Fill" Value="255,255,255,84" />
+        <Setter Property="OutlineColor" Value="Accent" />
       </Trigger>
       <Trigger Property="IsPressed" Value="True" Priority="3">
         <Setter Property="Fill" Value="255,255,255,110" />

@@ -6,11 +6,38 @@ internal sealed record TeamOption(CharacterTeamType Team, LocalizedString Label)
 
 internal sealed class CharacterTileViewModel(CharacterDisplay display, Action<Character> onPicked) : Notifiable
 {
+    private float _toolTipHealth = float.NaN;
+    private bool _disabled = display.Removed;
+
     public CharacterDisplay Display { get; } = display;
 
-    public RelayCommand PickCommand { get; } = new(() => onPicked(display.Character));
+    public RelayCommand PickCommand { get; } = new(() =>
+    {
+        if (display.Removed) { return; }
+
+        onPicked(display.Character);
+    });
+
+    public bool Disabled
+    {
+        get => _disabled;
+        private set => Set(ref _disabled, value);
+    }
+
+    internal void RefreshDisabled() => Disabled = Display.Removed;
 
     public RichString ToolTip => Display.ToolTip;
+
+    internal void RaiseToolTipIfHealthChanged()
+    {
+        float health = Display.Health;
+
+        if (health == _toolTipHealth) { return; }
+
+        _toolTipHealth = health;
+
+        Raise(nameof(ToolTip));
+    }
 }
 
 internal sealed class CharacterBrowserViewModel : Notifiable
@@ -76,6 +103,15 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     }
 
     internal void PickInto(Action<Character> onPicked) => _onPicked = onPicked;
+
+    internal void RefreshStates()
+    {
+        for (int i = 0; i < _rows.Count; i++)
+        {
+            _rows[i].RefreshDisabled();
+            _rows[i].RaiseToolTipIfHealthChanged();
+        }
+    }
 
     internal void Refresh()
     {

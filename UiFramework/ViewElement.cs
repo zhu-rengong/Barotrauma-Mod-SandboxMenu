@@ -148,7 +148,11 @@ public abstract class ViewElement(GUIComponent control)
     public Color DisabledColor { set => Control.DisabledColor = value; }
 
     [ElementProperty]
-    public Color OutlineColor { set => Control.OutlineColor = value; }
+    public Color OutlineColor
+    {
+        get => Control.OutlineColor;
+        set => Control.OutlineColor = value;
+    }
 
     [ElementProperty(Phase = ApplyPhase.Construct)]
     internal Length Width => _width ??= Length.Parse(Node?.Text("Width"), Length.Fill);
@@ -658,7 +662,8 @@ public abstract class ViewElement(GUIComponent control)
         };
 
     private static bool IsEvent(string name)
-        => name is "Loaded" or "Click" or "MouseEnter" or "MouseLeave" or "Pressed" or "Released" or "SecondaryPressed";
+        => name is "Loaded" or "Click" or "MouseEnter" or "MouseLeave" or "Pressed" or "Released" or "SecondaryPressed"
+            or "TextChanged";
 
     private PropertyMetadata? Property(string name)
     {

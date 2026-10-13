@@ -12,12 +12,13 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     private readonly SpawnRequests _requests;
 
     private TreeEntryViewModel? _selectedEntry;
-    private LocalizedString _status = LocalizedString.EmptyString;
+    private readonly Action<LocalizedString> _report;
     private bool _treeRefreshQueued;
 
-    internal SpawnPanelViewModel(IDialogHost host)
+    internal SpawnPanelViewModel(IDialogHost host, Action<LocalizedString> report)
     {
         _host = host;
+        _report = report;
         _tree = new SpawnSetTree(this, Set);
         Editor = new EntryEditorViewModel(this);
         _treeEditor = new EntryTreeEditor(this);
@@ -107,13 +108,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public LocalizedString GiveShortcut => Plugin.GiveKey.ToString();
 
-    public LocalizedString Status
-    {
-        get => _status;
-        private set => Set(ref _status, value);
-    }
-
-    internal void Report(LocalizedString message) => Status = message;
+    internal void Report(LocalizedString message) => _report(message);
 
     internal void RefreshShortcuts() => Raise(nameof(GiveShortcut));
 
@@ -252,6 +247,6 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
             Editor.Clear();
         });
 
-        Status = TextManager.Get("sandboxmenu.status.cleared");
+        Report(TextManager.Get("sandboxmenu.status.cleared"));
     }
 }

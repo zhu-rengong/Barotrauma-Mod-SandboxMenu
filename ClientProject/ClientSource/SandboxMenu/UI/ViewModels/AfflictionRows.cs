@@ -117,7 +117,7 @@ internal sealed class AfflictionItemRowViewModel : AfflictionRowViewModel
     internal void Refresh()
     {
         float strength = _affliction.Strength;
-        float impact = _affliction.GetVitalityDecrease(_health);
+        float impact = _health.GetVitalityDecreaseWithVitalityMultipliers(_affliction);
 
         if (_measured && Math.Abs(strength - _strength) < Tolerance && Math.Abs(impact - _impact) < Tolerance) { return; }
 

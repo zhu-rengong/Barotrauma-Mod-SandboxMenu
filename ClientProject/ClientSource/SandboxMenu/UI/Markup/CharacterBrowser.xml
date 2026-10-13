@@ -6,9 +6,9 @@
        the top left corner. What is left of the filters sits in the titles of the three buttons. The hover swell is a
        storyboard on the tile's own Grow, exactly like the item tiles in the browser. -->
   <Stack.Resources>
-    <DataTemplate Key="CharacterTile">
+    <DataTemplate Key="CharacterTileTemplate">
       <CharacterTile Character="{Binding Display}" ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}"
-                     IconShadow="False">
+                     Disabled="{Binding Disabled}" IconShadow="False">
         <CharacterTile.Triggers>
           <Trigger Property="IsMouseOver" Value="True">
             <Trigger.EnterActions>
@@ -51,7 +51,7 @@
 
   <Panel Skin="InnerFrame" Height="80*">
     <TileGrid Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="1" Columns="3" Spacing="4"
-              Padding="16,10,10,10" TileTemplate="CharacterTile" />
+              Padding="16,10,10,10" TileTemplate="CharacterTileTemplate" />
     <Text Text="{Binding EmptyHint}" Visible="{Binding Empty}" FontSize="20" Width="0.8" Height="0.2"
           Align="Center" TextAlign="Center" Wrap="True" />
   </Panel>
