@@ -23,14 +23,14 @@ internal static class ClientAfflictionDispatcher
 
     internal static bool IsRemote => GameMain.NetworkMember is { IsClient: true };
 
-    internal static AfflictionOutcome Apply(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets)
+    internal static AfflictionOutcome Apply(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets, bool multiplyByMaxVitality)
         => IsRemote
-            ? Sent(TrySend(character, prefab, strength, LimbsOf(targets), AfflictionMode.Apply))
-            : ApplyLocally(character, prefab, strength, targets);
+            ? Sent(TrySend(character, prefab, strength, LimbsOf(targets), AfflictionMode.Apply, multiplyByMaxVitality))
+            : ApplyLocally(character, prefab, strength, targets, multiplyByMaxVitality);
 
     internal static AfflictionOutcome Remove(Character character, AfflictionPrefab prefab, int healthIndex)
         => IsRemote
-            ? Sent(TrySend(character, prefab, 0f, [healthIndex], AfflictionMode.Remove))
+            ? Sent(TrySend(character, prefab, 0f, [healthIndex], AfflictionMode.Remove, false))
             : RemoveLocally(character, prefab, healthIndex);
 
     internal static void OnResponse(AfflictionResponse response)
@@ -42,11 +42,13 @@ internal static class ClientAfflictionDispatcher
         MenuWindow.Current?.ViewModel.Afflictions.ApplyResult((AfflictionStatus)response.Status);
     }
 
-    private static AfflictionOutcome ApplyLocally(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets)
+    private static AfflictionOutcome ApplyLocally(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets, bool multiplyByMaxVitality)
     {
         CharacterHealth health = character.CharacterHealth;
 
         if (character.GodMode || (!prefab.IsBuff && health.Unkillable)) { return AfflictionOutcome.Blocked; }
+
+        if (multiplyByMaxVitality) { strength *= character.MaxVitality / 100f; }
 
         if (targets.WholeBody)
         {
@@ -77,7 +79,8 @@ internal static class ClientAfflictionDispatcher
         AfflictionPrefab prefab,
         float strength,
         int[] limbs,
-        AfflictionMode mode)
+        AfflictionMode mode,
+        bool multiplyByMaxVitality)
     {
         _waitingFor = 0;
 
@@ -89,7 +92,8 @@ internal static class ClientAfflictionDispatcher
             limbs,
             (byte)mode,
             character.ID,
-            requestId);
+            requestId,
+            multiplyByMaxVitality);
 
         try
         {

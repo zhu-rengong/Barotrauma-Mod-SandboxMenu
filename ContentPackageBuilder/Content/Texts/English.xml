@@ -142,6 +142,7 @@
   <sandboxmenu.afflictions.filter.scope>Scope</sandboxmenu.afflictions.filter.scope>
   <sandboxmenu.afflictions.filter.kind>Effect type</sandboxmenu.afflictions.filter.kind>
   <sandboxmenu.afflictions.strength>Strength %</sandboxmenu.afflictions.strength>
+  <sandboxmenu.afflictions.multiply.maxvitality>Multiply by max vitality</sandboxmenu.afflictions.multiply.maxvitality>
   <sandboxmenu.afflictions.apply.hint>[Left-click] Apply this affliction to the character.</sandboxmenu.afflictions.apply.hint>
   <sandboxmenu.afflictions.rows.empty>Select a character to see their afflictions.</sandboxmenu.afflictions.rows.empty>
   <sandboxmenu.afflictions.tiles.empty>No affliction got through the filters.</sandboxmenu.afflictions.tiles.empty>

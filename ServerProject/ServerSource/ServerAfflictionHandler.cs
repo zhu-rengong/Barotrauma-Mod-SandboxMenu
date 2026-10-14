@@ -52,6 +52,8 @@ internal static class ServerAfflictionHandler
 
         float strength = Math.Clamp(request.Strength, 0f, affliction.MaxStrength > 0f ? affliction.MaxStrength : 1f);
 
+        if (request.MultiplyByMaxVitality) { strength *= character.MaxVitality / 100f; }
+
         if (limbs.Length == 0)
         {
             character.CharacterHealth.ApplyAffliction(null, affliction.Instantiate(strength, client.Character));

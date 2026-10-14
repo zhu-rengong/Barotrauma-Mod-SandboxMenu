@@ -63,6 +63,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private bool _sortByName;
     private bool _hideEmptyLimbs = true;
     private bool _hideHidden = true;
+    private bool _multiplyByMaxVitality;
     private readonly HashSet<AfflictionScope> _scopes = [];
     private readonly HashSet<AfflictionKind> _kinds = [];
     private bool _ready;
@@ -106,7 +107,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     public RichString Title => _display is null
         ? RichString.Rich(TextManager.Get("sandboxmenu.afflictions.none"))
-        : RichString.Rich(TooltipText.Bright(_display?.Name ?? string.Empty) + " " + TooltipText.Dim(_display?.Identifier ?? string.Empty));
+        : RichString.Rich(TooltipText.Bright(_display?.Name ?? string.Empty));
 
 
 
@@ -185,6 +186,12 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
             for (int i = 0; i < _tiles.Count; i++) { _tiles[i].SetStrength(clamped); }
         }
+    }
+
+    public bool MultiplyByMaxVitality
+    {
+        get => _multiplyByMaxVitality;
+        set => Set(ref _multiplyByMaxVitality, value);
     }
 
     public LocalizedString PackageFilter => FilterLabel("sandboxmenu.filter.packages", _packages.Count);
@@ -290,6 +297,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _visibleTiles = [];
         _ready = false;
         _percent = -1f;
+        _multiplyByMaxVitality = false;
 
         _display = null;
         _selectedRef = null;
@@ -319,6 +327,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
             Raise(nameof(Tiles));
             Raise(nameof(TilesEmpty));
             Raise(nameof(StrengthPercent));
+            Raise(nameof(MultiplyByMaxVitality));
             Raise(nameof(PackageFilter));
             Raise(nameof(TypeFilter));
         }
@@ -383,7 +392,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         float strength = MathHelper.Clamp(max * Math.Clamp(_percent, 1f, 100f) / 100f, 1f, max);
         AfflictionTargets targets = new(_targets.Count == 0, Targets());
 
-        AfflictionOutcome outcome = ClientAfflictionDispatcher.Apply(character, prefab, strength, targets);
+        AfflictionOutcome outcome = ClientAfflictionDispatcher.Apply(character, prefab, strength, targets, _multiplyByMaxVitality);
 
         Report(outcome switch
         {

@@ -211,83 +211,89 @@
     </Stack>
   </Stack>
 
-  <!-- The affliction function's area: the character it acts on takes the top band, and what that character is under
-       it, with the state they are already in on the left and everything that can be laid on them on the right. -->
-  <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowAfflictions}" Spacing="6">
+  <!-- The affliction function's area: the character it acts on leads the left column, the state they are already in
+       sits under them there, and everything that can be laid on them takes the right column. -->
+  <Stack Orientation="Horizontal" Height="92*" Visible="{Binding Functions.ShowAfflictions}" Spacing="10">
 
-    <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
-      <Button Text="sandboxmenu.afflictions.characters" Command="{Binding Afflictions.OpenBrowserCommand}"
-              Width="0.18" Height="0.62" SelfToolTip="False" />
-      <Button Text="sandboxmenu.afflictions.characters.controlled" Command="{Binding Afflictions.SelectControlledCommand}"
-              Width="0.18" Height="0.62" SelfToolTip="False" />
-      <Panel Skin="InnerFrame" Width="0.1" Height="1" Visible="{Binding Afflictions.ShowIcon}">
-        <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
-                       ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
-                       BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
-      </Panel>
-      <Text Text="{Binding Afflictions.Title}" FontSize="26" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+    <!-- Deleting the affliction the list has picked: the key belongs to this area, so it is live exactly while the
+         afflictions are the ones on show. -->
+    <Stack.InputBindings>
+      <KeyBinding Key="Delete" Command="{Binding Afflictions.DeletePickedCommand}" RequiresNoTextInput="True" />
+    </Stack.InputBindings>
 
-    </Stack>
+    <!-- left column: who the function acts on leads it bare, so the list below keeps the frame to itself -->
+    <Stack Orientation="Vertical" Width="36*" Spacing="6">
 
-    <Stack Orientation="Horizontal" Height="91*" Spacing="10">
+      <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
+        <Button Text="sandboxmenu.afflictions.characters" Command="{Binding Afflictions.OpenBrowserCommand}"
+                Width="1*" Height="1" SelfToolTip="False" />
+        <Button Text="sandboxmenu.afflictions.characters.controlled" Command="{Binding Afflictions.SelectControlledCommand}"
+                Width="1*" Height="1" SelfToolTip="False" />
+      </Stack>
 
-      <!-- Deleting the affliction the list has picked: the key belongs to this area, so it is live exactly while the
-           afflictions are the ones on show. -->
-      <Stack.InputBindings>
-        <KeyBinding Key="Delete" Command="{Binding Afflictions.DeletePickedCommand}" RequiresNoTextInput="True" />
-      </Stack.InputBindings>
+      <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
+        <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Afflictions.ShowIcon}">
+          <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
+                         ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                         BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+        </Panel>
+        <Text Text="{Binding Afflictions.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+      </Stack>
 
-      <!-- what the character is already carrying, grouped by the limb it sits on; where an affliction taken from the
-           right lands is set by the target button, not by the list -->
-      <Panel Skin="InnerFrame" Width="36*">
+      <!-- what the character is already carrying, grouped by the limb it sits on; the list only reports what is there,
+           where a new affliction lands is set on the right -->
+      <Panel Skin="InnerFrame" Width="1" Height="85*">
         <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
           <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
             <Tick Text="sandboxmenu.afflictions.sort.name" Selected="{Binding Afflictions.SortByName, Mode=TwoWay}" Width="1*"
                   SelfToolTip="False" />
             <Tick Text="sandboxmenu.afflictions.hide.empty" Selected="{Binding Afflictions.HideEmptyLimbs, Mode=TwoWay}" Width="1.6*" />
           </Stack>
-          <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
-            <Button Text="{Binding Afflictions.TargetLabel}" Command="{Binding Afflictions.PickTargetsCommand}"
-                    Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          </Stack>
-          <List Items="{Binding Afflictions.Rows}" Scroll="{Binding Afflictions.RowScroll, Mode=TwoWay}" Height="80*"
+          <List Items="{Binding Afflictions.Rows}" Scroll="{Binding Afflictions.RowScroll, Mode=TwoWay}" Height="90*"
                 Spacing="3" Padding="6,6" />
         </Stack>
         <Text Text="{Binding Afflictions.RowsEmptyHint}" Visible="{Binding Afflictions.RowsEmpty}" FontSize="20"
               Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
       </Panel>
-
-      <!-- what can be laid on them, at the strength the slider gives: a left click on a tile applies it. The filters,
-           the strength and the grid share one frame so the whole browser reads as a single block. -->
-      <Panel Skin="InnerFrame" Width="64*">
-        <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
-          <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
-            <Button Text="{Binding Afflictions.PackageFilter}" Command="{Binding Afflictions.PickPackagesCommand}"
-                    Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-            <Button Text="{Binding Afflictions.TypeFilter}" Command="{Binding Afflictions.PickTypesCommand}"
-                    Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-            <Tick Text="{Binding Afflictions.HiddenFilterLabel}" Selected="{Binding Afflictions.HideHidden, Mode=TwoWay}"
-                  Width="1.4*" />
-          </Stack>
-          <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
-            <TextBox Text="{Binding Afflictions.Query, Mode=TwoWay}" Width="1.4*" Height="0.8" Clear="True" />
-            <Button Text="{Binding Afflictions.ScopeFilter}" Command="{Binding Afflictions.PickScopesCommand}"
-                    Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-            <Button Text="{Binding Afflictions.KindFilter}" Command="{Binding Afflictions.PickKindsCommand}"
-                    Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          </Stack>
-          <Stack Orientation="Horizontal" Height="0.07" ChildAnchor="CenterLeft" Spacing="6">
-            <Text Text="sandboxmenu.afflictions.strength" FontSize="18" Width="0.2" Wrap="False" />
-            <Slider Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Max="100" Step="1" Width="1*" Height="0.6" />
-            <Number Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Width="0.16" Min="0" Max="100" Step="1" />
-          </Stack>
-          <TileGrid Items="{Binding Afflictions.Tiles}" Scroll="{Binding Afflictions.TileScroll, Mode=TwoWay}"
-                    Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
-        </Stack>
-        <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
-              Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
-      </Panel>
     </Stack>
+
+    <!-- what can be laid on them, at the strength the slider gives: a left click on a tile applies it. Where it lands
+         and whether that strength scales with the target's max vitality are set here as well. The filters, the strength
+         and the grid share one frame so the whole browser reads as a single block. -->
+    <Panel Skin="InnerFrame" Width="64*">
+      <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
+        <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
+          <Button Text="{Binding Afflictions.PackageFilter}" Command="{Binding Afflictions.PickPackagesCommand}"
+                  Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+          <Button Text="{Binding Afflictions.TypeFilter}" Command="{Binding Afflictions.PickTypesCommand}"
+                  Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+          <Tick Text="{Binding Afflictions.HiddenFilterLabel}" Selected="{Binding Afflictions.HideHidden, Mode=TwoWay}"
+                Width="1.4*" />
+        </Stack>
+        <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
+          <TextBox Text="{Binding Afflictions.Query, Mode=TwoWay}" Width="1.4*" Height="0.8" Clear="True" />
+          <Button Text="{Binding Afflictions.ScopeFilter}" Command="{Binding Afflictions.PickScopesCommand}"
+                  Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+          <Button Text="{Binding Afflictions.KindFilter}" Command="{Binding Afflictions.PickKindsCommand}"
+                  Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+        </Stack>
+        <Stack Orientation="Horizontal" Height="0.07" ChildAnchor="CenterLeft" Spacing="6">
+          <Text Text="sandboxmenu.afflictions.strength" FontSize="18" Width="0.2" Wrap="False" />
+          <Slider Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Max="100" Step="1" Width="1*" Height="0.6" />
+          <Number Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Width="0.16" Min="0" Max="100" Step="1" />
+        </Stack>
+        <Stack Orientation="Horizontal" Height="0.07" ChildAnchor="CenterLeft" Spacing="6">
+          <Button Text="{Binding Afflictions.TargetLabel}" Command="{Binding Afflictions.PickTargetsCommand}"
+                  Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+          <Tick Text="sandboxmenu.afflictions.multiply.maxvitality" Selected="{Binding Afflictions.MultiplyByMaxVitality, Mode=TwoWay}"
+                Width="1.4*" SelfToolTip="True" />
+        </Stack>
+        <TileGrid Items="{Binding Afflictions.Tiles}" Scroll="{Binding Afflictions.TileScroll, Mode=TwoWay}"
+                  Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
+      </Stack>
+      <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
+            Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+    </Panel>
   </Stack>
 
 </Stack>

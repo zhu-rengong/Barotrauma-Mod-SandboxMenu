@@ -142,6 +142,7 @@
   <sandboxmenu.afflictions.filter.scope>范围</sandboxmenu.afflictions.filter.scope>
   <sandboxmenu.afflictions.filter.kind>效果类型</sandboxmenu.afflictions.filter.kind>
   <sandboxmenu.afflictions.strength>施加强度 %</sandboxmenu.afflictions.strength>
+  <sandboxmenu.afflictions.multiply.maxvitality>以最大生命力为倍率</sandboxmenu.afflictions.multiply.maxvitality>
   <sandboxmenu.afflictions.apply.hint>[鼠标左键] 把该状态效果施加给所选角色。</sandboxmenu.afflictions.apply.hint>
   <sandboxmenu.afflictions.rows.empty>请先选择一个角色，才能查看其状态效果。</sandboxmenu.afflictions.rows.empty>
   <sandboxmenu.afflictions.tiles.empty>没有符合筛选的状态效果。</sandboxmenu.afflictions.tiles.empty>
