@@ -43,7 +43,7 @@ internal sealed class CharacterTileViewModel(CharacterDisplay display, Action<Ch
 internal sealed class CharacterBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
-    private readonly HashSet<ContentPackage> _packages = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<string> _packages = new(PackageLabels.KeyComparer);
     private readonly HashSet<Identifier> _species = [];
     private readonly HashSet<CharacterTeamType> _teams = [];
     private readonly List<CharacterTileViewModel> _rows = [];
@@ -52,7 +52,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     private readonly Dictionary<Character, CharacterDisplay> _displays = new(ReferenceEqualityComparer.Instance);
 
     private IReadOnlyList<CharacterTileViewModel> _visible = [];
-    private IReadOnlyList<PackageOption> _packageOptions = [];
+    private IReadOnlyList<PackageLabel> _packageOptions = [];
     private Action<Character> _onPicked = static _ => { };
     private string _query = string.Empty;
     private float _scroll;
@@ -115,6 +115,8 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
     internal void Refresh()
     {
+        PruneDisplays();
+
         _rows.Clear();
         _speciesOptions.Clear();
         _teamOptions.Clear();
@@ -146,13 +148,13 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
         for (int i = 0; i < _rows.Count; i++)
         {
-            packageSignature = packageSignature * 31 + RuntimeHelpers.GetHashCode(_rows[i].Display.Package);
+            packageSignature = packageSignature * 31 + PackageLabels.KeyComparer.GetHashCode(_rows[i].Display.PackageKey);
         }
 
         if (packageSignature != _packageSignature)
         {
             _packageSignature = packageSignature;
-            _packageOptions = PackageOptions.Build(_rows.Select(row => row.Display.Package));
+            _packageOptions = PackageLabels.From(_rows.Select(row => row.Display.Package));
         }
 
         _packages.Clear();
@@ -160,6 +162,22 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         _teams.Clear();
 
         ApplyFilter();
+    }
+
+    private void PruneDisplays()
+    {
+        List<Character>? gone = null;
+
+        foreach (Character character in _displays.Keys)
+        {
+            if (!character.Removed && Character.CharacterList.Contains(character)) { continue; }
+
+            (gone ??= []).Add(character);
+        }
+
+        if (gone is null) { return; }
+
+        foreach (Character character in gone) { _displays.Remove(character); }
     }
 
     internal void Release()
@@ -186,9 +204,9 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
             _packageOptions.Select(option => new PickerToggle(
-                RichString.Rich(Theme.AccentMarkup(option.Label, option.Package)),
-                () => _packages.Contains(option.Package),
-                selected => SetPackage(option.Package, selected))));
+                RichString.Rich(Theme.AccentMarkup(option.Label, option.Accent)),
+                () => _packages.Contains(option.Key),
+                selected => SetPackage(option.Key, selected))));
 
     private void PickSpecies()
         => _host.ShowMultiPicker(
@@ -206,7 +224,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
                 () => _teams.Contains(option.Team),
                 selected => SetTeam(option.Team, selected))));
 
-    private void SetPackage(ContentPackage package, bool selected)
+    private void SetPackage(string package, bool selected)
     {
         if (selected) { _packages.Add(package); }
         else { _packages.Remove(package); }
@@ -267,7 +285,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     {
         Character character = display.Character;
 
-        return (_packages.Count == 0 || (character.ContentPackage is { } package && _packages.Contains(package)))
+        return (_packages.Count == 0 || (display.PackageKey.Length > 0 && _packages.Contains(display.PackageKey)))
             && (_species.Count == 0 || _species.Contains(character.SpeciesName))
             && (_teams.Count == 0 || _teams.Contains(character.TeamID))
             && (query.Length == 0 || Matches(display, query));

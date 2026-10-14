@@ -31,7 +31,7 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 internal sealed class ItemBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
-    private readonly HashSet<ContentPackage> _packages;
+    private readonly HashSet<string> _packages;
     private readonly ItemPrefabEntry[] _entries;
     private readonly ItemPickerRowViewModel?[] _built;
 
@@ -53,7 +53,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
     {
         _host = host;
 
-        _packages = new HashSet<ContentPackage>(ReferenceEqualityComparer.Instance);
+        _packages = new HashSet<string>(PackageLabels.KeyComparer);
 
         PickPackagesCommand = new RelayCommand(PickPackages);
         PickCategoriesCommand = new RelayCommand(PickCategories);
@@ -200,9 +200,9 @@ internal sealed class ItemBrowserViewModel : Notifiable
         => _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.filter.packages"),
             ItemPrefabCatalog.Packages().Select(package => new PickerToggle(
-                RichString.Rich(Theme.AccentMarkup(package.Label, package.Package)),
-                () => _packages.Contains(package.Package),
-                selected => SetPackage(package.Package, selected))));
+                RichString.Rich(Theme.AccentMarkup(package.Label, package.Accent)),
+                () => _packages.Contains(package.Key),
+                selected => SetPackage(package.Key, selected))));
 
     private void PickCategories()
         => _host.ShowMultiPicker(
@@ -227,7 +227,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
                 ? sprites[0].Sprite
                 : null;
 
-    private void SetPackage(ContentPackage package, bool selected)
+    private void SetPackage(string package, bool selected)
     {
         if (selected) { _packages.Add(package); }
         else { _packages.Remove(package); }

@@ -20,14 +20,7 @@ internal sealed class SpawnRequests(SpawnPanelViewModel menu, SpawnSet set)
             return;
         }
 
-        if (ClientSpawnDispatcher.IsMultiplayerClient)
-        {
-            menu.Report(ReportSend(ClientSpawnDispatcher.TrySendIntoInventory(entries)));
-            return;
-        }
-
-        ItemSpawnService.SpawnIntoInventory(entries, character, ResolveTemplate);
-        menu.Report(TextManager.Get("sandboxmenu.status.spawnqueued"));
+        menu.Report(Describe(ClientSpawnDispatcher.IntoInventory(entries, character)));
     }
 
     internal void AtCursor(IReadOnlyList<SpawnEntry> entries)
@@ -44,17 +37,8 @@ internal sealed class SpawnRequests(SpawnPanelViewModel menu, SpawnSet set)
             return;
         }
 
-        menu.Host.PickWorldPosition(worldPosition =>
-        {
-            if (ClientSpawnDispatcher.IsMultiplayerClient)
-            {
-                menu.Report(ReportSend(ClientSpawnDispatcher.TrySendToWorld(entries, worldPosition)));
-                return;
-            }
-
-            ItemSpawnService.SpawnAtWorld(entries, worldPosition, Character.Controlled, ResolveTemplate);
-            menu.Report(TextManager.Get("sandboxmenu.status.spawnqueued"));
-        });
+        menu.Host.PickWorldPosition(
+            worldPosition => menu.Report(Describe(ClientSpawnDispatcher.ToWorld(entries, worldPosition, Character.Controlled))));
     }
 
     internal void ApplyResult(SpawnStatus status, int queued, int problems)
@@ -76,13 +60,10 @@ internal sealed class SpawnRequests(SpawnPanelViewModel menu, SpawnSet set)
             : word + " " + TextManager.GetWithVariable("sandboxmenu.status.serverproblems", "[count]", problems.ToString()));
     }
 
-    private static LocalizedString ReportSend(SpawnRefusal? refusal) => refusal switch
+    private static LocalizedString Describe(SpawnRefusal? refusal) => refusal switch
     {
         SpawnRefusal.TooLarge => TextManager.Get("sandboxmenu.status.spawntoolarge"),
         SpawnRefusal.NotSent => TextManager.Get("sandboxmenu.status.sendfailed"),
-        _ => TextManager.Get("sandboxmenu.status.senttoserver")
+        _ => TextManager.Get(ClientSpawnDispatcher.IsRemote ? "sandboxmenu.status.senttoserver" : "sandboxmenu.status.spawnqueued")
     };
-
-    private static SpawnSet? ResolveTemplate(string name)
-        => TemplateStore.TryLoad(name, out SpawnSet? set) ? set : null;
 }

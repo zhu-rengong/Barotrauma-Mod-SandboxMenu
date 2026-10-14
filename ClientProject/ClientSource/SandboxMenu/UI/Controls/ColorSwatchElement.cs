@@ -3,7 +3,7 @@ using System.Windows.Input;
 namespace SandboxMenu.UI.Controls;
 
 [Element("ColorSwatch")]
-public sealed class ColorSwatchElement : ViewElement, IDisposable
+public sealed class ColorSwatchElement : ViewElement
 {
     private readonly SwatchButton _button;
     private readonly ViewContext _view;
@@ -54,7 +54,7 @@ public sealed class ColorSwatchElement : ViewElement, IDisposable
         set => _button.Outline = value;
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _button.OnClicked = null;
         _command = null;

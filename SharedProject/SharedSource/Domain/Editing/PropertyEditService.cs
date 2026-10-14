@@ -81,13 +81,10 @@ internal static class PropertyEditService
 
         if (string.IsNullOrEmpty(propertyOverride.ComponentName)) { return item; }
 
-        int wantedIndex = Math.Max(1, propertyOverride.ComponentIndex);
-        int seen = 0;
-
-        foreach (ItemComponent component in item.Components)
+        if (ComponentOrdinal.Find(item.Components, propertyOverride.ComponentName, propertyOverride.ComponentIndex, static candidate => candidate.Name)
+            is { } component)
         {
-            if (!string.Equals(component.Name, propertyOverride.ComponentName, StringComparison.OrdinalIgnoreCase)) { continue; }
-            if (++seen == wantedIndex) { return component; }
+            return component;
         }
 
         error = $"Not found component '{propertyOverride.ComponentName}[{propertyOverride.ComponentIndex}]' of '{item.Prefab?.Identifier.Value}'";

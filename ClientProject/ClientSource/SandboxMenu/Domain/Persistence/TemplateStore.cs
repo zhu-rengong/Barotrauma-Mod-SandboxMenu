@@ -10,7 +10,7 @@ internal static class TemplateStore
 
     private const int MaxNameLength = 96;
 
-    public static string Folder => Path.Combine(Plugin.SettingsService.SaveFolder, "Presets");
+    public static string Folder => Path.Combine(Services.Settings.SaveFolder, "Presets");
 
     public static string PathOf(string name) => PathFor(name);
 

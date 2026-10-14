@@ -55,7 +55,6 @@ internal static class StatusTones
     };
 
     private static (string Prefix, StatusKind Kind)[]? _prefixes;
-    private static int _languageVersion = -1;
 
     internal static StatusKind Of(LocalizedString message)
     {
@@ -63,19 +62,15 @@ internal static class StatusTones
 
         if (text.Length == 0) { return StatusKind.None; }
 
-        if (_prefixes is null || _languageVersion != TextManager.LanguageVersion)
-        {
-            _prefixes = Build();
-            _languageVersion = TextManager.LanguageVersion;
-        }
-
-        foreach ((string prefix, StatusKind kind) in _prefixes)
+        foreach ((string prefix, StatusKind kind) in _prefixes ??= Build())
         {
             if (text.StartsWith(prefix, StringComparison.Ordinal)) { return kind; }
         }
 
         return StatusKind.None;
     }
+
+    internal static void Reset() => _prefixes = null;
 
     private static (string Prefix, StatusKind Kind)[] Build()
     {

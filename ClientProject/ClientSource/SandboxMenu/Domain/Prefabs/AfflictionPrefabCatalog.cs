@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace SandboxMenu.Domain.Prefabs;
 
-internal sealed record AfflictionPrefabEntry(AfflictionPrefab Prefab, ContentPackage? Package, Identifier Type, bool IsBuff, bool LimbSpecific)
+internal sealed record AfflictionPrefabEntry(AfflictionPrefab Prefab, string PackageKey, Identifier Type, bool IsBuff, bool LimbSpecific)
 {
     internal string Identifier => Prefab.Identifier.Value;
 
@@ -34,13 +34,13 @@ internal enum AfflictionKind
 }
 
 internal sealed record AfflictionFilter(
-    IReadOnlySet<ContentPackage> Packages,
+    IReadOnlySet<string> Packages,
     IReadOnlySet<Identifier> Types,
     IReadOnlySet<AfflictionScope> Scopes,
     IReadOnlySet<AfflictionKind> Kinds)
 {
     internal bool Allows(AfflictionPrefabEntry entry)
-        => (Packages.Count == 0 || (entry.Package is { } package && Packages.Contains(package)))
+        => (Packages.Count == 0 || (entry.PackageKey.Length > 0 && Packages.Contains(entry.PackageKey)))
             && (Types.Count == 0 || Types.Contains(entry.Type))
             && Matches(Scopes, entry.LimbSpecific ? AfflictionScope.Limb : AfflictionScope.Body)
             && Matches(Kinds, entry.IsBuff ? AfflictionKind.Buff : AfflictionKind.Debuff);
@@ -49,12 +49,10 @@ internal sealed record AfflictionFilter(
         => selected.Count == 0 || selected.Contains(value);
 }
 
-internal sealed record AfflictionPackage(ContentPackage Package, string Label);
-
 internal static class AfflictionPrefabCatalog
 {
     private static ImmutableArray<AfflictionPrefabEntry> _entries = ImmutableArray<AfflictionPrefabEntry>.Empty;
-    private static IReadOnlyList<AfflictionPackage> _packages = [];
+    private static IReadOnlyList<PackageLabel> _packages = [];
     private static IReadOnlyList<Identifier> _types = [];
 
     internal static IReadOnlyList<AfflictionPrefabEntry> All()
@@ -64,7 +62,7 @@ internal static class AfflictionPrefabCatalog
         return _entries;
     }
 
-    internal static IReadOnlyList<AfflictionPackage> Packages()
+    internal static IReadOnlyList<PackageLabel> Packages()
     {
         EnsureBuilt();
 
@@ -78,7 +76,7 @@ internal static class AfflictionPrefabCatalog
         return _types;
     }
 
-    internal static IReadOnlyList<Identifier> TypesIn(IReadOnlySet<ContentPackage> packages)
+    internal static IReadOnlyList<Identifier> TypesIn(IReadOnlySet<string> packages)
     {
         EnsureBuilt();
 
@@ -88,7 +86,7 @@ internal static class AfflictionPrefabCatalog
 
         foreach (AfflictionPrefabEntry entry in _entries)
         {
-            if (entry.Package is { } package && packages.Contains(package)) { available.Add(entry.Type); }
+            if (entry.PackageKey.Length > 0 && packages.Contains(entry.PackageKey)) { available.Add(entry.Type); }
         }
 
         return [.. _types.Where(available.Contains)];
@@ -107,19 +105,23 @@ internal static class AfflictionPrefabCatalog
 
         List<AfflictionPrefabEntry> list = [];
         List<(ContentPackage Package, string Name)> found = [];
-        HashSet<ContentPackage> seen = new(ReferenceEqualityComparer.Instance);
+        HashSet<string> seen = new(PackageLabels.KeyComparer);
         HashSet<Identifier> types = [];
 
         foreach (AfflictionPrefab prefab in AfflictionPrefab.Prefabs)
         {
             if (prefab is null || prefab.Identifier.IsEmpty) { continue; }
 
-            list.Add(new AfflictionPrefabEntry(prefab, prefab.ContentPackage, prefab.AfflictionType, prefab.IsBuff, prefab.LimbSpecific));
+            list.Add(new AfflictionPrefabEntry(
+                prefab,
+                PackageLabels.KeyOf(prefab.ContentPackage),
+                prefab.AfflictionType,
+                prefab.IsBuff,
+                prefab.LimbSpecific));
+
             types.Add(prefab.AfflictionType);
 
-            if (prefab.ContentPackage is not { } package) { continue; }
-
-            if (package.Path.Length > 0 && seen.Add(package)) { found.Add((package, package.Name)); }
+            if (prefab.ContentPackage is { } package && seen.Add(package.Path)) { found.Add((package, package.Name)); }
         }
 
         list.Sort(static (a, b) =>
@@ -130,39 +132,8 @@ internal static class AfflictionPrefabCatalog
         });
 
         _entries = [.. list];
-        _packages = BuildPackages(found);
+        _packages = PackageLabels.Build(found);
         _types = [.. types.OrderBy(type => type.Value, StringComparer.OrdinalIgnoreCase)];
-    }
-
-    private static IReadOnlyList<AfflictionPackage> BuildPackages(List<(ContentPackage Package, string Name)> found)
-    {
-        Dictionary<string, int> counts = new(StringComparer.OrdinalIgnoreCase);
-
-        foreach ((ContentPackage _, string name) in found) { counts[name] = counts.GetValueOrDefault(name) + 1; }
-
-        List<AfflictionPackage> packages = new(found.Count);
-
-        foreach ((ContentPackage package, string name) in found)
-        {
-            string folder = FolderOf(package.Path);
-
-            string label = name.Length == 0
-                ? folder
-                : counts[name] > 1 ? $"{name} ({folder})" : name;
-
-            packages.Add(new AfflictionPackage(package, label));
-        }
-
-        packages.Sort(static (a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
-
-        return packages;
-    }
-
-    private static string FolderOf(string path)
-    {
-        string folder = Path.GetFileName(Path.GetDirectoryName(path) ?? string.Empty);
-
-        return folder.Length == 0 ? path : folder;
     }
 }
 

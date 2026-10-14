@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace SandboxMenu.UI.Controls;
 
 [Element("CharacterTile")]
-public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
+public sealed class CharacterTileElement : ViewElement, ITileCell
 {
     private const float DefaultGrowExtent = 0.36f;
 
@@ -303,7 +303,7 @@ public sealed class CharacterTileElement : ViewElement, IDisposable, ITileCell
         };
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         Control.RectTransform.SizeChanged -= Layout;
 

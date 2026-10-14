@@ -18,6 +18,44 @@ internal static class MemberAccess
         return built;
     }
 
+    internal static Func<object, object?>? CompileReader(MemberInfo member, Type declaringType)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+
+        try
+        {
+            return Expression.Lambda<Func<object, object?>>(
+                Expression.Convert(
+                    Expression.MakeMemberAccess(Expression.Convert(instance, declaringType), member),
+                    typeof(object)),
+                instance).Compile();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    internal static Action<object, object?>? CompileWriter(MemberInfo member, Type declaringType, Type valueType)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+        ParameterExpression value = Expression.Parameter(typeof(object), "value");
+
+        try
+        {
+            return Expression.Lambda<Action<object, object?>>(
+                Expression.Assign(
+                    Expression.MakeMemberAccess(Expression.Convert(instance, declaringType), member),
+                    Expression.Convert(value, valueType)),
+                instance,
+                value).Compile();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private static Accessors Build(Type type, string name)
     {
         PropertyInfo? property = FindProperty(type, name);
@@ -26,33 +64,16 @@ internal static class MemberAccess
         MemberInfo? member = (MemberInfo?)property ?? field;
         if (member is null) { return default; }
 
-        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
-        ParameterExpression value = Expression.Parameter(typeof(object), "value");
-        Expression target = Expression.Convert(instance, type);
-
-        Func<object, object?>? reader = null;
+        Func<object, object?>? reader = CompileReader(member, type);
         Action<object, object?>? writer = null;
-
-        try
-        {
-            reader = Expression.Lambda<Func<object, object?>>(
-                Expression.Convert(Expression.MakeMemberAccess(target, member), typeof(object)), instance).Compile();
-        }
-        catch (Exception)
-        {
-        }
 
         if (property is { CanWrite: true, SetMethod.IsPublic: true })
         {
-            writer = Expression.Lambda<Action<object, object?>>(
-                Expression.Assign(Expression.Property(target, property), Expression.Convert(value, property.PropertyType)),
-                instance, value).Compile();
+            writer = CompileWriter(property, type, property.PropertyType);
         }
         else if (field is { IsInitOnly: false, IsLiteral: false })
         {
-            writer = Expression.Lambda<Action<object, object?>>(
-                Expression.Assign(Expression.Field(target, field), Expression.Convert(value, field.FieldType)),
-                instance, value).Compile();
+            writer = CompileWriter(field, type, field.FieldType);
         }
 
         return new Accessors(reader, writer, property?.PropertyType ?? field?.FieldType);

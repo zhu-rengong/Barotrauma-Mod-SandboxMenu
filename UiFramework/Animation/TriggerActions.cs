@@ -20,13 +20,19 @@ internal sealed record SetAction(Setter Setter) : StoryboardAction
     internal override void Run(StoryboardActionContext context) => context.Set(Setter);
 }
 
-internal sealed class StoryboardActionContext(ViewContext view, ViewElement element, ViewScope? scope)
+internal sealed class StoryboardActionContext(
+    IStoryboardRunner runner,
+    IViewHost host,
+    IViewElement element,
+    IPauseable? scope)
 {
-    private readonly Dictionary<StoryboardAction, StoryboardPlayer> _players = [];
+    private readonly Dictionary<StoryboardAction, (IStoryboard Storyboard, IAnimationPlayer Player)> _players = [];
 
-    internal ViewContext View { get; } = view;
+    internal IStoryboardRunner Runner { get; } = runner;
 
-    internal ViewElement Element { get; } = element;
+    internal IViewHost Host { get; } = host;
+
+    internal IViewElement Element { get; } = element;
 
     internal void Play(Storyboard storyboard, StoryboardAction action)
     {
@@ -34,36 +40,35 @@ internal sealed class StoryboardActionContext(ViewContext view, ViewElement elem
 
         Stop(action);
 
-        foreach ((StoryboardAction started, StoryboardPlayer player) in _players.ToArray())
+        foreach ((StoryboardAction started, (IStoryboard Started, IAnimationPlayer Player) entry) in _players.ToArray())
         {
-            if (!player.SharesProperty(storyboard)) { continue; }
+            if (!entry.Started.SharesProperty(storyboard)) { continue; }
 
-            player.Stop();
+            entry.Player.Stop();
             _players.Remove(started);
         }
 
-        _players[action] = View.Play(storyboard, Element, scope);
+        _players[action] = (storyboard, Runner.Play(storyboard, Element, scope, Host));
     }
 
     internal void Stop(StoryboardAction? action)
     {
         if (action is { } target)
         {
-            if (_players.Remove(target, out StoryboardPlayer? player)) { player.Stop(); }
+            if (_players.Remove(target, out (IStoryboard Storyboard, IAnimationPlayer Player) player)) { player.Player.Stop(); }
 
             return;
         }
 
-        foreach (StoryboardPlayer player in _players.Values) { player.Stop(); }
+        foreach ((IStoryboard _, IAnimationPlayer player) in _players.Values) { player.Stop(); }
 
         _players.Clear();
     }
 
     internal void Set(Setter setter)
     {
-        if (!Element.TryApplyMarkup(setter.Property, setter.Value, ValueSource.Trigger, out string message))
-        {
-            View.Diagnostics.Report($"the action on '{setter.Property}' failed: {message}", Element.Node);
-        }
+        if (Element.TryApplyMarkup(setter.Property, setter.Value, ValueSource.Trigger, out string message)) { return; }
+
+        Host.Diagnostics.Report($"the action on '{setter.Property}' failed: {message}", Element.Node);
     }
 }

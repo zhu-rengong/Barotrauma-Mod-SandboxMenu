@@ -106,7 +106,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public RelayCommand AddChildCommand { get; }
 
-    public LocalizedString GiveShortcut => Plugin.GiveKey.ToString();
+    public LocalizedString GiveShortcut => KeyBinds.Give.ToString();
 
     internal void Report(LocalizedString message) => _report(message);
 

@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Portrait")]
-public sealed class PortraitElement : ViewElement, IDisposable
+public sealed class PortraitElement : ViewElement
 {
     private CharacterDisplay? _display;
 
@@ -19,7 +19,7 @@ public sealed class PortraitElement : ViewElement, IDisposable
     [ElementProperty]
     public CharacterDisplay? Character { set => _display = value; }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         ((GUICustomComponent)Control).OnDraw = null;
         _display = null;

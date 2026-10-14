@@ -61,6 +61,8 @@ public sealed class CharacterDisplay(Character character)
 
     internal ContentPackage? Package => character.ContentPackage;
 
+    internal string PackageKey => PackageLabels.KeyOf(Package);
+
     internal string HealthText
         => TooltipText.Number(Health) + " / " + TooltipText.Number(MaxHealth)
             + " (" + TooltipText.Number(MathF.Round(HealthPercentage), "0") + "%)";

@@ -11,7 +11,7 @@ internal static class ScreenshotWriter
 
         if (area.Width <= 0 || area.Height <= 0) { return; }
 
-        string folder = Path.Combine(Plugin.SettingsService.SaveFolder, "Screenshots");
+        string folder = Path.Combine(Services.Settings.SaveFolder, "Screenshots");
         string name = $"sandboxmenu {DateTime.Now:yyyy-MM-dd HH-mm-ss}.png";
         string path = Path.Combine(folder, name);
 

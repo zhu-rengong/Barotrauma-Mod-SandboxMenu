@@ -39,6 +39,17 @@ internal static class NotificationBatch
         return true;
     }
 
+    internal static void Reset()
+    {
+        _deferred.Clear();
+        _pending.Clear();
+        _raises.Clear();
+        _firing.Clear();
+        _work.Clear();
+        _depth = 0;
+        _flushing = false;
+    }
+
     private static void Flush()
     {
         if (_flushing) { return; }

@@ -100,7 +100,10 @@ internal static class Theme
     }
 
     internal static LocalizedString AccentMarkup(LocalizedString text, ContentPackage package)
-        => "‖color:" + package.GetAccentColor().ToStringHex() + "‖" + text + "‖color:end‖";
+        => AccentMarkup(text, package.GetAccentColor());
+
+    internal static LocalizedString AccentMarkup(LocalizedString text, Color accent)
+        => "‖color:" + accent.ToStringHex() + "‖" + text + "‖color:end‖";
 
     public static void Outline(SpriteBatch spriteBatch, Rectangle rect, Color color, float? thickness = null)
         => GUI.DrawRectangle(

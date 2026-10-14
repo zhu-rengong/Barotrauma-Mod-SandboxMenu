@@ -1,7 +1,4 @@
 using System.Windows.Input;
-using UiFramework.Animation;
-using UiFramework.Layout;
-using UiFramework.Styling;
 
 namespace UiFramework;
 
@@ -68,8 +65,10 @@ internal sealed class ValueWatch(string name, Func<object, object?>? read)
     }
 }
 
-public abstract class ViewElement(GUIComponent control)
+public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposable
 {
+    private bool _released;
+
     private readonly Dictionary<string, object?> _attached = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _baseValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _restoreValues = new(StringComparer.OrdinalIgnoreCase);
@@ -77,12 +76,9 @@ public abstract class ViewElement(GUIComponent control)
     private readonly Dictionary<string, List<Override>> _overrides = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Action>> _listeners = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Action<object?>>?[] _visualWatchers = new List<Action<object?>>?[3];
-    private readonly List<Animation.StoryboardPlayer> _players = [];
-    private readonly List<Animation.StoryboardPlayer> _playerScratch = [];
     private readonly List<(string Property, object? Value)> _resetScratch = [];
+    private readonly List<ViewElement> _children = [];
 
-    private IReadOnlyList<TriggerBase>? _triggers;
-    private IReadOnlyList<EventTrigger>? _events;
     private VisualState _visuals;
 
     private Length? _width;
@@ -93,6 +89,24 @@ public abstract class ViewElement(GUIComponent control)
     private bool _skinRead;
 
     public GUIComponent Control { get; } = control;
+
+    internal IReadOnlyList<ViewElement> ChildElements => _children;
+
+    internal bool IsReleased => _released;
+
+    internal int SubscriptionCount
+    {
+        get
+        {
+            int count = _valueWatches.Count + _listeners.Count + _overrides.Count;
+
+            for (int i = 0; i < _visualWatchers.Length; i++) { count += _visualWatchers[i]?.Count ?? 0; }
+
+            return count;
+        }
+    }
+
+    internal void RememberContent(ViewElement child) => _children.Add(child);
 
     internal MarkupNode? Node { get; set; }
 
@@ -186,17 +200,7 @@ public abstract class ViewElement(GUIComponent control)
         }
     }
 
-    internal IReadOnlyList<TriggerBase> Triggers => _triggers ?? [];
-
-    internal IReadOnlyList<EventTrigger> Events => _events ?? [];
-
     internal bool IsPaused => Scope is { IsPaused: true };
-
-    internal void AddTriggers(IReadOnlyList<TriggerBase> triggers, IReadOnlyList<EventTrigger> events)
-    {
-        if (triggers.Count > 0) { _triggers = triggers; }
-        if (events.Count > 0) { _events = events; }
-    }
 
     public virtual void AddContent(ViewElement child) => throw new NotSupportedException($"{GetType().Name} takes no content");
 
@@ -230,21 +234,9 @@ public abstract class ViewElement(GUIComponent control)
         _restoreValues[property] = value;
     }
 
-    internal void TrackPlayer(Animation.StoryboardPlayer player) => _players.Add(player);
-
-    internal void UntrackPlayer(Animation.StoryboardPlayer player) => _players.Remove(player);
-
     internal void ResetAnimatedValues()
     {
-        if (_players.Count > 0)
-        {
-            _playerScratch.Clear();
-            _playerScratch.AddRange(_players);
-
-            for (int i = 0; i < _playerScratch.Count; i++) { _playerScratch[i].Stop(); }
-
-            _playerScratch.Clear();
-        }
+        Context?.ResetAnimations(this);
 
         if (_restoreValues.Count == 0) { return; }
 
@@ -569,16 +561,65 @@ public abstract class ViewElement(GUIComponent control)
         SetVisual(VisualState.Selected, Control.Selected);
     }
 
+    public void Dispose()
+    {
+        if (_released) { return; }
+
+        _released = true;
+        OnRelease();
+        ClearWatchers();
+    }
+
+    protected virtual void OnRelease()
+    {
+    }
+
+    protected void StopEveryFrame(Action action) => Scope?.Remove(action);
+
+    protected void StopEveryFrame(Func<bool> action) => Scope?.Remove(action);
+
     internal void ClearWatchers()
     {
         _valueWatches.Clear();
         _overrides.Clear();
         _restoreValues.Clear();
-        _players.Clear();
         _listeners.Clear();
 
         for (int i = 0; i < _visualWatchers.Length; i++) { _visualWatchers[i]?.Clear(); }
     }
+
+    MarkupNode? IViewElement.Node => Node;
+
+    object? IViewElement.DataContext => DataContext;
+
+    bool IViewElement.TryApplyValue(string property, object? value, ValueSource source, out string message)
+        => TryApplyValue(property, value, source, out message);
+
+    bool IViewElement.TryApplyMarkup(string property, MarkupValue value, ValueSource source, out string message)
+        => TryApplyMarkup(property, value, source, out message);
+
+    bool IViewElement.TryReadValue(string property, out object? value) => TryReadValue(property, out value);
+
+    bool IViewElement.HasBaseValue(string property) => HasBaseValue(property);
+
+    void IViewElement.RememberBaseValue(string property, object? value) => RememberBaseValue(property, value);
+
+    void IViewElement.RememberRestoreValue(string property, object? value) => RememberRestoreValue(property, value);
+
+    void IViewElement.RestoreBaseValue(string property) => RestoreBaseValue(property);
+
+    bool IViewElement.CanAnimate(string property, out string message) => CanAnimate(property, out message);
+
+    bool IViewElement.WatchValue(string property, Action<object?> changed) => WatchValue(property, changed);
+
+    bool IViewElement.Listen(string name, Action handler) => Listen(name, handler);
+
+    bool IViewElement.CanOverride(string property, out string reason) => CanOverride(property, out reason);
+
+    bool IViewElement.ApplyOverride(object source, int priority, string property, MarkupValue value, out string message)
+        => ApplyOverride(source, priority, property, value, out message);
+
+    void IViewElement.RemoveOverride(object source, string property) => RemoveOverride(source, property);
 
     private void SetVisual(VisualState visual, bool value)
     {
@@ -675,12 +716,12 @@ public abstract class ViewElement(GUIComponent control)
     public override string ToString() => GetType().Name;
 }
 
-public interface IPropertyObserver
+internal interface IPropertyObserver
 {
     void Observe(string property, Action<object?> changed);
 }
 
-public interface ICommandElement
+internal interface ICommandElement
 {
     void SetCommand(ICommand? command);
 

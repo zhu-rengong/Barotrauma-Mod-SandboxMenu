@@ -5,8 +5,10 @@ using UiFramework.Templating;
 
 namespace UiFramework.Controls;
 
+internal readonly record struct GridMetrics(int Count, int Width, int Height, int Spacing, int Cell, int Stride, int Rows);
+
 [Element("TileGrid")]
-internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class TileGridElement : ViewElement, IPropertyObserver
 {
     private const int Overscan = 2;
     private const int PoolLimit = 240;
@@ -26,14 +28,13 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
 
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
-    private bool _rebuildQueued;
+    private readonly DeferredCall _rebuild = new();
     private GUIFrame? _sheet;
     private Point _sheetSize;
     private Action<object?>? _reportScroll;
     private float _reportedScroll = -1f;
-    private int _signature;
-    private (int Count, int Width, int Height, int Spacing, int Columns, float Scroll) _inputs;
-    private bool _hasInputs;
+    private ShapeSignature<int> _shape;
+    private ShapeSignature<(int Count, int Width, int Height, int Spacing, int Columns, float Scroll)> _inputs;
 
     public TileGridElement(ElementContext context)
         : base(new GUIListBox(context.Rect(context.Parent, 1f, 1f), style: null!)
@@ -45,9 +46,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
         _view = context.View;
 
         _templateKey = context.Text("TileTemplate");
-        _columns = int.TryParse(context.Text("Columns"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int columns)
-            ? Math.Max(1, columns)
-            : 3;
+        _columns = ValueParser.TryInt(context.Text("Columns"), out int columns) ? Math.Max(1, columns) : 3;
 
         _listBox.Spacing = UiMetrics.DipInt(context.Metric("Spacing", UiTokens.Dip("gap", 4f)));
         _listBox.Padding = context.Padding.ToVector4();
@@ -105,13 +104,16 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
         _view.EveryFrame(ReportScroll);
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         if (_observed is not null) { _observed.CollectionChanged -= OnCollectionChanged; }
 
         _observed = null;
         _items = null;
         _reportScroll = null;
+
+        StopEveryFrame(Update);
+        StopEveryFrame(ReportScroll);
 
         ReleaseAll();
 
@@ -136,19 +138,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
         report(scroll);
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (_rebuildQueued) { return; }
-
-        _rebuildQueued = true;
-        _view.Once(() =>
-        {
-            if (!_rebuildQueued) { return; }
-
-            _rebuildQueued = false;
-            Rebuild();
-        });
-    }
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view, Rebuild);
 
     private void Rebuild()
     {
@@ -162,8 +152,8 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
             }
         }
 
-        _signature = 0;
-        _hasInputs = false;
+        _shape.Reset();
+        _inputs.Reset();
 
         if (_listBox.BarScroll > 0f) { _listBox.BarScroll = 0f; }
 
@@ -174,22 +164,9 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
     {
         if (!Control.Visible || IsPaused) { return; }
 
-        int count = _index.Count;
-
-        if (count == 0)
+        if (_index.Count == 0)
         {
-            _hasInputs = false;
-
-            if (_sheetSize == Point.Zero) { return; }
-
-            ReleaseAll();
-
-            _sheetSize = Point.Zero;
-
-            if (_sheet is { } hidden) { hidden.Visible = false; }
-
-            _listBox.UpdateScrollBarSize();
-            _listBox.RecalculateChildren();
+            HideSheet();
             return;
         }
 
@@ -199,14 +176,37 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
 
         if (width < MinCell || height < MinCell) { return; }
 
+        if (SettleSheet(width, height) is not { } grid) { return; }
+
+        ArrangeVisible(grid);
+    }
+
+    private void HideSheet()
+    {
+        _inputs.Reset();
+
+        if (_sheetSize == Point.Zero) { return; }
+
+        ReleaseAll();
+
+        _sheetSize = Point.Zero;
+
+        if (_sheet is { } hidden) { hidden.Visible = false; }
+
+        _listBox.UpdateScrollBarSize();
+        _listBox.RecalculateChildren();
+    }
+
+    private GridMetrics? SettleSheet(int width, int height)
+    {
+        int count = _index.Count;
         int spacing = _listBox.Spacing;
         (int Count, int Width, int Height, int Spacing, int Columns, float Scroll) inputs =
             (count, width, height, spacing, _columns, _listBox.BarScroll);
 
-        if (_hasInputs && inputs == _inputs) { return; }
+        if (_inputs.Matches(inputs)) { return null; }
 
-        _inputs = inputs;
-        _hasInputs = true;
+        _inputs.Set(inputs);
 
         int cell = Math.Max(MinCell, (width - (_columns - 1) * spacing) / _columns);
         int stride = cell + spacing;
@@ -227,20 +227,25 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver, IDisposa
 
         if (sheetHeight <= height && _listBox.BarScroll > 0f) { _listBox.BarScroll = 0f; }
 
-        float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - height) * _listBox.BarScroll : 0f;
+        return new GridMetrics(count, width, height, spacing, cell, stride, rows);
+    }
 
-        int firstRow = Math.Clamp((int)(scrolled / stride), 0, rows - 1);
-        int lastRow = Math.Clamp((int)((scrolled + height) / stride) + 1, firstRow, rows - 1);
+    private void ArrangeVisible(GridMetrics grid)
+    {
+        float scrolled = _listBox.BarSize < 1f ? Math.Max(0f, _listBox.TotalSize - grid.Height) * _listBox.BarScroll : 0f;
+
+        int firstRow = Math.Clamp((int)(scrolled / grid.Stride), 0, grid.Rows - 1);
+        int lastRow = Math.Clamp((int)((scrolled + grid.Height) / grid.Stride) + 1, firstRow, grid.Rows - 1);
         int first = Math.Max(0, (firstRow - Overscan) * _columns);
-        int last = Math.Min(count - 1, (lastRow + Overscan + 1) * _columns - 1);
+        int last = Math.Min(grid.Count - 1, (lastRow + Overscan + 1) * _columns - 1);
 
-        int signature = HashCode.Combine(count, width, height, spacing, cell, first, rows);
+        int signature = HashCode.Combine(grid.Count, grid.Width, grid.Height, grid.Spacing, grid.Cell, first, grid.Rows);
 
-        if (signature == _signature) { return; }
+        if (_shape.Matches(signature)) { return; }
 
-        _signature = signature;
+        _shape.Set(signature);
 
-        Arrange(first, last, cell, stride);
+        Arrange(first, last, grid.Cell, grid.Stride);
     }
 
     private void Arrange(int first, int last, int cell, int stride)

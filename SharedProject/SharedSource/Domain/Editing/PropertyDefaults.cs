@@ -9,16 +9,7 @@ internal static class PropertyDefaults
         if (prefab?.ConfigElement is not { } root) { return null; }
         if (string.IsNullOrWhiteSpace(componentName)) { return root; }
 
-        int wanted = Math.Max(1, componentIndex);
-        int seen = 0;
-
-        foreach (ContentXElement element in root.Elements())
-        {
-            if (!string.Equals(element.Name.LocalName, componentName, StringComparison.OrdinalIgnoreCase)) { continue; }
-            if (++seen == wanted) { return element; }
-        }
-
-        return null;
+        return ComponentOrdinal.Find(root.Elements(), componentName, componentIndex, static element => element.Name.LocalName);
     }
 
     internal static string DeclaredValue(SerializableProperty property, ContentXElement? element)

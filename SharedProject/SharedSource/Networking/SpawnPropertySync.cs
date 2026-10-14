@@ -32,7 +32,7 @@ internal static class SpawnPropertySync
                 continue;
             }
 
-            Plugin.NetworkService.CreateVanillaEntityEvent(item, new Item.ChangePropertyEventData(property, propertyOverride.Target));
+            Services.GameNetwork.CreateVanillaEntityEvent(item, new Item.ChangePropertyEventData(property, propertyOverride.Target));
         }
     }
 

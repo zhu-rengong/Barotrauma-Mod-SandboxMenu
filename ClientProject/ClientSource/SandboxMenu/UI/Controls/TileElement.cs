@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Tile")]
-public sealed class TileElement : ViewElement, IDisposable, ITileCell
+public sealed class TileElement : ViewElement, ITileCell
 {
     private const float DefaultGrowExtent = 0.36f;
 
@@ -287,7 +287,7 @@ public sealed class TileElement : ViewElement, IDisposable, ITileCell
     [ElementProperty]
     public Color ValueColor { set => ApplyValueColor(value); }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         Control.RectTransform.SizeChanged -= LayoutSlot;
 

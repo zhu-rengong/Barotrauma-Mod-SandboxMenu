@@ -1,16 +1,18 @@
+using UiFramework.Data;
+
 namespace UiFramework;
 
-internal sealed class ViewScope(List<ViewScope> live) : IDisposable
+internal sealed class ViewScope(List<ViewScope> live) : IDisposable, IPauseable
 {
     private readonly List<IDisposable> _owned = [];
-    private readonly List<Data.Binding> _bindings = [];
+    private readonly List<Binding> _bindings = [];
     private readonly List<Action> _frameActions = [];
     private readonly List<Func<bool>> _untilActions = [];
 
     private bool _paused;
     private bool _disposed;
 
-    internal bool IsPaused => _paused;
+    public bool IsPaused => _paused;
 
     internal void Pause() => _paused = true;
 
@@ -19,6 +21,10 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
     internal void EveryFrame(Action action) => _frameActions.Add(action);
 
     internal void EveryFrame(Func<bool> action) => _untilActions.Add(action);
+
+    internal bool Remove(Action action) => _frameActions.Remove(action);
+
+    internal bool Remove(Func<bool> action) => _untilActions.Remove(action);
 
     internal void RunFrameActions()
     {
@@ -39,7 +45,7 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable
     {
         _owned.Add(disposable);
 
-        if (disposable is Data.Binding binding) { _bindings.Add(binding); }
+        if (disposable is Binding binding) { _bindings.Add(binding); }
     }
 
     internal void Retarget(object? source)

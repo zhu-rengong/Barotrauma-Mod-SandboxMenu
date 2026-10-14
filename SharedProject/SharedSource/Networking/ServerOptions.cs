@@ -2,29 +2,28 @@ using Barotrauma.Networking;
 
 namespace SandboxMenu.Networking;
 
+[RunConstructorOnInit]
 internal static class ServerOptions
 {
     internal const string AllowAllClientsIdentifier = "allowallclients";
 
-    private static BooleanSetting? _allowAllClients;
+    private static readonly BooleanSetting AllowAllClientsSetting;
 
-    internal static bool AllowAllClients => _allowAllClients?.Value ?? false;
-
-    internal static void Register(ISettingsService settings)
+    static ServerOptions()
     {
-        if (_allowAllClients is not null) { return; }
-
-        _allowAllClients = new BooleanSetting(
+        AllowAllClientsSetting = new BooleanSetting(
             AllowAllClientsIdentifier.ToIdentifier(),
             defaultValue: false,
-            label: TextManager.Get($"{Plugin.ModPrefix}.{AllowAllClientsIdentifier}.displayname"))
+            label: TextManager.Get($"{ModInfo.Prefix}.{AllowAllClientsIdentifier}.displayname"))
         {
             ShowInUI = true,
-            ToolTip = TextManager.Get($"{Plugin.ModPrefix}.{AllowAllClientsIdentifier}.tooltip"),
+            ToolTip = TextManager.Get($"{ModInfo.Prefix}.{AllowAllClientsIdentifier}.tooltip"),
             SyncMode = SettingSyncMode.ServerAuthority,
             IsAllowedToSet = static (_, client) => client is null || client.Permissions.HasFlag(ClientPermissions.ManageSettings)
         };
 
-        settings.RegisterSetting(_allowAllClients);
+        Services.Settings.RegisterSetting(AllowAllClientsSetting);
     }
+
+    internal static bool AllowAllClients => AllowAllClientsSetting.Value;
 }

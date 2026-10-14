@@ -53,8 +53,37 @@ internal sealed class CharacterPreview : IDisposable
         return byFraming[index] ??= new CharacterPreview(character, framing);
     }
 
+    internal static void PurgeDead()
+    {
+        List<Character>? dead = null;
+
+        foreach (Character character in _cache.Keys)
+        {
+            if (!character.Removed && Character.CharacterList.Contains(character)) { continue; }
+
+            (dead ??= []).Add(character);
+        }
+
+        if (dead is null) { return; }
+
+        foreach (Character character in dead)
+        {
+            foreach (CharacterPreview? preview in _cache[character])
+            {
+                if (preview is null) { continue; }
+
+                _pending.Remove(preview);
+                preview.Dispose();
+            }
+
+            _cache.Remove(character);
+        }
+    }
+
     internal static void RenderPending()
     {
+        PurgeDead();
+
         while (_queued.Count > 0)
         {
             CharacterPreview preview = _queued.Dequeue();

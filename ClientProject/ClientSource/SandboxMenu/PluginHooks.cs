@@ -2,15 +2,16 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu;
 
+[RunConstructorOnInit]
 internal static class PluginHooks
 {
-    internal static readonly PluginGameModeAddToGUIUpdateListDelegate AddToGUIUpdateListHook = AddToGUIUpdateList;
-
-    internal static readonly PluginGameModeDrawDelegate GameModeDrawHook = GameModeDraw;
-
-    internal static readonly PluginOnPostUpdateDelegate PostUpdateHook = PostUpdate;
-
-    internal static readonly PluginHandleEscapeKeyDelegate EscapeKeyHook = HandleEscapeKey;
+    static PluginHooks()
+    {
+        Services.HookService.RegisterHook<PluginGameModeAddToGUIUpdateListDelegate>(AddToGUIUpdateList);
+        Services.HookService.RegisterHook<PluginGameModeDrawDelegate>(GameModeDraw);
+        Services.HookService.RegisterHook<PluginOnPostUpdateDelegate>(PostUpdate);
+        Services.HookService.RegisterHook<PluginHandleEscapeKeyDelegate>(HandleEscapeKey);
+    }
 
     internal static void AddToGUIUpdateList(GameMode mode)
     {
@@ -23,7 +24,7 @@ internal static class PluginHooks
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Updating the sandbox menu failed: {e}");
+            Services.DebugConsole.AddWarning($"Updating the sandbox menu failed: {e}");
         }
     }
 
@@ -37,7 +38,7 @@ internal static class PluginHooks
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Drawing the spawn point hint failed: {e}");
+            Services.DebugConsole.AddWarning($"Drawing the spawn point hint failed: {e}");
         }
     }
 
@@ -47,8 +48,6 @@ internal static class PluginHooks
         {
             UiHost.AdvanceFrame(deltaTime);
 
-            ContentReload.Poll();
-            TextReload.Poll();
             CharacterPreview.RenderPending();
             MenuWindow.Current?.ServePendingScreenshot();
 
@@ -58,7 +57,7 @@ internal static class PluginHooks
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"The sandbox menu's post-update failed: {e}");
+            Services.DebugConsole.AddWarning($"The sandbox menu's post-update failed: {e}");
         }
     }
 
@@ -84,13 +83,13 @@ internal static class PluginHooks
 
         if (GUI.KeyboardDispatcher.Subscriber is null)
         {
-            if (Plugin.ToggleKey.IsHit())
+            if (KeyBinds.Toggle.IsHit())
             {
                 MenuWindow.Instance.Toggle();
                 return;
             }
 
-            if (Plugin.GiveKey.IsHit()) { MenuWindow.Instance.SpawnIntoInventory(); }
+            if (KeyBinds.Give.IsHit()) { MenuWindow.Instance.SpawnIntoInventory(); }
         }
 
         MenuWindow.Current?.HandleKeys();

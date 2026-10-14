@@ -7,33 +7,55 @@ internal static class AnimationClock
     internal static void Advance(float delta) => Delta = Math.Clamp(delta, 0f, 0.25f);
 }
 
-internal sealed class Storyboard
+internal sealed class Storyboard : IStoryboard
 {
     internal string? Key { get; init; }
 
     internal IReadOnlyList<AnimationBase> Animations { get; init; } = [];
 
-    internal bool IsEmpty => Animations.Count == 0;
+    public bool IsEmpty => Animations.Count == 0;
+
+    public bool SharesProperty(IStoryboard other)
+    {
+        if (other is not Storyboard storyboard) { return false; }
+
+        foreach (AnimationBase mine in Animations)
+        {
+            foreach (AnimationBase theirs in storyboard.Animations)
+            {
+                if (string.Equals(mine.Property, theirs.Property, StringComparison.Ordinal)) { return true; }
+            }
+        }
+
+        return false;
+    }
 }
 
-internal sealed class StoryboardPlayer
+internal sealed class StoryboardPlayer : IAnimationPlayer
 {
     private readonly Storyboard _storyboard;
-    private readonly ViewElement _target;
-    private readonly ViewScope? _scope;
-    private readonly ViewContext? _view;
+    private readonly IViewElement _target;
+    private readonly IPauseable? _scope;
+    private readonly IViewHost? _host;
+    private readonly Action<StoryboardPlayer>? _onStopped;
     private readonly float[] _elapsed;
     private readonly object?[] _start;
     private readonly bool[] _settled;
 
     private bool _stopped;
 
-    internal StoryboardPlayer(Storyboard storyboard, ViewElement target, ViewScope? scope, ViewContext? view)
+    internal StoryboardPlayer(
+        Storyboard storyboard,
+        IViewElement target,
+        IPauseable? scope,
+        IViewHost? host,
+        Action<StoryboardPlayer>? stopped)
     {
         _storyboard = storyboard;
         _target = target;
         _scope = scope;
-        _view = view;
+        _host = host;
+        _onStopped = stopped;
         _elapsed = new float[storyboard.Animations.Count];
         _start = new object?[storyboard.Animations.Count];
         _settled = new bool[storyboard.Animations.Count];
@@ -45,7 +67,7 @@ internal sealed class StoryboardPlayer
             if (!_target.CanAnimate(animation.Property, out string message))
             {
                 _stopped = true;
-                _view?.Diagnostics.Report($"the animation on '{animation.Property}' cannot play: {message}", _target.Node);
+                _host?.Diagnostics.Report($"the animation on '{animation.Property}' cannot play: {message}", _target.Node);
                 continue;
             }
 
@@ -58,20 +80,9 @@ internal sealed class StoryboardPlayer
         }
     }
 
-    internal bool SharesProperty(Storyboard storyboard)
-    {
-        foreach (AnimationBase mine in _storyboard.Animations)
-        {
-            foreach (AnimationBase other in storyboard.Animations)
-            {
-                if (string.Equals(mine.Property, other.Property, StringComparison.Ordinal)) { return true; }
-            }
-        }
+    internal IViewElement Target => _target;
 
-        return false;
-    }
-
-    internal bool Tick(float delta)
+    public bool Tick(float delta)
     {
         if (_stopped) { return false; }
 
@@ -91,12 +102,12 @@ internal sealed class StoryboardPlayer
         return running;
     }
 
-    internal void Stop()
+    public void Stop()
     {
         if (_stopped) { return; }
 
         _stopped = true;
-        _target.UntrackPlayer(this);
+        _onStopped?.Invoke(this);
 
         for (int i = 0; i < _storyboard.Animations.Count; i++)
         {
@@ -170,7 +181,7 @@ internal sealed class StoryboardPlayer
         {
             _target.RestoreBaseValue(animation.Property);
             _stopped = true;
-            _view?.Diagnostics.Report($"the animation on '{animation.Property}' could not be played: {message}", _target.Node);
+            _host?.Diagnostics.Report($"the animation on '{animation.Property}' could not be played: {message}", _target.Node);
         }
     }
 }

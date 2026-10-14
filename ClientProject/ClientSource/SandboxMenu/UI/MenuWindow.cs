@@ -15,8 +15,6 @@ internal sealed class MenuWindow : IDialogHost
 
     public static MenuWindow? Current => _instance;
 
-    internal static readonly RebuildSignal ResolutionChanged = new();
-
     private readonly SandboxMenuViewModel _viewModel;
     private readonly List<IDialogWindow> _popups = [];
 
@@ -52,8 +50,6 @@ internal sealed class MenuWindow : IDialogHost
 
     public void Open()
     {
-        HandleNotices();
-
         _window ??= new MarkupWindow("MainWindow.xml", WindowOrder, _viewModel);
 
         _viewModel.Spawn.RefreshShortcuts();
@@ -69,21 +65,6 @@ internal sealed class MenuWindow : IDialogHost
 
         Close();
         return true;
-    }
-
-    private bool CloseTopPopup()
-    {
-        for (int i = _popups.Count - 1; i >= 0; i--)
-        {
-            if (!_popups[i].IsOpen) { continue; }
-
-            ClosePopup(_popups[i]);
-            _popups.RemoveAt(i);
-
-            return true;
-        }
-
-        return false;
     }
 
     internal void HandleKeys()
@@ -143,77 +124,40 @@ internal sealed class MenuWindow : IDialogHost
     {
         _window?.Close();
         ClosePopups();
+        _multiPicker?.Dispose();
+        _multiPicker = null;
         FrameActions.Clear();
     }
 
     internal static void Shutdown()
     {
-        if (_instance is { } instance)
-        {
-            instance.Close();
-            instance._window?.Dispose();
-            instance._window = null;
-            instance._browser?.Dispose();
-            instance._browser = null;
-            instance._browserModel = null;
-            instance._characterBrowser?.Dispose();
-            instance._characterBrowser = null;
-            instance._characterBrowserModel = null;
-
-            CharacterPreview.ReleaseAll();
-        }
+        if (_instance is { } menu) { menu.DropWindows(); }
 
         _instance = null;
     }
 
+    internal static void Invalidated()
+    {
+        CachedContent.Drop();
+        CharacterPreview.ReleaseAll();
+
+        if (_instance is not { } menu) { return; }
+
+        menu.DropWindows();
+        menu._viewModel.Spawn.ReleaseContent();
+        menu._viewModel.Spawn.ContentChanged();
+        menu._viewModel.Afflictions.ReleaseContent();
+        menu._viewModel.RefreshStatusKind();
+    }
+
+    internal static void ResolutionChanged() => _instance?.DropWindows();
+
     public void AddToUpdateList()
     {
-        HandleNotices();
         DrivePopups();
         UpdateViews();
         RegisterViews();
         FrameActions.Drain();
-    }
-
-    private void HandleNotices()
-    {
-        if (ContentReload.TakeRebuild())
-        {
-            ReleaseCachedContent();
-            _viewModel.Spawn.ContentChanged();
-        }
-
-        if (TextReload.TakeRebuild())
-        {
-            ReleaseCachedContent();
-            _viewModel.Spawn.ContentChanged();
-            _viewModel.RefreshStatusKind();
-        }
-
-        if (ClientSpawnDispatcher.TryTakeResult(out SpawnStatus status, out int queued, out int problems))
-        {
-            _viewModel.Spawn.ApplySpawnResult(status, queued, problems);
-        }
-
-        if (ClientAfflictionDispatcher.TryTakeResult(out AfflictionStatus afflictionStatus))
-        {
-            _viewModel.Afflictions.ApplyResult(afflictionStatus);
-        }
-
-        if (ResolutionChanged.Take()) { DropWindows(); }
-    }
-
-    private void ReleaseCachedContent()
-    {
-        DropWindows();
-
-        AfflictionDisplay.Reset();
-        AfflictionPrefabCatalog.Reset();
-        ItemDisplay.Reset();
-        PropertyOverrideCatalog.Reset();
-
-        _viewModel.Spawn.ReleaseContent();
-        _viewModel.Afflictions.ReleaseContent();
     }
 
     private void DropWindows()
@@ -232,6 +176,24 @@ internal sealed class MenuWindow : IDialogHost
         _characterBrowser?.Dispose();
         _characterBrowser = null;
         _characterBrowserModel = null;
+
+        _multiPicker?.Dispose();
+        _multiPicker = null;
+    }
+
+    private bool CloseTopPopup()
+    {
+        for (int i = _popups.Count - 1; i >= 0; i--)
+        {
+            if (!_popups[i].IsOpen) { continue; }
+
+            ClosePopup(_popups[i]);
+            _popups.RemoveAt(i);
+
+            return true;
+        }
+
+        return false;
     }
 
     private void DrivePopups()

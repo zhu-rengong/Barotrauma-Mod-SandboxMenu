@@ -1,11 +1,10 @@
 using System.Windows.Input;
 using Microsoft.Xna.Framework.Graphics;
-using UiFramework.Styling;
 using KeyCode = Microsoft.Xna.Framework.Input.Keys;
 
 namespace UiFramework;
 
-public sealed class NameScope
+internal sealed class NameScope
 {
     private readonly Dictionary<string, ViewElement> _elements = new(StringComparer.Ordinal);
 
@@ -32,7 +31,7 @@ internal sealed class ViewCommand(Action execute) : ICommand
     public void Execute(object? parameter) => execute();
 }
 
-public sealed class ViewContext : IDisposable
+public sealed class ViewContext : IDisposable, IViewHost
 {
     private readonly List<ViewScope> _scopes = [];
     private readonly List<ViewScope> _building;
@@ -40,18 +39,19 @@ public sealed class ViewContext : IDisposable
     private readonly List<Action> _firingOnce = [];
     private readonly List<Action> _focusOnOpen = [];
     private readonly List<Input.KeyBinding> _inputs = [];
-    private readonly List<Animation.StoryboardPlayer> _players = [];
     private readonly HashSet<ViewElement> _stateWatchers = [];
     private readonly HashSet<ViewElement> _valueWatchers = [];
     private readonly List<ViewElement> _watching = [];
+    private readonly List<Action<SpriteBatch>> _overlays = [];
 
     private Action<string>? _diagnosticSink;
     private ICommand? _closeCommand;
 
-    internal ViewContext(string view)
+    internal ViewContext(string view, IViewRuntime animations)
     {
         View = view;
         Diagnostics = new MarkupDiagnostics(view);
+        Animations = animations;
 
         ViewScope root = new(_scopes);
         _scopes.Add(root);
@@ -62,7 +62,9 @@ public sealed class ViewContext : IDisposable
 
     internal MarkupDiagnostics Diagnostics { get; }
 
-    public NameScope Names { get; } = new();
+    internal IViewRuntime Animations { get; }
+
+    internal NameScope Names { get; } = new();
 
     internal object? DataContext { get; set; }
 
@@ -72,7 +74,7 @@ public sealed class ViewContext : IDisposable
 
     public ViewElement? RootElement => Root;
 
-    public Action<string>? DiagnosticSink
+    internal Action<string>? DiagnosticSink
     {
         get => _diagnosticSink;
         set
@@ -90,7 +92,7 @@ public sealed class ViewContext : IDisposable
 
     public Action<RectTransform, RectTransform>? MakeDraggable { get; set; }
 
-    public ICommand CloseCommand => _closeCommand ??= new ViewCommand(() => Close?.Invoke());
+    internal ICommand CloseCommand => _closeCommand ??= new ViewCommand(() => Close?.Invoke());
 
     internal Controls.WindowElement? Window { get; set; }
 
@@ -103,7 +105,11 @@ public sealed class ViewContext : IDisposable
 
     public Action<Action> Dispatch { get; set; } = static work => work();
 
-    public List<Action<SpriteBatch>> Overlays { get; } = [];
+    internal IReadOnlyList<Action<SpriteBatch>> Overlays => _overlays;
+
+    public void AddOverlay(Action<SpriteBatch> draw) => _overlays.Add(draw);
+
+    public void RemoveOverlay(Action<SpriteBatch> draw) => _overlays.Remove(draw);
 
     private ViewScope? Current => _building.Count > 0 ? _building[^1] : null;
 
@@ -117,15 +123,7 @@ public sealed class ViewContext : IDisposable
 
     internal void WatchValues(ViewElement element) => _valueWatchers.Add(element);
 
-    internal Animation.StoryboardPlayer Play(Animation.Storyboard storyboard, ViewElement target, ViewScope? scope)
-    {
-        Animation.StoryboardPlayer player = new(storyboard, target, scope ?? Current, this);
-
-        target.TrackPlayer(player);
-        _players.Add(player);
-
-        return player;
-    }
+    internal void ResetAnimations(IViewElement target) => Animations.Reset(target);
 
     public void Once(Action action) => _queuedOnce.Add(action);
 
@@ -160,7 +158,7 @@ public sealed class ViewContext : IDisposable
 
         DrainOnce();
         PollWatches();
-        TickAnimations();
+        Animations.Tick();
     }
 
     private void DrainOnce()
@@ -214,24 +212,6 @@ public sealed class ViewContext : IDisposable
         _watching.Clear();
     }
 
-    private void TickAnimations()
-    {
-        if (_players.Count == 0) { return; }
-
-        float delta = Animation.AnimationClock.Delta;
-
-        for (int i = _players.Count - 1; i >= 0; i--)
-        {
-            Animation.StoryboardPlayer player = _players[i];
-
-            if (!UiGuard.TryRun((Player: player, Delta: delta), static state => state.Player.Tick(state.Delta)))
-            {
-                player.Stop();
-                _players.RemoveAt(i);
-            }
-        }
-    }
-
     public void Own(IDisposable disposable)
     {
         if (Current is not { } scope)
@@ -271,9 +251,7 @@ public sealed class ViewContext : IDisposable
         _scopes.Clear();
         _building.Clear();
 
-        foreach (Animation.StoryboardPlayer player in _players) { UiGuard.Run(player.Stop); }
-
-        _players.Clear();
+        Animations.StopAll();
 
         foreach (ViewElement element in _stateWatchers) { element.ClearWatchers(); }
         foreach (ViewElement element in _valueWatchers) { element.ClearWatchers(); }
@@ -289,11 +267,15 @@ public sealed class ViewContext : IDisposable
         _queuedOnce.Clear();
         _firingOnce.Clear();
         _focusOnOpen.Clear();
-        Overlays.Clear();
+        _overlays.Clear();
         _inputs.Clear();
         Window = null;
         Root = null;
     }
+
+    MarkupDiagnostics IViewHost.Diagnostics => Diagnostics;
+
+    void IViewHost.Own(IDisposable disposable) => Own(disposable);
 
     private void FocusOnClickEnd(Action focus) => Once(() =>
     {

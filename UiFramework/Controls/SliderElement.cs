@@ -1,7 +1,7 @@
 namespace UiFramework.Controls;
 
 [Element("Slider")]
-internal sealed class SliderElement : ViewElement, IPropertyObserver, IDisposable
+internal sealed class SliderElement : ViewElement, IPropertyObserver
 {
     private const float HandleWidth = 0.08f;
 
@@ -75,7 +75,7 @@ internal sealed class SliderElement : ViewElement, IPropertyObserver, IDisposabl
         if (string.Equals(property, nameof(Value), StringComparison.OrdinalIgnoreCase)) { _changed = changed; }
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _bar.OnMoved = null;
         _bar.OnReleased = null;

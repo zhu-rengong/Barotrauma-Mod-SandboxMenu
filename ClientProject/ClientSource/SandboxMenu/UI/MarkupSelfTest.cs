@@ -37,6 +37,17 @@ internal static class MarkupSelfTest
         DebugConsole.NewMessage($"sandboxmenu.markup.selftest: {loaded} views, {diagnostics} diagnostics.");
     }
 
+    private static int AuditReleases(ViewElement? root, string view)
+    {
+        int found = ViewAudit.ReportReleases(
+            root,
+            message => DebugConsole.NewMessage($"sandboxmenu.markup.selftest: {view} {message}"));
+
+        DebugConsole.NewMessage($"sandboxmenu.markup.selftest: {view} closed {ViewAudit.Count(root)} elements, {found} still held");
+
+        return found;
+    }
+
     private static object? ContextFor(string view) => view switch
     {
         "MainWindow.xml" => MenuWindow.Instance.ViewModel,
@@ -59,12 +70,12 @@ internal static class MarkupSelfTest
     {
         List<PickerToggle> toggles = [];
 
-        foreach (ItemPackage package in ItemPrefabCatalog.Packages())
+        foreach (PackageLabel package in ItemPrefabCatalog.Packages())
         {
             if (toggles.Count == 4) { break; }
 
             toggles.Add(new PickerToggle(
-                RichString.Rich(Theme.AccentMarkup(package.Label, package.Package)),
+                RichString.Rich(Theme.AccentMarkup(package.Label, package.Accent)),
                 static () => false,
                 static _ => { }));
         }
@@ -115,7 +126,11 @@ internal static class MarkupSelfTest
         }
         finally
         {
+            ViewElement? root = loaded?.RootElement;
+
             loaded?.Dispose();
+
+            diagnostics += AuditReleases(root, view);
         }
 
         return diagnostics;

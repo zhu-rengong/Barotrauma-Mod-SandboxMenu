@@ -112,25 +112,12 @@ internal static class ElementRegistry
             throw new InvalidOperationException($"'{property.Name}' has no public setter");
         }
 
-        ParameterExpression element = Expression.Parameter(typeof(object), "element");
-        ParameterExpression value = Expression.Parameter(typeof(object), "value");
-
-        return Expression.Lambda<Action<object, object?>>(
-            Expression.Assign(
-                Expression.Property(Expression.Convert(element, property.DeclaringType!), property),
-                Expression.Convert(value, property.PropertyType)),
-            element,
-            value).Compile();
+        return Data.MemberAccess.CompileWriter(property, property.DeclaringType!, property.PropertyType)
+            ?? throw new InvalidOperationException($"'{property.Name}' cannot be written");
     }
 
     private static Func<object, object?>? ReaderOf(PropertyInfo property)
-    {
-        if (property.GetMethod is not { IsPublic: true }) { return null; }
-
-        ParameterExpression element = Expression.Parameter(typeof(object), "element");
-
-        return Expression.Lambda<Func<object, object?>>(
-            Expression.Convert(Expression.Property(Expression.Convert(element, property.DeclaringType!), property), typeof(object)),
-            element).Compile();
-    }
+        => property.GetMethod is { IsPublic: true }
+            ? Data.MemberAccess.CompileReader(property, property.DeclaringType!)
+            : null;
 }

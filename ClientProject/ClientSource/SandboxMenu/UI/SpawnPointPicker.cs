@@ -42,8 +42,17 @@ internal static class SpawnPointPicker
         if (!IsActive) { return; }
 
         Action? cancelled = _onCancelled;
-        Reset();
+        Release();
         cancelled?.Invoke();
+    }
+
+    internal static void Release()
+    {
+        IsActive = false;
+        _onPicked = null;
+        _onCancelled = null;
+        _hint = LocalizedString.EmptyString;
+        _hintSize = Vector2.Zero;
     }
 
     public static bool Update()
@@ -60,7 +69,7 @@ internal static class SpawnPointPicker
 
         Vector2 worldPosition = GameMain.GameScreen.Cam.ScreenToWorld(PlayerInput.MousePosition);
         Action<Vector2>? picked = _onPicked;
-        Reset();
+        Release();
         picked?.Invoke(worldPosition);
         return true;
     }
@@ -92,12 +101,4 @@ internal static class SpawnPointPicker
         GUIStyle.SmallFont.DrawString(spriteBatch, hint, textPosition, Theme.Text, 0f, Vector2.Zero, textScale, SpriteEffects.None, 0f);
     }
 
-    private static void Reset()
-    {
-        IsActive = false;
-        _onPicked = null;
-        _onCancelled = null;
-        _hint = LocalizedString.EmptyString;
-        _hintSize = Vector2.Zero;
-    }
 }

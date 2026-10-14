@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 namespace SandboxMenu.UI.Controls;
 
 [Element("Row")]
-public sealed class RowElement : ViewElement, IDisposable
+public sealed class RowElement : ViewElement
 {
     private readonly RowControl _row;
     private readonly ViewContext _view;
@@ -413,7 +413,7 @@ public sealed class RowElement : ViewElement, IDisposable
         ForceLayout();
     }
 
-    public void Dispose()
+    protected override void OnRelease()
     {
         _icon?.Dispose();
         if (_subText is not null) { _row.RectTransform.SizeChanged -= ApplyLayout; }

@@ -1,0 +1,144 @@
+using System.Xml;
+using System.Xml.Linq;
+
+namespace UiFramework.Abstractions;
+
+internal sealed class MarkupValue
+{
+    private MarkupValue(string raw, MarkupExtension? extension)
+    {
+        Raw = raw;
+        Extension = extension;
+    }
+
+    internal string Raw { get; }
+
+    internal MarkupExtension? Extension { get; }
+
+    internal bool IsText => Extension is null;
+
+    internal static MarkupValue Parse(string raw)
+    {
+        string trimmed = raw.Trim();
+
+        if (trimmed.Length < 2 || trimmed[0] != '{' || trimmed[^1] != '}') { return new MarkupValue(trimmed, null); }
+        if (trimmed.StartsWith("{}", StringComparison.Ordinal)) { return new MarkupValue(trimmed[2..], null); }
+
+        return new MarkupValue(trimmed, MarkupExtension.Parse(trimmed));
+    }
+}
+
+internal sealed class MarkupAttribute(string name, MarkupValue value)
+{
+    internal string Name { get; } = name;
+
+    internal MarkupValue Value { get; } = value;
+}
+
+internal sealed class MarkupNode
+{
+    private readonly Dictionary<string, MarkupAttribute> _attributes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<MarkupNode> _children = [];
+
+    private List<MarkupNode>? _content;
+    private Dictionary<string, MarkupNode>? _byName;
+
+    private Insets? _padding;
+    private Insets? _margin;
+
+    private MarkupNode(string name, string? owner, string view, int line)
+    {
+        Name = name;
+        Owner = owner;
+        View = view;
+        Line = line;
+    }
+
+    internal string Name { get; }
+
+    internal string? Owner { get; }
+
+    internal string View { get; }
+
+    internal int Line { get; }
+
+    internal bool IsProperty => Owner is not null;
+
+    internal IReadOnlyCollection<MarkupAttribute> Attributes => _attributes.Values;
+
+    internal IReadOnlyList<MarkupNode> Children => _children;
+
+    internal IReadOnlyList<MarkupNode> Content => _content ??= BuildContent();
+
+    internal string? ElementName => Text("Name");
+
+    internal MarkupAttribute? Attribute(string name) => _attributes.GetValueOrDefault(name);
+
+    internal MarkupNode? Child(string name)
+    {
+        if (_byName is null)
+        {
+            _byName = new Dictionary<string, MarkupNode>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (MarkupNode child in _children) { _byName.TryAdd(child.Name, child); }
+        }
+
+        return _byName.GetValueOrDefault(name);
+    }
+
+    internal MarkupValue? Value(string name) => Attribute(name)?.Value;
+
+    internal string? Text(string name) => Attribute(name)?.Value.Raw;
+
+    internal bool Flag(string name, bool fallback) => ViewMarkup.ToBool(Text(name), fallback);
+
+    internal int Count(string name) => ValueParser.TryInt(Text(name), out int value) ? Math.Max(0, value) : 0;
+
+    internal Insets Padding => _padding ??= Insets.Parse(Text("Padding"));
+
+    internal Insets Margin => _margin ??= Insets.Parse(Text("Margin"));
+
+    internal static MarkupNode Parse(string view, XElement element)
+    {
+        (string name, string? owner) = SplitName(element.Name.LocalName);
+
+        MarkupNode node = new(name, owner, view, LineOf(element));
+
+        foreach (XAttribute attribute in element.Attributes())
+        {
+            if (attribute.IsNamespaceDeclaration) { continue; }
+
+            node._attributes[attribute.Name.LocalName] = new MarkupAttribute(attribute.Name.LocalName, MarkupValue.Parse(attribute.Value));
+        }
+
+        foreach (XElement child in element.Elements())
+        {
+            node._children.Add(Parse(view, child));
+        }
+
+        return node;
+    }
+
+    public override string ToString() => $"{View}:{Line} <{Name}>";
+
+    private List<MarkupNode> BuildContent()
+    {
+        List<MarkupNode> content = [];
+
+        foreach (MarkupNode child in _children)
+        {
+            if (!child.IsProperty) { content.Add(child); }
+        }
+
+        return content;
+    }
+
+    private static (string Name, string? Owner) SplitName(string localName)
+    {
+        int dot = localName.IndexOf('.', StringComparison.Ordinal);
+        return dot <= 0 ? (localName, null) : (localName[(dot + 1)..], localName[..dot]);
+    }
+
+    private static int LineOf(XElement element)
+        => element is IXmlLineInfo info && info.HasLineInfo() ? info.LineNumber : 0;
+}
