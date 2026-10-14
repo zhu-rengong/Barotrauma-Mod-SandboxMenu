@@ -71,7 +71,11 @@ internal static class ItemPrefabCatalog
     }
 
     internal static IReadOnlyList<MapEntityCategory> CategoriesIn(IReadOnlySet<string> packages)
-        => [.. AllCategories.Where(category => (CategoryMaskIn(packages) & category) != 0)];
+    {
+        MapEntityCategory mask = CategoryMaskIn(packages);
+
+        return [.. AllCategories.Where(category => (mask & category) != 0)];
+    }
 
     private static ItemPrefabEntry Describe(ItemPrefab prefab)
     {

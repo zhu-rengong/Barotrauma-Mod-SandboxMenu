@@ -38,8 +38,29 @@ internal sealed class FlowElement : LayoutPanel
 [Element("Grid")]
 internal sealed class GridElement : LayoutPanel
 {
+    private readonly struct Cell(int row, int column, int rowSpan, int columnSpan, bool placed)
+    {
+        internal int Row { get; } = row;
+
+        internal int Column { get; } = column;
+
+        internal int RowSpan { get; } = rowSpan;
+
+        internal int ColumnSpan { get; } = columnSpan;
+
+        internal bool Placed { get; } = placed;
+    }
+
     private Length[] _rows;
     private Length[] _columns;
+
+    private int[] _rowSizes = [];
+    private int[] _columnSizes = [];
+    private int[] _rowPrefix = [];
+    private int[] _columnPrefix = [];
+    private int[] _trackMax = [];
+    private Point[] _measures = [];
+    private Cell[] _cells = [];
 
     public GridElement(ElementContext context)
         : base(context, new GUIFrame(context.Rect(context.Parent, 1f, 1f), context.Skin) { HoverCursor = CursorState.Default })
@@ -70,90 +91,167 @@ internal sealed class GridElement : LayoutPanel
 
     protected override void Arrange(Rectangle area)
     {
-        int[] rows = Solve(_rows, area.Height, child => Layout.Measure(child).Y, true);
-        int[] columns = Solve(_columns, area.Width, child => Layout.Measure(child).X, false);
+        int count = Children.Count;
+
+        Prepare(count, _rows.Length, _columns.Length);
+
+        bool measure = AnyAuto(_rows) || AnyAuto(_columns);
+
+        for (int i = 0; i < count; i++)
+        {
+            ViewElement child = Children[i];
+            _cells[i] = CellOf(child);
+
+            if (measure) { _measures[i] = Layout.Measure(child); }
+        }
+
+        Solve(_rows, area.Height, true);
+        Solve(_columns, area.Width, false);
 
         int column = 0;
         int row = 0;
 
-        foreach (ViewElement child in Children)
+        for (int i = 0; i < count; i++)
         {
-            bool explicitCell = TryCell(child, out int childRow, out int childColumn, out int rowSpan, out int columnSpan);
+            Cell cell = _cells[i];
+            int childRow = cell.Row;
+            int childColumn = cell.Column;
 
-            if (!explicitCell)
+            if (!cell.Placed)
             {
                 childRow = Math.Min(row, _rows.Length - 1);
                 childColumn = Math.Min(column, _columns.Length - 1);
             }
 
-            Rectangle cell = new(
-                area.X + Offset(columns, childColumn),
-                area.Y + Offset(rows, childRow),
-                Sum(columns, childColumn, columnSpan),
-                Sum(rows, childRow, rowSpan));
+            Rectangle cellArea = new(
+                area.X + Offset(_columnPrefix, childColumn),
+                area.Y + Offset(_rowPrefix, childRow),
+                Span(_columnPrefix, childColumn, cell.ColumnSpan),
+                Span(_rowPrefix, childRow, cell.RowSpan));
 
-            Layout.Place(child, cell);
+            Layout.Place(Children[i], cellArea);
 
-            if (!explicitCell)
+            if (!cell.Placed)
             {
-                column += columnSpan;
+                column += cell.ColumnSpan;
                 if (column >= _columns.Length) { column = 0; row++; }
             }
         }
     }
 
-    private static bool TryCell(ViewElement child, out int row, out int column, out int rowSpan, out int columnSpan)
+    private static Cell CellOf(ViewElement child)
     {
-        bool placed = child.Attached("Grid.Row") is not null || child.Attached("Grid.Column") is not null;
+        object? row = child.Attached("Grid.Row");
+        object? column = child.Attached("Grid.Column");
 
-        row = Math.Max(0, child.AttachedInt("Grid.Row", 0));
-        column = Math.Max(0, child.AttachedInt("Grid.Column", 0));
-        rowSpan = Math.Max(1, child.AttachedInt("Grid.RowSpan", 1));
-        columnSpan = Math.Max(1, child.AttachedInt("Grid.ColumnSpan", 1));
-
-        return placed;
+        return new Cell(
+            Math.Max(0, AsInt(row, 0)),
+            Math.Max(0, AsInt(column, 0)),
+            Math.Max(1, AsInt(child.Attached("Grid.RowSpan"), 1)),
+            Math.Max(1, AsInt(child.Attached("Grid.ColumnSpan"), 1)),
+            row is not null || column is not null);
     }
 
-    private static int Offset(int[] sizes, int index)
+    private static int AsInt(object? value, int fallback)
+        => value is int number ? number
+            : value is string text && int.TryParse(text, out int parsed) ? parsed
+            : fallback;
+
+    private static bool AnyAuto(Length[] lengths)
     {
-        int offset = 0;
-        for (int i = 0; i < index && i < sizes.Length; i++) { offset += sizes[i]; }
-        return offset;
+        for (int i = 0; i < lengths.Length; i++)
+        {
+            if (lengths[i].Kind == LengthKind.Auto) { return true; }
+        }
+
+        return false;
     }
 
-    private static int Sum(int[] sizes, int index, int span)
+    private static int Offset(int[] prefix, int index)
+        => prefix[Math.Clamp(index, 0, prefix.Length - 1)];
+
+    private static int Span(int[] prefix, int index, int span)
     {
-        int sum = 0;
-        for (int i = index; i < index + span && i < sizes.Length; i++) { sum += sizes[i]; }
-        return sum;
+        int from = Math.Clamp(index, 0, prefix.Length - 1);
+        int to = Math.Clamp(index + span, from, prefix.Length - 1);
+
+        return prefix[to] - prefix[from];
     }
 
-    private int[] Solve(Length[] lengths, int available, Func<ViewElement, int> measure, bool rows)
+    private void Prepare(int count, int rows, int columns)
     {
-        int[] sizes = new int[lengths.Length];
+        if (_measures.Length < count)
+        {
+            _measures = new Point[count];
+            _cells = new Cell[count];
+        }
+
+        if (_rowSizes.Length != rows)
+        {
+            _rowSizes = new int[rows];
+            _rowPrefix = new int[rows + 1];
+        }
+
+        if (_columnSizes.Length != columns)
+        {
+            _columnSizes = new int[columns];
+            _columnPrefix = new int[columns + 1];
+        }
+
+        int tracks = Math.Max(rows, columns);
+
+        if (_trackMax.Length < tracks) { _trackMax = new int[tracks]; }
+    }
+
+    private void Solve(Length[] lengths, int available, bool rows)
+    {
+        int count = lengths.Length;
+
+        if (count == 0) { return; }
+
+        int[] sizes = rows ? _rowSizes : _columnSizes;
+        int[] prefix = rows ? _rowPrefix : _columnPrefix;
+
+        if (AnyAuto(lengths))
+        {
+            Array.Clear(_trackMax, 0, count);
+
+            for (int i = 0; i < Children.Count; i++)
+            {
+                Cell cell = _cells[i];
+                int track = rows ? cell.Row : cell.Column;
+
+                if ((uint)track >= (uint)count) { continue; }
+
+                int measured = rows ? _measures[i].Y : _measures[i].X;
+
+                if (measured > _trackMax[track]) { _trackMax[track] = measured; }
+            }
+        }
+
         float starTotal = 0f;
         int fixedTotal = 0;
 
-        for (int i = 0; i < lengths.Length; i++)
+        for (int i = 0; i < count; i++)
         {
             Length length = lengths[i];
-            int measured = length.Kind == LengthKind.Auto ? MeasureTrack(i, measure, rows) : 0;
-
-            sizes[i] = length.Kind switch
+            int size = length.Kind switch
             {
-                LengthKind.Auto => measured,
+                LengthKind.Auto => _trackMax[i],
                 LengthKind.Dip => length.Resolve(0, 0),
                 LengthKind.Percent => length.Resolve(available, 0),
                 _ => 0
             };
 
+            sizes[i] = size;
+
             if (length.Kind == LengthKind.Star) { starTotal += length.Value; }
-            else { fixedTotal += sizes[i]; }
+            else { fixedTotal += size; }
         }
 
         int left = Math.Max(0, available - fixedTotal);
 
-        for (int i = 0; i < lengths.Length; i++)
+        for (int i = 0; i < count; i++)
         {
             if (lengths[i].Kind == LengthKind.Star)
             {
@@ -161,23 +259,10 @@ internal sealed class GridElement : LayoutPanel
             }
         }
 
-        return sizes;
+        prefix[0] = 0;
+
+        for (int i = 0; i < count; i++) { prefix[i + 1] = prefix[i] + sizes[i]; }
     }
-
-    private int MeasureTrack(int index, Func<ViewElement, int> measure, bool rows)
-    {
-        int largest = 0;
-
-        foreach (ViewElement child in Children)
-        {
-            if (TrackOf(child, rows) == index) { largest = Math.Max(largest, measure(child)); }
-        }
-
-        return largest;
-    }
-
-    private static int TrackOf(ViewElement child, bool rows)
-        => Math.Max(0, child.AttachedInt(rows ? "Grid.Row" : "Grid.Column", 0));
 
     private Length[] ParseSequence(string? text, Length[] fallback, MarkupNode? node)
     {

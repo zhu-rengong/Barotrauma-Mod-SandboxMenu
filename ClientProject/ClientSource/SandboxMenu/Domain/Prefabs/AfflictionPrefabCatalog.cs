@@ -89,7 +89,14 @@ internal static class AfflictionPrefabCatalog
             if (entry.PackageKey.Length > 0 && packages.Contains(entry.PackageKey)) { available.Add(entry.Type); }
         }
 
-        return [.. _types.Where(available.Contains)];
+        List<Identifier> types = [];
+
+        foreach (Identifier type in _types)
+        {
+            if (available.Contains(type)) { types.Add(type); }
+        }
+
+        return types;
     }
 
     internal static void Reset()

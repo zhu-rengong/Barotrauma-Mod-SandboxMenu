@@ -177,37 +177,54 @@ internal sealed class VirtualListWindow(ListBoxElement list, ListRowPool rowPool
 
     private void Arrange()
     {
-        ReleaseSpacers();
-
         for (int i = 0; i < list.Rows.Count; i++) { list.Rows[i].Element.Control.RectTransform.Parent = null; }
+        _top?.RectTransform.Parent = null;
+        _bottom?.RectTransform.Parent = null;
 
         int spacing = _listBox.Spacing;
         int stride = list.RowHeight + spacing;
         int width = Math.Max(1, _listBox.Content.Rect.Width);
 
-        if (_first > 0) { _top = CreateSpacer(width, _first * stride - spacing); }
+        if (_first > 0)
+        {
+            _top = Spacer(_top, width, _first * stride - spacing);
+            _top.RectTransform.Parent = _listBox.Content.RectTransform;
+        }
 
         for (int i = 0; i < list.Rows.Count; i++) { list.Rows[i].Element.Control.RectTransform.Parent = _listBox.Content.RectTransform; }
 
         int after = list.Index.Count - _first - list.Rows.Count;
 
-        if (after > 0) { _bottom = CreateSpacer(width, after * stride - spacing); }
+        if (after > 0)
+        {
+            _bottom = Spacer(_bottom, width, after * stride - spacing);
+            _bottom.RectTransform.Parent = _listBox.Content.RectTransform;
+        }
 
         rowPool.FlushLayout();
     }
 
-    private GUIFrame CreateSpacer(int width, int height)
+    private GUIFrame Spacer(GUIFrame? existing, int width, int height)
     {
-        GUIFrame spacer = new(
-            new RectTransform(new Point(width, height), _listBox.Content.RectTransform, Anchor.TopLeft, Pivot.TopLeft, ScaleBasis.Normal, isFixedSize: true),
-            style: null)
+        height = Math.Max(1, height);
+
+        if (existing is null)
         {
-            CanBeFocused = false
-        };
+            existing = new GUIFrame(
+                new RectTransform(new Point(width, height), _listBox.Content.RectTransform, Anchor.TopLeft, Pivot.TopLeft, ScaleBasis.Normal, isFixedSize: true),
+                style: null)
+            {
+                CanBeFocused = false
+            };
 
-        spacer.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
+            existing.RectTransform.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
 
-        return spacer;
+            return existing;
+        }
+
+        existing.RectTransform.NonScaledSize = new Point(width, height);
+
+        return existing;
     }
 
     private void Release()

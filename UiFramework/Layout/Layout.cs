@@ -4,15 +4,18 @@ internal static class Layout
 {
     internal static Point Measure(ViewElement child)
     {
-        if (child.Control is GUITextBlock block && block.Font is { } font)
-        {
-            Vector2 size = font.MeasureString(block.Text.ToString() ?? string.Empty, false) * block.TextScale;
-            return new Point(
-                (int)(size.X + block.Padding.X + block.Padding.Z),
-                (int)(size.Y + block.Padding.Y + block.Padding.W));
-        }
+        if (child.Control is not GUITextBlock block || block.Font is not { } font) { return child.Control.Rect.Size; }
 
-        return child.Control.Rect.Size;
+        if (child.MeasureCached(block, font, out Point cached)) { return cached; }
+
+        Vector2 size = font.MeasureString(block.Text?.SanitizedValue ?? string.Empty, false) * block.TextScale;
+        Point measured = new(
+            (int)(size.X + block.Padding.X + block.Padding.Z),
+            (int)(size.Y + block.Padding.Y + block.Padding.W));
+
+        child.RememberMeasure(block, font, measured);
+
+        return measured;
     }
 
     internal static void Place(ViewElement child, Rectangle area)

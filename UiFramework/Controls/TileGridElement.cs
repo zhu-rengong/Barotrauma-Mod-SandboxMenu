@@ -28,7 +28,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
 
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
-    private readonly DeferredCall _rebuild = new();
+    private readonly DeferredCall _rebuild;
     private GUIFrame? _sheet;
     private Point _sheetSize;
     private Action<object?>? _reportScroll;
@@ -44,6 +44,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
     {
         _listBox = (GUIListBox)Control;
         _view = context.View;
+        _rebuild = new DeferredCall(Rebuild);
 
         _templateKey = context.Text("TileTemplate");
         _columns = ValueParser.TryInt(context.Text("Columns"), out int columns) ? Math.Max(1, columns) : 3;
@@ -138,7 +139,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
         report(scroll);
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view, Rebuild);
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view);
 
     private void Rebuild()
     {

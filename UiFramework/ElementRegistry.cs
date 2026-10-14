@@ -93,7 +93,8 @@ internal static class ElementRegistry
                     declared.SettableFromStyle,
                     declared.KeyText,
                     WriterOf(property),
-                    ReaderOf(property)));
+                    ReaderOf(property),
+                    SnapshotOf(property)));
             }
         }
 
@@ -120,4 +121,38 @@ internal static class ElementRegistry
         => property.GetMethod is { IsPublic: true }
             ? Data.MemberAccess.CompileReader(property, property.DeclaringType!)
             : null;
+
+    private static Func<object, long>? SnapshotOf(PropertyInfo property)
+    {
+        Type type = property.PropertyType;
+
+        if (property.GetMethod is not { IsPublic: true }) { return null; }
+        if (type != typeof(bool) && type != typeof(int) && type != typeof(float) && type != typeof(double) && type != typeof(Color)) { return null; }
+
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+
+        Expression access = Expression.MakeMemberAccess(Expression.Convert(instance, property.DeclaringType!), property);
+        Expression body = type == typeof(Color)
+            ? Expression.Convert(Expression.Property(access, nameof(Color.PackedValue)), typeof(long))
+            : type == typeof(bool)
+                ? Expression.Condition(access, Expression.Constant(1L), Expression.Constant(0L))
+                : type == typeof(float)
+                    ? Expression.Convert(Expression.Call(SingleBits, access), typeof(long))
+                    : type == typeof(double)
+                        ? Expression.Call(DoubleBits, access)
+                        : Expression.Convert(access, typeof(long));
+
+        try
+        {
+            return Expression.Lambda<Func<object, long>>(body, instance).Compile();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static readonly MethodInfo SingleBits = typeof(BitConverter).GetMethod(nameof(BitConverter.SingleToInt32Bits), [typeof(float)])!;
+
+    private static readonly MethodInfo DoubleBits = typeof(BitConverter).GetMethod(nameof(BitConverter.DoubleToInt64Bits), [typeof(double)])!;
 }

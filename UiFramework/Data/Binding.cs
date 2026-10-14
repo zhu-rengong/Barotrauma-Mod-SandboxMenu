@@ -27,6 +27,8 @@ internal sealed class BindingDefinition
 
     internal string? NullValue { get; init; }
 
+    internal bool PreConverted { get; init; }
+
     internal required Action<string> Report { get; init; }
 }
 
@@ -105,7 +107,6 @@ internal sealed class Binding : IDisposable
     {
         if (_disposed || _echoing) { return; }
 
-        _path.Unhook(_definition.Source, _handler);
         _path.Hook(_definition.Source, _handler);
         Push();
     }
@@ -150,17 +151,23 @@ internal sealed class Binding : IDisposable
 
     private void Apply(object? value)
     {
-        (object? converted, bool ok) = ValueConversion.Convert(value, _definition.TargetType);
-        if (!ok)
+        if (!_definition.PreConverted)
         {
-            _definition.Report($"'{_definition.Path}' does not give a {_definition.TargetType.Name}");
-            return;
+            (object? converted, bool ok) = ValueConversion.Convert(value, _definition.TargetType);
+
+            if (!ok)
+            {
+                _definition.Report($"'{_definition.Path}' does not give a {_definition.TargetType.Name}");
+                return;
+            }
+
+            value = converted;
         }
 
         _echoing = true;
         try
         {
-            _definition.Apply(converted);
+            _definition.Apply(value);
         }
         catch (Exception e)
         {

@@ -3,8 +3,9 @@ namespace UiFramework.Layout;
 internal abstract class LayoutPanel : ViewElement
 {
     private readonly ViewContext _view;
-    private readonly DeferredCall _arrange = new();
+    private readonly DeferredCall _arrange;
     private readonly RectTransform _rect;
+    private readonly List<(ViewElement Child, int Size, Length Length)> _measured = [];
     private bool _dirty = true;
     private float _gap;
 
@@ -12,6 +13,7 @@ internal abstract class LayoutPanel : ViewElement
     {
         _view = context.View;
         _rect = control.RectTransform;
+        _arrange = new DeferredCall(ArrangeNow);
 
         _rect.SizeChanged += Invalidate;
         _rect.ScaleChanged += Invalidate;
@@ -36,7 +38,7 @@ internal abstract class LayoutPanel : ViewElement
     protected void Invalidate()
     {
         _dirty = true;
-        _arrange.Queue(_view, ArrangeNow);
+        _arrange.Queue(_view);
     }
 
     private void ArrangeNow()
@@ -59,7 +61,8 @@ internal abstract class LayoutPanel : ViewElement
     {
         int extent = horizontal ? area.Width : area.Height;
 
-        List<(ViewElement Child, int Size, Length Length)> measured = [];
+        _measured.Clear();
+
         float starTotal = 0f;
         int fixedTotal = 0;
 
@@ -77,15 +80,17 @@ internal abstract class LayoutPanel : ViewElement
             if (length.Kind == LengthKind.Star) { starTotal += length.Value; }
             else { fixedTotal += size; }
 
-            measured.Add((child, size, length));
+            _measured.Add((child, size, length));
         }
 
         int gap = UiMetrics.DipInt(_gap);
-        int available = Math.Max(0, extent - fixedTotal - gap * Math.Max(0, Children.Count - 1));
+        int available = Math.Max(0, extent - fixedTotal - gap * Math.Max(0, _measured.Count - 1));
         int cursor = horizontal ? area.X : area.Y;
 
-        foreach ((ViewElement child, int size, Length length) in measured)
+        for (int i = 0; i < _measured.Count; i++)
         {
+            (ViewElement child, int size, Length length) = _measured[i];
+
             int main = length.Kind == LengthKind.Star
                 ? length.Resolve(available, size, starTotal is 0f ? 0f : length.Value / starTotal)
                 : size;

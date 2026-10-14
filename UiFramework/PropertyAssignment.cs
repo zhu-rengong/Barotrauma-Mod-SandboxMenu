@@ -38,7 +38,26 @@ internal sealed class PropertyAssignment(
 
     public void SetValue(object? value, string source)
     {
+        if (value is null)
+        {
+            if (Property.ValueType.IsValueType)
+            {
+                Report($"'{source}' does not give a {Friendly(Property.ValueType)}");
+                return;
+            }
+
+            Apply(null);
+            return;
+        }
+
+        if (Property.ValueType.IsInstanceOfType(value))
+        {
+            Apply(value);
+            return;
+        }
+
         (object? converted, bool ok) = ValueConversion.Convert(value, Property.ValueType);
+
         if (!ok)
         {
             Report($"'{source}' does not give a {Friendly(Property.ValueType)}");
@@ -74,6 +93,7 @@ internal sealed class PropertyAssignment(
             Format = options.Format,
             Fallback = options.Fallback,
             NullValue = options.NullValue,
+            PreConverted = true,
             Report = Report
         };
 
@@ -94,6 +114,7 @@ internal sealed class PropertyAssignment(
                 Mode = BindingMode.OneWay,
                 TargetType = typeof(object),
                 Apply = _ => commandElement.RefreshCanExecute(),
+                PreConverted = true,
                 Report = Report
             }));
         }
@@ -128,6 +149,7 @@ internal sealed class PropertyAssignment(
                     values[index] = value;
                     Recompute();
                 },
+                PreConverted = true,
                 Report = Report
             }));
         }

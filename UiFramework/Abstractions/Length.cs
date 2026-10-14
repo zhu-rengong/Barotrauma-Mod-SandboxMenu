@@ -84,13 +84,14 @@ internal readonly record struct Length(LengthKind Kind, float Value)
         _ => (int)MathF.Round(Value * available)
     };
 
-    private static Length? Keyword(string text) => text.ToLowerInvariant() switch
+    private static Length? Keyword(string text)
     {
-        "row" => UiTokens.AsLength("row", Percent(0.075f)),
-        "section" => UiTokens.AsLength("section", Percent(0.085f)),
-        "control" => UiTokens.AsLength("control", Percent(0.84f)),
-        _ => null
-    };
+        if (text.Equals("row", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("row", Percent(0.075f)); }
+        if (text.Equals("section", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("section", Percent(0.085f)); }
+        if (text.Equals("control", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("control", Percent(0.84f)); }
+
+        return null;
+    }
 
     private static Length Reject(string text, Length fallback, Action<string>? report)
     {

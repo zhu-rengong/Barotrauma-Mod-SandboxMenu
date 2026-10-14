@@ -13,11 +13,16 @@ internal static class PropertyDefaults
     }
 
     internal static string DeclaredValue(SerializableProperty property, ContentXElement? element)
-        => element?.GetAttribute(property.Name)?.Value is { } declared
-            ? declared
-            : property.Attributes.OfType<Serialize>().FirstOrDefault() is { } serialize
-                ? Format(serialize.DefaultValue)
-                : string.Empty;
+    {
+        if (element?.GetAttribute(property.Name)?.Value is { } declared) { return declared; }
+
+        foreach (Attribute attribute in property.Attributes)
+        {
+            if (attribute is Serialize serialize) { return Format(serialize.DefaultValue); }
+        }
+
+        return string.Empty;
+    }
 
     internal static string Format(object? value) => value switch
     {

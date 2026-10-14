@@ -37,7 +37,16 @@ internal sealed class EntryEditorViewModel : Notifiable
         QueueRebuild();
     }
 
-    internal void NotifyEdited() => _menu.RefreshSummaries();
+    internal void NotifyEdited()
+    {
+        if (_entry is { } entry)
+        {
+            _menu.RefreshSummaryFor(entry);
+            return;
+        }
+
+        _menu.RefreshSummaries();
+    }
 
     internal void FocusIdentifier()
     {

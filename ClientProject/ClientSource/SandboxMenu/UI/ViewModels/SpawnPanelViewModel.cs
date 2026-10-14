@@ -153,6 +153,8 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     internal void RefreshSummaries() => _tree.RefreshSummaries();
 
+    internal void RefreshSummaryFor(SpawnEntry entry) => _tree.RefreshSummaryFor(entry);
+
     internal void NotifyEdited()
     {
         if (_treeRefreshQueued) { return; }

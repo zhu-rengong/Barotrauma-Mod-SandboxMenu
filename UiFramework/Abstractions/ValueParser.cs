@@ -4,8 +4,16 @@ namespace UiFramework.Abstractions;
 
 internal static class ValueParser
 {
-    internal static bool TryFloat(string? text, out float value)
-        => float.TryParse(WithoutDip(text), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    internal static bool TryFloat(string? text, out float value) => TryFloat(text.AsSpan(), out value);
+
+    internal static bool TryFloat(ReadOnlySpan<char> text, out float value)
+    {
+        ReadOnlySpan<char> trimmed = text.Trim();
+
+        if (trimmed.EndsWith("dip", StringComparison.OrdinalIgnoreCase)) { trimmed = trimmed[..^3].TrimEnd(); }
+
+        return float.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
 
     internal static bool TryDouble(string? text, out double value)
         => double.TryParse(WithoutDip(text), NumberStyles.Float, CultureInfo.InvariantCulture, out value);

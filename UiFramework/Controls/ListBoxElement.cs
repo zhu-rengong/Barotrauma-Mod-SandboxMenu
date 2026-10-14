@@ -18,7 +18,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver
     private readonly List<BuiltRow> _previous = [];
 
     private readonly List<object> _index = [];
-    private readonly DeferredCall _rebuild = new();
+    private readonly DeferredCall _rebuild;
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
     private bool _retriedEmpty;
@@ -39,6 +39,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver
     {
         _listBox = (GUIListBox)Control;
         _view = context.View;
+        _rebuild = new DeferredCall(Rebuild);
 
         string? rowKey = context.Text("ItemTemplate");
         string? tileKey = context.Text("TileTemplate");
@@ -205,7 +206,7 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver
         _bands.DropAll();
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view, Rebuild);
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => _rebuild.Queue(_view);
 
     private void Rebuild()
     {

@@ -38,8 +38,17 @@ internal sealed record PropertyOption(
 internal static class PropertyCatalog
 {
     private static readonly Dictionary<string, ImmutableArray<PropertyOption>> _propertyCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Type?> _componentTypes = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, ImmutableArray<OverrideTarget>> _targetCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<(string Identifier, string Component, int Index), ResolvedTarget> _resolveCache = new();
 
-    internal static void Reset() => _propertyCache.Clear();
+    internal static void Reset()
+    {
+        _propertyCache.Clear();
+        _componentTypes.Clear();
+        _targetCache.Clear();
+        _resolveCache.Clear();
+    }
 
     internal static IReadOnlyList<OverrideTarget> Targets(string identifier) =>
         DescribeTargets((identifier ?? string.Empty).Trim());
@@ -103,11 +112,21 @@ internal static class PropertyCatalog
     private static PropertyOption AsDeclaredBy(PropertyOption option, ContentXElement element)
         => element.GetAttribute(option.Name)?.Value is { } declared ? option with { DefaultValue = declared } : option;
 
-    private static List<OverrideTarget> DescribeTargets(string identifier)
+    private static ImmutableArray<OverrideTarget> DescribeTargets(string identifier)
+    {
+        if (_targetCache.TryGetValue(identifier, out ImmutableArray<OverrideTarget> cached)) { return cached; }
+
+        ImmutableArray<OverrideTarget> targets = BuildTargets(identifier);
+        _targetCache[identifier] = targets;
+
+        return targets;
+    }
+
+    private static ImmutableArray<OverrideTarget> BuildTargets(string identifier)
     {
         List<OverrideTarget> targets = [ItemItself];
 
-        if (!TryGetPrefab(identifier, out ItemPrefab prefab) || prefab.ConfigElement is null) { return targets; }
+        if (!TryGetPrefab(identifier, out ItemPrefab prefab) || prefab.ConfigElement is null) { return [.. targets]; }
 
         List<ContentXElement> components = [.. prefab.ConfigElement.Elements().Where(IsComponent)];
 
@@ -127,7 +146,7 @@ internal static class PropertyCatalog
             targets.Add(new OverrideTarget(name, index, total[name] > 1 ? $"{name} [{index}]" : name));
         }
 
-        return targets;
+        return [.. targets];
     }
 
     private static List<PropertyOption> DescribeProperties(Type type)
@@ -193,6 +212,20 @@ internal static class PropertyCatalog
 
     private static ResolvedTarget Resolve(string identifier, string componentName, int componentIndex)
     {
+        string id = identifier ?? string.Empty;
+        string component = componentName ?? string.Empty;
+        (string Identifier, string Component, int Index) key = (id, component, componentIndex);
+
+        if (_resolveCache.TryGetValue(key, out ResolvedTarget cached)) { return cached; }
+
+        ResolvedTarget resolved = BuildResolve(id, component, componentIndex);
+        _resolveCache[key] = resolved;
+
+        return resolved;
+    }
+
+    private static ResolvedTarget BuildResolve(string identifier, string componentName, int componentIndex)
+    {
         ContentXElement? root = TryGetPrefab(identifier, out ItemPrefab prefab) ? prefab.ConfigElement : null;
 
         if (string.IsNullOrWhiteSpace(componentName)) { return new ResolvedTarget(typeof(Item), root); }
@@ -216,6 +249,16 @@ internal static class PropertyCatalog
     }
 
     private static Type? ComponentTypeFor(string name)
+    {
+        if (_componentTypes.TryGetValue(name, out Type? cached)) { return cached; }
+
+        Type? found = FindComponentType(name);
+        _componentTypes[name] = found;
+
+        return found;
+    }
+
+    private static Type? FindComponentType(string name)
     {
         foreach (Type type in ReflectionUtils.GetDerivedNonAbstract<ItemComponent>())
         {

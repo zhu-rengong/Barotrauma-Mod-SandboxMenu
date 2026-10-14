@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace UiFramework.Abstractions;
 
@@ -54,7 +55,25 @@ internal sealed class PercentConverter : IValueConverter
 internal sealed class JoinConverter : IMultiValueConverter
 {
     public object? Convert(IReadOnlyList<object?> values, Type targetType, object? parameter)
-        => string.Join(
-            parameter as string ?? ", ",
-            values.Where(value => value is { } item && !string.IsNullOrEmpty(item.ToString())));
+    {
+        string separator = parameter as string ?? ", ";
+        StringBuilder builder = new();
+
+        for (int i = 0; i < values.Count; i++)
+        {
+            object? value = values[i];
+
+            if (value is null) { continue; }
+
+            string text = value.ToString() ?? string.Empty;
+
+            if (text.Length == 0) { continue; }
+
+            if (builder.Length > 0) { builder.Append(separator); }
+
+            builder.Append(text);
+        }
+
+        return builder.ToString();
+    }
 }

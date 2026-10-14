@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using UiFramework.Templating;
 
 namespace UiFramework;
 
@@ -12,9 +13,12 @@ internal enum VisualState
 
 internal readonly record struct Override(object Source, int Priority, object? Value);
 
-internal sealed class ValueWatch(string name, Func<object, object?>? read)
+internal sealed class ValueWatch(string name, Func<object, object?>? read, Func<object, long>? snapshot)
 {
     private readonly List<Action<object?>> _watchers = [];
+
+    private long _snapshot;
+    private bool _snapshotTaken;
 
     internal string Name { get; } = name;
 
@@ -23,6 +27,34 @@ internal sealed class ValueWatch(string name, Func<object, object?>? read)
     internal object? Last { get; private set; }
 
     internal void Add(Action<object?> watcher) => _watchers.Add(watcher);
+
+    internal bool Poll(ViewElement element)
+    {
+        if (snapshot is not null)
+        {
+            long marker;
+
+            try
+            {
+                marker = snapshot(element);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            if (_snapshotTaken && _snapshot == marker) { return false; }
+
+            _snapshotTaken = true;
+            _snapshot = marker;
+        }
+
+        if (!TryRead(element, out object? current)) { return false; }
+        if (HasLast && Equals(Last, current)) { return false; }
+
+        Notify(current);
+        return true;
+    }
 
     internal void Notify(object? value)
     {
@@ -87,6 +119,14 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
     private Insets? _margin;
     private string? _skin;
     private bool _skinRead;
+
+    private string? _measureText;
+    private GUIFont? _measureFont;
+    private float _measureScale;
+    private Vector4 _measurePadding;
+    private Point _measureSize;
+    private bool _measureValid;
+    private Dictionary<Type, DataTemplate>? _templates;
 
     public GUIComponent Control { get; } = control;
 
@@ -222,6 +262,36 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
         => Attached(name) is int value ? value
             : Attached(name) is string text && int.TryParse(text, out int parsed) ? parsed
             : fallback;
+
+    internal bool MeasureCached(GUITextBlock block, GUIFont font, out Point size)
+    {
+        if (_measureValid
+            && ReferenceEquals(_measureText, block.Text?.SanitizedValue)
+            && ReferenceEquals(_measureFont, font)
+            && _measureScale.Equals(block.TextScale)
+            && _measurePadding.Equals(block.Padding))
+        {
+            size = _measureSize;
+            return true;
+        }
+
+        size = default;
+        return false;
+    }
+
+    internal void RememberMeasure(GUITextBlock block, GUIFont font, Point size)
+    {
+        _measureText = block.Text?.SanitizedValue;
+        _measureFont = font;
+        _measureScale = block.TextScale;
+        _measurePadding = block.Padding;
+        _measureSize = size;
+        _measureValid = true;
+    }
+
+    internal DataTemplate? CachedTemplate(Type type) => _templates?.GetValueOrDefault(type);
+
+    internal void CacheTemplate(Type type, DataTemplate template) => (_templates ??= []).TryAdd(type, template);
 
     internal void RememberBaseValue(string property, object? value) => _baseValues[property] = value;
 
@@ -495,7 +565,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
 
         if (!_valueWatches.TryGetValue(property, out ValueWatch? watch))
         {
-            watch = new ValueWatch(property, metadata.Read);
+            watch = new ValueWatch(property, metadata.Read, metadata.Snapshot);
             _valueWatches[property] = watch;
 
             Context?.WatchValues(this);
@@ -515,13 +585,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
 
     internal void PollValues()
     {
-        foreach (ValueWatch watch in _valueWatches.Values)
-        {
-            if (!watch.TryRead(this, out object? current)) { continue; }
-            if (watch.HasLast && Equals(watch.Last, current)) { continue; }
-
-            watch.Notify(current);
-        }
+        foreach (ValueWatch watch in _valueWatches.Values) { watch.Poll(this); }
     }
 
     internal bool Listen(string name, Action handler)

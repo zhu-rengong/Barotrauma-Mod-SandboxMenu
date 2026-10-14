@@ -12,29 +12,33 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
 
     internal static float Size(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
     {
-        if (Length.TryWeight(node.Text(attribute), out _)) { return 1f; }
+        string? raw = node.Text(attribute);
 
-        return node.Text(attribute)?.Trim().ToLowerInvariant() switch
-        {
-            "fill" or "*" => 1f,
-            null or "" => fallback,
-            _ => Read(node, attribute, fallback, diagnostics, ratio: true)
-        };
+        if (Length.TryWeight(raw, out _)) { return 1f; }
+
+        string text = raw?.Trim() ?? string.Empty;
+
+        if (text.Length == 0) { return fallback; }
+        if (text.Equals("Fill", StringComparison.OrdinalIgnoreCase) || text.Equals("*", StringComparison.Ordinal)) { return 1f; }
+
+        return Read(node, attribute, fallback, diagnostics, ratio: true);
     }
 
     internal static float Metric(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
         => Read(node, attribute, fallback, diagnostics, ratio: false);
 
     internal static float Measure(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
-        => node.Text(attribute)?.Trim().ToLowerInvariant() switch
-        {
-            "row" => UiTokens.Percent("row", 0.075f),
-            "section" => UiTokens.Percent("section", 0.085f),
-            "control" => UiTokens.Percent("control", 0.84f),
-            "fill" or "*" => 1f,
-            null or "" => fallback,
-            _ => Size(node, attribute, fallback, diagnostics)
-        };
+    {
+        string text = (node.Text(attribute)?.Trim() ?? string.Empty);
+
+        if (text.Length == 0) { return fallback; }
+        if (text.Equals("row", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("row", 0.075f); }
+        if (text.Equals("section", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("section", 0.085f); }
+        if (text.Equals("control", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("control", 0.84f); }
+        if (text.Equals("Fill", StringComparison.OrdinalIgnoreCase) || text.Equals("*", StringComparison.Ordinal)) { return 1f; }
+
+        return Size(node, attribute, fallback, diagnostics);
+    }
 
     private static float Read(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics, bool ratio)
     {

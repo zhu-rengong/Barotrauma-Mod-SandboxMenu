@@ -41,8 +41,15 @@ public sealed class ViewContext : IDisposable, IViewHost
     private readonly List<Input.KeyBinding> _inputs = [];
     private readonly HashSet<ViewElement> _stateWatchers = [];
     private readonly HashSet<ViewElement> _valueWatchers = [];
-    private readonly List<ViewElement> _watching = [];
+    private ViewElement[] _stateSnapshot = [];
+    private ViewElement[] _valueSnapshot = [];
+    private bool _stateDirty = true;
+    private bool _valueDirty = true;
+    private readonly List<Controls.StackElement> _batchedShares = [];
     private readonly List<Action<SpriteBatch>> _overlays = [];
+
+    private int _layoutBatch;
+    private bool _flushingShares;
 
     private Action<string>? _diagnosticSink;
     private ICommand? _closeCommand;
@@ -119,13 +126,48 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     public void EveryFrame(Func<bool> action) => Current?.EveryFrame(action);
 
-    internal void WatchState(ViewElement element) => _stateWatchers.Add(element);
+    internal void WatchState(ViewElement element)
+    {
+        if (_stateWatchers.Add(element)) { _stateDirty = true; }
+    }
 
-    internal void WatchValues(ViewElement element) => _valueWatchers.Add(element);
+    internal void WatchValues(ViewElement element)
+    {
+        if (_valueWatchers.Add(element)) { _valueDirty = true; }
+    }
 
     internal void ResetAnimations(IViewElement target) => Animations.Reset(target);
 
     public void Once(Action action) => _queuedOnce.Add(action);
+
+    internal bool BatchingLayout => _layoutBatch > 0;
+
+    internal void BeginLayoutBatch() => _layoutBatch++;
+
+    internal void EndLayoutBatch()
+    {
+        if (--_layoutBatch > 0) { return; }
+        if (_flushingShares) { return; }
+
+        _flushingShares = true;
+
+        try
+        {
+            while (_batchedShares.Count > 0)
+            {
+                Controls.StackElement[] pending = [.. _batchedShares];
+                _batchedShares.Clear();
+
+                for (int i = 0; i < pending.Length; i++) { pending[i].FlushShares(); }
+            }
+        }
+        finally
+        {
+            _flushingShares = false;
+        }
+    }
+
+    internal void QueueShares(Controls.StackElement stack) => _batchedShares.Add(stack);
 
     internal void FocusOnOpen(Action focus) => _focusOnOpen.Add(focus);
 
@@ -180,36 +222,35 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     private void PollWatches()
     {
-        if (_stateWatchers.Count > 0)
+        if (_stateDirty)
         {
-            _watching.AddRange(_stateWatchers);
-
-            for (int i = 0; i < _watching.Count; i++)
-            {
-                ViewElement element = _watching[i];
-
-                if (element.IsPaused) { continue; }
-
-                UiGuard.Run(element, static watched => watched.PollState());
-            }
-
-            _watching.Clear();
+            _stateSnapshot = [.. _stateWatchers];
+            _stateDirty = false;
         }
 
-        if (_valueWatchers.Count == 0) { return; }
-
-        _watching.AddRange(_valueWatchers);
-
-        for (int i = 0; i < _watching.Count; i++)
+        for (int i = 0; i < _stateSnapshot.Length; i++)
         {
-            ViewElement element = _watching[i];
+            ViewElement element = _stateSnapshot[i];
+
+            if (element.IsPaused) { continue; }
+
+            UiGuard.Run(element, static watched => watched.PollState());
+        }
+
+        if (_valueDirty)
+        {
+            _valueSnapshot = [.. _valueWatchers];
+            _valueDirty = false;
+        }
+
+        for (int i = 0; i < _valueSnapshot.Length; i++)
+        {
+            ViewElement element = _valueSnapshot[i];
 
             if (element.IsPaused) { continue; }
 
             UiGuard.Run(element, static watched => watched.PollValues());
         }
-
-        _watching.Clear();
     }
 
     public void Own(IDisposable disposable)
@@ -258,6 +299,10 @@ public sealed class ViewContext : IDisposable, IViewHost
 
         _stateWatchers.Clear();
         _valueWatchers.Clear();
+        _stateSnapshot = [];
+        _valueSnapshot = [];
+        _stateDirty = true;
+        _valueDirty = true;
 
         foreach (ViewScope scope in scopes)
         {
@@ -269,6 +314,9 @@ public sealed class ViewContext : IDisposable, IViewHost
         _focusOnOpen.Clear();
         _overlays.Clear();
         _inputs.Clear();
+        _batchedShares.Clear();
+        _layoutBatch = 0;
+        _flushingShares = false;
         Window = null;
         Root = null;
     }
@@ -295,8 +343,9 @@ public sealed class ViewContext : IDisposable, IViewHost
             Input.KeyBinding other = _inputs[i];
 
             if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
-            if (!other.Owner.Control.Visible || !other.Held() || !other.Pressed()) { continue; }
-            if (Shares(binding, other)) { return true; }
+            if (!other.Owner.Control.Visible) { continue; }
+            if (!Shares(binding, other)) { continue; }
+            if (other.Held() && other.Pressed()) { return true; }
         }
 
         return false;

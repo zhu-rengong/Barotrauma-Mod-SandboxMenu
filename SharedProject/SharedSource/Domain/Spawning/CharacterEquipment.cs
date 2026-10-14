@@ -9,8 +9,13 @@ internal static class CharacterEquipment
         Inventory? inventory = character.Inventory;
         if (inventory is null) { return; }
 
-        List<InvSlotType> slots = [.. allowedSlots is { Length: > 0 } ? allowedSlots : item.AllowedSlots];
-        slots.Remove(InvSlotType.Any);
+        List<InvSlotType> slots = [];
+
+        foreach (InvSlotType slot in allowedSlots is { Length: > 0 } ? allowedSlots : item.AllowedSlots)
+        {
+            if (slot != InvSlotType.Any) { slots.Add(slot); }
+        }
+
         if (slots.Count == 0) { slots.Add(InvSlotType.Any); }
 
         inventory.TryPutItem(item, character, slots);

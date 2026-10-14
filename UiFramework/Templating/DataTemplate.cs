@@ -30,7 +30,13 @@ internal sealed class DataTemplate
 
         for (Type? type = item.GetType(); type is not null && type != typeof(object); type = type.BaseType)
         {
-            if (view.FindResource(type.Name, element) is DataTemplate template) { return template; }
+            if (element.CachedTemplate(type) is { } cached) { return cached; }
+
+            if (view.FindResource(type.Name, element) is DataTemplate template)
+            {
+                element.CacheTemplate(type, template);
+                return template;
+            }
         }
 
         return null;

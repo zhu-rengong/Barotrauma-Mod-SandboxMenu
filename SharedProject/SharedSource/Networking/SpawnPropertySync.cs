@@ -20,7 +20,7 @@ internal static class SpawnPropertySync
         {
             SerializableProperty property = propertyOverride.Property;
 
-            if (!editable.Any(entry => entry.property == property && ReferenceEquals(entry.obj, propertyOverride.Target)))
+            if (!Editable(editable, propertyOverride))
             {
                 result.Report(StaysOnServer(item, $"'{property.Name}' is not editable there"));
                 continue;
@@ -34,6 +34,16 @@ internal static class SpawnPropertySync
 
             Services.GameNetwork.CreateVanillaEntityEvent(item, new Item.ChangePropertyEventData(property, propertyOverride.Target));
         }
+    }
+
+    private static bool Editable(List<(object obj, SerializableProperty property)> editable, AppliedOverride applied)
+    {
+        for (int i = 0; i < editable.Count; i++)
+        {
+            if (editable[i].property == applied.Property && ReferenceEquals(editable[i].obj, applied.Target)) { return true; }
+        }
+
+        return false;
     }
 
     private static string StaysOnServer(Item item, string reason)

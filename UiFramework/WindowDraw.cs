@@ -34,8 +34,15 @@ public static class WindowDraw
 
     private static void RestoreAutoDraw(GUIComponent component)
     {
+        if (!component.Visible) { return; }
+
         component.AutoDraw = true;
 
-        foreach (RectTransform child in component.RectTransform.Children) { RestoreAutoDraw(child.GUIComponent); }
+        RectTransform transform = component.RectTransform;
+
+        for (int i = 0; i < transform.CountChildren; i++)
+        {
+            if (transform.GetChild(i).GUIComponent is { } child) { RestoreAutoDraw(child); }
+        }
     }
 }

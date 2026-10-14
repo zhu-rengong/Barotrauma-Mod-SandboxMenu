@@ -19,9 +19,33 @@ internal sealed class KeyBinding
 
     internal int Specificity => Modifiers.Length;
 
-    internal bool Held() => Modifiers.All(group => group.Any(PlayerInput.KeyDown));
+    internal bool Held()
+    {
+        for (int i = 0; i < Modifiers.Length; i++)
+        {
+            KeyCode[] group = Modifiers[i];
+            bool down = false;
 
-    internal bool Pressed() => Keys.Any(PlayerInput.KeyHit);
+            for (int j = 0; j < group.Length; j++)
+            {
+                if (PlayerInput.KeyDown(group[j])) { down = true; break; }
+            }
+
+            if (!down) { return false; }
+        }
+
+        return true;
+    }
+
+    internal bool Pressed()
+    {
+        for (int i = 0; i < Keys.Length; i++)
+        {
+            if (PlayerInput.KeyHit(Keys[i])) { return true; }
+        }
+
+        return false;
+    }
 
     internal void Fire() => Command?.Execute(Parameter);
 

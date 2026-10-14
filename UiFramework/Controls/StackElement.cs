@@ -7,14 +7,17 @@ internal sealed class StackElement : ViewElement
 {
     private readonly GUILayoutGroup _group;
     private readonly RectTransform _rect;
+    private readonly ViewContext _view;
     private readonly List<ViewElement> _children = [];
     private bool _horizontal;
+    private bool _sharesPending;
 
     public StackElement(ElementContext context)
         : base(Create(context))
     {
         _group = (GUILayoutGroup)Control;
         _rect = Control.RectTransform;
+        _view = context.View;
         _horizontal = _group.IsHorizontal;
 
         _rect.SizeChanged += ApplyShares;
@@ -96,6 +99,30 @@ internal sealed class StackElement : ViewElement
 
     private void ApplyShares()
     {
+        if (_view.BatchingLayout)
+        {
+            if (!_sharesPending)
+            {
+                _sharesPending = true;
+                _view.QueueShares(this);
+            }
+
+            return;
+        }
+
+        ArrangeShares();
+    }
+
+    internal void FlushShares()
+    {
+        if (!_sharesPending) { return; }
+
+        _sharesPending = false;
+        ArrangeShares();
+    }
+
+    private void ArrangeShares()
+    {
         float shares = 0f;
         float taken = 0f;
         int shown = 0;
@@ -137,8 +164,9 @@ internal sealed class StackElement : ViewElement
 
         if (!changed) { return; }
 
+        _group.NeedsToRecalculate = true;
+
         if (_horizontal ? Control.Rect.Width > 0 : Control.Rect.Height > 0) { LayoutFlush.Apply(Control); }
-        else { _group.NeedsToRecalculate = true; }
     }
 
     private float? Share(ViewElement child)

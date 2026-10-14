@@ -4,11 +4,13 @@ internal static class LayoutFlush
 {
     internal static void Apply(GUIComponent root)
     {
-        if (root is GUILayoutGroup group) { group.Recalculate(); }
+        RectTransform transform = root.RectTransform;
 
-        foreach (RectTransform child in root.RectTransform.Children)
+        if (root is GUILayoutGroup group && group.NeedsToRecalculate) { group.Recalculate(); }
+
+        for (int i = 0; i < transform.CountChildren; i++)
         {
-            if (child.GUIComponent is { } control) { Apply(control); }
+            if (transform.GetChild(i).GUIComponent is { } control) { Apply(control); }
         }
     }
 }

@@ -10,6 +10,10 @@ internal static class TemplateStore
 
     private const int MaxNameLength = 96;
 
+    private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
+
+    private static readonly Dictionary<string, (long Stamp, SpawnSet? Set)> _shared = new(StringComparer.OrdinalIgnoreCase);
+
     public static string Folder => Path.Combine(Services.Settings.SaveFolder, "Presets");
 
     public static string PathOf(string name) => PathFor(name);
@@ -76,6 +80,48 @@ internal static class TemplateStore
         }
     }
 
+    internal static bool TryLoadShared(string name, out SpawnSet? set)
+    {
+        long stamp = StampOf(name);
+
+        if (_shared.TryGetValue(name, out (long Stamp, SpawnSet? Set) cached) && cached.Stamp == stamp)
+        {
+            set = cached.Set;
+            return set is not null;
+        }
+
+        bool ok = TryLoad(name, out set);
+        _shared[name] = (stamp, set);
+
+        return ok;
+    }
+
+    private static string ReplaceInvalid(string name)
+    {
+        char[] chars = name.ToCharArray();
+
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (Array.IndexOf(InvalidFileNameChars, chars[i]) >= 0) { chars[i] = '_'; }
+        }
+
+        return new string(chars);
+    }
+
+    private static long StampOf(string name)
+    {
+        try
+        {
+            string path = PathFor(name);
+
+            return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
+        }
+        catch (Exception)
+        {
+            return 0L;
+        }
+    }
+
     internal static bool ReachesTemplate(SpawnSet set, string name)
         => Reaches(set.Entries, name, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
@@ -89,7 +135,7 @@ internal static class TemplateStore
 
             visiting.Add(reference.TemplateName);
 
-            if (TryLoad(reference.TemplateName, out SpawnSet? referenced)
+            if (TryLoadShared(reference.TemplateName, out SpawnSet? referenced)
                 && referenced is not null
                 && Reaches(referenced.Entries, name, visiting))
             {
@@ -119,9 +165,7 @@ internal static class TemplateStore
 
     private static string Sanitize(string name)
     {
-        char[] invalid = Path.GetInvalidFileNameChars();
-
-        string sanitized = new string([.. name.Select(c => invalid.Contains(c) ? '_' : c)])
+        string sanitized = (name.IndexOfAny(InvalidFileNameChars) < 0 ? name : ReplaceInvalid(name))
             .Trim()
             .TrimEnd('.');
 

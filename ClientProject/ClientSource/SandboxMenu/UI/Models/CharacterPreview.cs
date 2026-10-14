@@ -32,6 +32,8 @@ internal sealed class CharacterPreview : IDisposable
     private RenderTarget2D? _target;
     private Camera? _camera;
     private RenderTargetBinding[]? _bindings;
+    private long _signature;
+    private bool _rendered;
 
     private CharacterPreview(Character character, CharacterPreviewFraming framing)
     {
@@ -119,13 +121,43 @@ internal sealed class CharacterPreview : IDisposable
 
     internal void Request()
     {
+        if (_rendered && Signature() == _signature) { return; }
+
         if (_pending.Add(this)) { _queued.Enqueue(this); }
+    }
+
+    private long Signature()
+    {
+        if (_character.Removed || _character.AnimController is not { } controller) { return 0L; }
+
+        Limb[] limbs = controller.Limbs;
+        long hash = 17L;
+
+        hash = hash * 31L + limbs.Length;
+        hash = hash * 31L + (int)_framing;
+
+        for (int i = 0; i < limbs.Length; i++)
+        {
+            Limb limb = limbs[i];
+
+            if (limb.Alpha > 0f && limb.ActiveSprite is not null) { limb.body.UpdateDrawPosition(true); }
+
+            hash = hash * 31L + BitConverter.SingleToInt32Bits(limb.DrawPosition.X);
+            hash = hash * 31L + BitConverter.SingleToInt32Bits(limb.DrawPosition.Y);
+            hash = hash * 31L + BitConverter.SingleToInt32Bits(limb.body.DrawRotation);
+            hash = hash * 31L + BitConverter.SingleToInt32Bits(limb.Alpha);
+            hash = hash * 31L + BitConverter.SingleToInt32Bits(limb.Scale);
+            hash = hash * 31L + (limb.ActiveSprite?.GetHashCode() ?? 0);
+        }
+
+        return hash;
     }
 
     public void Dispose()
     {
         _target?.Dispose();
         _target = null;
+        _rendered = false;
     }
 
     private static bool TryBounds(AnimController controller, CharacterInfo? info, CharacterPreviewFraming framing, out Rectangle bounds)
@@ -239,6 +271,9 @@ internal sealed class CharacterPreview : IDisposable
         if (_character.Removed || _character.AnimController is not { } controller) { return; }
         if (GameMain.Instance?.GraphicsDevice is not { } device) { return; }
         if (!TryBounds(controller, _character.Info, _framing, out Rectangle bounds)) { return; }
+
+        _signature = Signature();
+        _rendered = true;
 
         float zoom = Math.Max(0.01f, Math.Min(Size / (float)bounds.Width, Size / (float)bounds.Height));
         Camera camera = _camera ??= new Camera { AutoUpdateToScreenResolution = false };

@@ -69,8 +69,7 @@ internal sealed class EventTrigger
         {
             foreach (StoryboardAction action in Actions)
             {
-                StoryboardAction current = action;
-                UiGuard.Run(() => current.Run(actions));
+                UiGuard.Run((Action: action, Context: actions), static state => state.Action.Run(state.Context));
             }
         });
     }
@@ -197,8 +196,7 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
 
             foreach (StoryboardAction action in trigger.EnterActions)
             {
-                StoryboardAction current = action;
-                UiGuard.Run(() => current.Run(_actions));
+                UiGuard.Run((Action: action, Context: _actions), static state => state.Action.Run(state.Context));
             }
         }
         finally
@@ -224,8 +222,7 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
 
             foreach (StoryboardAction action in trigger.ExitActions)
             {
-                StoryboardAction current = action;
-                UiGuard.Run(() => current.Run(_actions));
+                UiGuard.Run((Action: action, Context: _actions), static state => state.Action.Run(state.Context));
             }
         }
         finally
@@ -253,7 +250,7 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
             {
                 if (candidate.Value.Raw.Length == 0) { continue; }
 
-                if (string.Equals(current?.ToString(), candidate.Value.Raw, StringComparison.OrdinalIgnoreCase)) { continue; }
+                if (Matches(current, candidate.Value.Raw)) { continue; }
 
                 matches = false;
                 break;
@@ -267,9 +264,14 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
     {
         if (_evaluating) { return; }
 
-        if (string.Equals(value?.ToString(), expected, StringComparison.OrdinalIgnoreCase)) { Activate(); }
+        if (Matches(value, expected)) { Activate(); }
         else { Deactivate(); }
     }
+
+    private static bool Matches(object? value, string expected)
+        => value is string text
+            ? string.Equals(text, expected, StringComparison.OrdinalIgnoreCase)
+            : string.Equals(value?.ToString(), expected, StringComparison.OrdinalIgnoreCase);
 }
 
 internal static class TriggerReader

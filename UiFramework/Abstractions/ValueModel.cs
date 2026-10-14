@@ -31,7 +31,8 @@ internal sealed record PropertyMetadata(
     bool SettableFromStyle,
     bool KeyText,
     Action<object, object?> Apply,
-    Func<object, object?>? Read)
+    Func<object, object?>? Read,
+    Func<object, long>? Snapshot = null)
 {
     internal bool CanAnimate
         => ValueType == typeof(float)

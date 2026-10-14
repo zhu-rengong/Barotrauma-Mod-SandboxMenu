@@ -11,7 +11,7 @@ internal sealed class SpawnExecutor(
     private readonly SpawnTarget _target = target;
     private readonly Func<string, SpawnSet?>? _resolveTemplate = resolveTemplate;
     private readonly SpawnResult _result = result ?? new SpawnResult();
-    private readonly IReadOnlyCollection<string> _templateChain = templateChain ?? [];
+    private readonly string[] _templateChain = templateChain is { Count: > 0 } chain ? [.. chain] : [];
 
     private Inventory? _inventory = (target as SpawnTarget.IntoInventory)?.Inventory;
     private bool _atItemInventory;
@@ -46,7 +46,7 @@ internal sealed class SpawnExecutor(
 
     private void ExpandTemplate(ReferenceEntry reference)
     {
-        if (_templateChain.Contains(reference.TemplateName, StringComparer.OrdinalIgnoreCase))
+        if (Contains(_templateChain, reference.TemplateName))
         {
             _result.Report($"Template '{reference.TemplateName}' is already being expanded (a cycle of templates).");
             return;
@@ -145,8 +145,8 @@ internal sealed class SpawnExecutor(
                 return;
             }
 
-            int perStack = SpawnPlanner.StackCapacity(prefab, destination);
             int freeAfterFirst = destination.HowManyCanBePut(prefab);
+            int perStack = Math.Max(1, Math.Min(Math.Max(1, prefab.GetMaxStackSize(destination)), freeAfterFirst + 1));
             int total = Math.Max(1, SpawnPlanner.StacksToItemCount(stackCount, perStack));
 
             if (total > freeAfterFirst + 1)
@@ -258,6 +258,16 @@ internal sealed class SpawnExecutor(
         };
 
         nestedExecutor.Run(entry.Inventory);
+    }
+
+    private static bool Contains(string[] chain, string name)
+    {
+        for (int i = 0; i < chain.Length; i++)
+        {
+            if (string.Equals(chain[i], name, StringComparison.OrdinalIgnoreCase)) { return true; }
+        }
+
+        return false;
     }
 
     private void PutInInventory(Item item, ItemEntry entry)

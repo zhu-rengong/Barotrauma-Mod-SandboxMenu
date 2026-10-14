@@ -17,23 +17,38 @@ internal static class SpawnPayloadCodec
     private const int MaxDepth = 24;
     private const int MaxProblemLength = 160;
 
+    private static readonly XmlWriterSettings WriterSettings = new()
+    {
+        Encoding = new UTF8Encoding(false),
+        OmitXmlDeclaration = true,
+        Indent = false,
+        CloseOutput = false
+    };
+
     internal static bool TryEncode(SpawnPayload payload, out byte[] compressed)
     {
         compressed = [];
 
         try
         {
-            byte[] xml = Encoding.UTF8.GetBytes(payload.ToXml().ToString(SaveOptions.DisableFormatting));
+            XElement xml = payload.ToXml();
 
             using MemoryStream output = new();
+
+            long xmlLength;
+
             using (BrotliStream compressor = new(output, CompressionLevel.SmallestSize, leaveOpen: true))
             {
-                compressor.Write(xml, 0, xml.Length);
+                using CountingStream counting = new(compressor);
+
+                using (XmlWriter writer = XmlWriter.Create(counting, WriterSettings)) { xml.WriteTo(writer); }
+
+                xmlLength = counting.Written;
             }
 
             if (output.Length > MaxCompressedBytes)
             {
-                DebugConsole.AddWarning($"Spawn request is too large to send ({xml.Length} bytes of XML compress to {output.Length}).");
+                DebugConsole.AddWarning($"Spawn request is too large to send ({xmlLength} bytes of XML compress to {output.Length}).");
                 return false;
             }
 
@@ -66,6 +81,24 @@ internal static class SpawnPayloadCodec
         }
     }
 
+    internal static string[] LimitProblems(IReadOnlyList<string> problems)
+    {
+        int count = Math.Min(problems.Count, MaxProblems);
+
+        if (count == 0) { return []; }
+
+        string[] limited = new string[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            string problem = problems[i];
+
+            limited[i] = problem.Length > MaxProblemLength ? problem[..MaxProblemLength] : problem;
+        }
+
+        return limited;
+    }
+
     private static bool TryParse(byte[] compressed, byte[] buffer, int limit, out SpawnPayload payload)
     {
         payload = new SpawnPayload();
@@ -91,17 +124,9 @@ internal static class SpawnPayloadCodec
 
         using MemoryStream stream = new(buffer, 0, length, writable: false);
 
-        if (!WithinDepthLimit(stream))
-        {
-            DebugConsole.AddWarning("A spawn request nested its entries deeper than the mod accepts.");
-            return false;
-        }
-
         XElement? root;
         try
         {
-            stream.Position = 0;
-
             using XmlReader reader = XMLExtensions.CreateReader(stream);
             root = XDocument.Load(reader).Root;
         }
@@ -112,6 +137,12 @@ internal static class SpawnPayloadCodec
         }
 
         if (root is null || root.Name.LocalName != SpawnPayload.RootName) { return false; }
+
+        if (!WithinDepthLimit(root))
+        {
+            DebugConsole.AddWarning("A spawn request nested its entries deeper than the mod accepts.");
+            return false;
+        }
 
         payload = SpawnPayload.FromXml(root);
 
@@ -124,13 +155,6 @@ internal static class SpawnPayloadCodec
 
         return true;
     }
-
-    internal static string[] LimitProblems(IReadOnlyList<string> problems)
-        =>
-        [
-            .. problems.Take(MaxProblems).Select(problem =>
-                problem.Length > MaxProblemLength ? problem[..MaxProblemLength] : problem)
-        ];
 
     private static int Decompress(byte[] compressed, byte[] buffer, int limit)
     {
@@ -149,21 +173,60 @@ internal static class SpawnPayloadCodec
         return decompressor.ReadByte() < 0 ? total : -1;
     }
 
-    private static bool WithinDepthLimit(Stream stream)
+    private static bool WithinDepthLimit(XElement root)
     {
-        try
+        Stack<(XElement Element, int Depth)> pending = new();
+
+        pending.Push((root, 0));
+
+        while (pending.Count > 0)
         {
-            using XmlReader reader = XMLExtensions.CreateReader(stream);
-            while (reader.Read())
-            {
-                if (reader.Depth > MaxDepth) { return false; }
-            }
-        }
-        catch (XmlException)
-        {
-            return true;
+            (XElement element, int depth) = pending.Pop();
+
+            if (depth > MaxDepth) { return false; }
+
+            foreach (XElement child in element.Elements()) { pending.Push((child, depth + 1)); }
         }
 
         return true;
+    }
+
+    private sealed class CountingStream(Stream inner) : Stream
+    {
+        internal long Written { get; private set; }
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => Written;
+
+        public override long Position
+        {
+            get => Written;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => inner.Flush();
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            Written += count;
+            inner.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            Written += buffer.Length;
+            inner.Write(buffer);
+        }
     }
 }

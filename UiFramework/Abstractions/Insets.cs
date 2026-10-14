@@ -16,23 +16,30 @@ internal readonly record struct Insets(int Top, int Right, int Bottom, int Left)
     {
         if (text is not { Length: > 0 }) { return None; }
 
-        string[] parts = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length is not (1 or 2 or 4)) { return None; }
+        Span<int> values = stackalloc int[4];
+        int count = 0;
+        int start = 0;
 
-        int[] values = new int[parts.Length];
-
-        for (int i = 0; i < parts.Length; i++)
+        for (int i = 0; i <= text.Length; i++)
         {
-            if (!ValueParser.TryFloat(parts[i], out float value)) { return None; }
+            if (i < text.Length && text[i] != ',') { continue; }
 
-            values[i] = UiMetrics.DipInt(value);
+            ReadOnlySpan<char> part = text.AsSpan(start, i - start).Trim();
+            start = i + 1;
+
+            if (part.Length == 0) { continue; }
+            if (count == 4) { return None; }
+            if (!ValueParser.TryFloat(part, out float value)) { return None; }
+
+            values[count++] = UiMetrics.DipInt(value);
         }
 
-        return values.Length switch
+        return count switch
         {
             1 => new Insets(values[0], values[0], values[0], values[0]),
             2 => new Insets(values[0], values[1], values[0], values[1]),
-            _ => new Insets(values[0], values[1], values[2], values[3])
+            4 => new Insets(values[0], values[1], values[2], values[3]),
+            _ => None
         };
     }
 }

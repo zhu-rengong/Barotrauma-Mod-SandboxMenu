@@ -46,7 +46,7 @@ internal static class ClientSpawnDispatcher
         return null;
     }
 
-    private static SpawnSet? ResolveTemplate(string name) => TemplateStore.TryLoad(name, out SpawnSet? set) ? set : null;
+    private static SpawnSet? ResolveTemplate(string name) => TemplateStore.TryLoadShared(name, out SpawnSet? set) ? set : null;
 
     private static SpawnRefusal? TrySend(
         IReadOnlyList<SpawnEntry> entries,
@@ -97,7 +97,7 @@ internal static class ClientSpawnDispatcher
 
                 case ReferenceEntry reference:
                     if (string.IsNullOrEmpty(reference.TemplateName) || !seen.Add(reference.TemplateName)) { break; }
-                    if (!TemplateStore.TryLoad(reference.TemplateName, out SpawnSet? template) || template is null) { break; }
+                    if (!TemplateStore.TryLoadShared(reference.TemplateName, out SpawnSet? template) || template is null) { break; }
 
                     payload.AddTemplate(template);
                     CollectTemplates(payload, template.Entries, seen);

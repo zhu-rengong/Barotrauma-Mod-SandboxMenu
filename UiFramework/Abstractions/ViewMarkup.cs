@@ -36,13 +36,17 @@ public static class ViewMarkup
             ? UiMetrics.FontScale(dip, font)
             : UiMetrics.TextScale;
 
-    public static GUIFont FontOf(string? name) => name?.ToLowerInvariant() switch
+    public static GUIFont FontOf(string? name)
     {
-        "subheading" => GUIStyle.SubHeadingFont,
-        "large" => GUIStyle.LargeFont,
-        "small" => GUIStyle.SmallFont,
-        _ => GUIStyle.Font
-    };
+        if (name is not null)
+        {
+            if (name.Equals("subheading", StringComparison.OrdinalIgnoreCase)) { return GUIStyle.SubHeadingFont; }
+            if (name.Equals("large", StringComparison.OrdinalIgnoreCase)) { return GUIStyle.LargeFont; }
+            if (name.Equals("small", StringComparison.OrdinalIgnoreCase)) { return GUIStyle.SmallFont; }
+        }
+
+        return GUIStyle.Font;
+    }
 
     public static Anchor AnchorOf(string? name, Anchor fallback)
         => name is not null && Enum.TryParse(name, ignoreCase: true, out Anchor anchor) ? anchor : fallback;
@@ -56,15 +60,13 @@ public static class ViewMarkup
 
         string text = name.Trim();
 
-        Color? themed = text.ToLowerInvariant() switch
-        {
-            "bright" => UiMetrics.Text,
-            "dim" => UiMetrics.TextDim,
-            "accent" => UiMetrics.Accent,
-            "danger" => UiMetrics.Danger,
-            "disabled" => UiMetrics.TextDisabled,
-            _ => null
-        };
+        Color? themed = null;
+
+        if (text.Equals("bright", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Text; }
+        else if (text.Equals("dim", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.TextDim; }
+        else if (text.Equals("accent", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Accent; }
+        else if (text.Equals("danger", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Danger; }
+        else if (text.Equals("disabled", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.TextDisabled; }
 
         if (themed is { } color) { return color; }
 

@@ -138,7 +138,12 @@ internal static class AnimationMarkup
         => report?.Invoke($"{node.View}({node.Line}): {message}");
 
     private static bool IsNamedColor(string text)
-        => text.ToLowerInvariant() is "accent" or "bright" or "dim" or "danger" or "disabled" or "callout";
+        => text.Equals("accent", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("bright", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("dim", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("danger", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("disabled", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("callout", StringComparison.OrdinalIgnoreCase);
 
     private static AnimationBase? Unknown(MarkupNode node, Action<string>? report)
     {

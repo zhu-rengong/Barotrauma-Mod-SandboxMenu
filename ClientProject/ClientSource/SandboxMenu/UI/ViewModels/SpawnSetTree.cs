@@ -30,6 +30,14 @@ internal sealed class SpawnSetTree(SpawnPanelViewModel menu, SpawnSet set)
         foreach (TreeEntryViewModel row in _rows) { row.Refresh(); }
     }
 
+    internal void RefreshSummaryFor(SpawnEntry entry)
+    {
+        foreach (TreeEntryViewModel row in _rows)
+        {
+            if (ReferenceEquals(row.Entry, entry)) { row.Refresh(); }
+        }
+    }
+
     internal void RefreshHints()
     {
         foreach (TreeEntryViewModel row in _rows) { row.RefreshHints(); }

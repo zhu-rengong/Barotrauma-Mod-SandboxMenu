@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -7,15 +8,13 @@ internal static class MemberAccess
 {
     private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-    private static readonly Dictionary<(Type Type, string Name), Accessors> _cache = [];
+    private static readonly ConcurrentDictionary<(Type Type, string Name), Accessors> _cache = new();
 
     internal static Accessors For(Type type, string name)
     {
         if (_cache.TryGetValue((type, name), out Accessors cached)) { return cached; }
 
-        Accessors built = Build(type, name);
-        _cache[(type, name)] = built;
-        return built;
+        return _cache.GetOrAdd((type, name), static key => Build(key.Type, key.Name));
     }
 
     internal static Func<object, object?>? CompileReader(MemberInfo member, Type declaringType)

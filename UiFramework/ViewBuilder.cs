@@ -20,6 +20,20 @@ internal static class ViewBuilder
 
     internal static ViewElement BuildElement(ViewContext view, MarkupNode node, RectTransform? parent, object? dataContext = null, ViewElement? parentElement = null)
     {
+        view.BeginLayoutBatch();
+
+        try
+        {
+            return BuildWithinBatch(view, node, parent, dataContext, parentElement);
+        }
+        finally
+        {
+            view.EndLayoutBatch();
+        }
+    }
+
+    private static ViewElement BuildWithinBatch(ViewContext view, MarkupNode node, RectTransform? parent, object? dataContext, ViewElement? parentElement)
+    {
         if (ElementRegistry.Find(node.Name) is not { } metadata)
         {
             view.Diagnostics.Report($"unknown element <{node.Name}>", node);
