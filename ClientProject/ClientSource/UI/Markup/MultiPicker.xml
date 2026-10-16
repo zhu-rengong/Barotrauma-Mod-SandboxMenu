@@ -1,4 +1,4 @@
-<Window Width="608dip" Height="528dip">
+<Window ContentInset="16" Width="608dip" Height="528dip">
 
 <Stack Orientation="Vertical">
 
@@ -17,16 +17,21 @@
             Align="CenterRight" />
   </Panel>
 
-  <!-- A filter, like the item browser: a package or a category can be looked up by typing. -->
-  <TextBox Text="{Binding Query, Mode=TwoWay}" Height="12*" Clear="True" />
+  <Panel Skin="InnerFrame" Width="1" Height="84*" Padding="17,19,20,16">
+    <Stack Orientation="Vertical" Spacing="6">
 
-  <!-- Taking or clearing everything at once, outside the list so the pair stays reachable however far it is scrolled. -->
-  <Stack Orientation="Horizontal" Height="8*" Spacing="3">
-    <Button Text="selectall" Command="{Binding SelectAllCommand}" Width="1*" Height="1" />
-    <Button Text="deselectall" Command="{Binding DeselectAllCommand}" Width="1*" Height="1" />
-  </Stack>
+      <!-- A filter, like the item browser: a package or a category can be looked up by typing. -->
+      <TextBox Text="{Binding Query, Mode=TwoWay}" Height="30dip" Clear="True" />
 
-  <List Items="{Binding Options}" Height="64*" Spacing="3" />
+      <!-- Taking or clearing everything at once, outside the list so the pair stays reachable however far it is scrolled. -->
+      <Stack Orientation="Horizontal" Height="37dip" Spacing="3">
+        <Button Text="selectall" Command="{Binding SelectAllCommand}" Width="1*" Height="1" />
+        <Button Text="deselectall" Command="{Binding DeselectAllCommand}" Width="1*" Height="1" />
+      </Stack>
+
+      <List Items="{Binding Options}" Height="1*" Spacing="3" />
+    </Stack>
+  </Panel>
 
 </Stack>
 

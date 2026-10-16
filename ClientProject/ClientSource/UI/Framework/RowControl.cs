@@ -7,32 +7,13 @@ internal sealed class RowControl : GUIButton
 {
     private const string BaseStyle = "GUIButton";
 
-    internal Anchor SelectedBar { get; set; } = Anchor.CenterLeft;
-
-    internal RectTransform? SlotIcon { get; set; }
-
-    internal bool SlotOnly { get; set; }
-
-    internal Color SlotFill { get; set; } = Theme.SlotFill;
-
-    internal Color SlotLine { get; set; } = Theme.SlotLine;
-
-    internal float SlotPadding { get; set; } = Theme.SlotPadding;
-
-    internal bool Highlight { get; set; } = true;
-
-    internal Color Fill { get; set; } = Color.Transparent;
-
-    internal Color SelectedBarFill { get; set; } = Theme.Accent;
-
-    internal float SelectedBarWidth { get; set; } = Theme.SelectedBarWidth;
-
-    private DipValue _slotPaddingDip;
-    private DipValue _selectedBarDip;
-
-    internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment)
-        : base(rectT, text, alignment, BaseStyle)
+    internal RowControl(RectTransform rectT, LocalizedString text, Alignment alignment, string? skin = null)
+        : base(rectT, text, alignment, skin ?? BaseStyle)
     {
+        Skinned = skin is not null;
+
+        if (Skinned) { return; }
+
         Color = Color.Transparent;
         HoverColor = Color.Transparent;
         PressedColor = Color.Transparent;
@@ -56,6 +37,31 @@ internal sealed class RowControl : GUIButton
         Theme.ApplyLabel(TextBlock, Theme.Text);
     }
 
+    internal bool Skinned { get; }
+
+    internal Anchor SelectedBar { get; set; } = Anchor.CenterLeft;
+
+    internal RectTransform? SlotIcon { get; set; }
+
+    internal bool SlotOnly { get; set; }
+
+    internal Color SlotFill { get; set; } = Theme.SlotFill;
+
+    internal Color SlotLine { get; set; } = Theme.SlotLine;
+
+    internal float SlotPadding { get; set; } = Theme.SlotPadding;
+
+    internal bool Highlight { get; set; } = true;
+
+    internal Color Fill { get; set; } = Color.Transparent;
+
+    internal Color SelectedBarFill { get; set; } = Theme.Accent;
+
+    internal float SelectedBarWidth { get; set; } = Theme.SelectedBarWidth;
+
+    private DipValue _slotPaddingDip;
+    private DipValue _selectedBarDip;
+
     public override void Draw(SpriteBatch spriteBatch)
     {
         base.Draw(spriteBatch);
@@ -72,12 +78,12 @@ internal sealed class RowControl : GUIButton
                 Theme.Outline(spriteBatch, box, SlotLine);
             }
 
-            if (Highlight && Fill.A > 0f)
+            if (!Skinned && Highlight && Fill.A > 0f)
             {
                 GUI.DrawRectangle(spriteBatch, SlotOnly && slot is { } marked ? marked : rect, Fill * (Fill.A / 255f), true, 0f, 1f);
             }
 
-            if (Selected && SelectedBarFill.A > 0f)
+            if (!Skinned && Selected && SelectedBarFill.A > 0f)
             {
                 GUI.DrawRectangle(spriteBatch, SelectedBarRect(rect), SelectedBarFill, true, 0f, 1f);
             }

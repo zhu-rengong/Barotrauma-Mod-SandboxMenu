@@ -60,6 +60,7 @@ internal sealed class MenuWindow : IDialogHost
     internal bool HandleEscape()
     {
         if (CloseTopPopup()) { return true; }
+        if (_window?.DismissTransient() == true) { return true; }
 
         if (!IsOpen) { return false; }
 
@@ -70,6 +71,7 @@ internal sealed class MenuWindow : IDialogHost
     internal void HandleKeys()
     {
         if (!IsOpen || AnyPopupOpen()) { return; }
+        if (_window?.HasTransient == true) { return; }
 
         _window?.RunInputBindings();
     }
@@ -330,10 +332,28 @@ internal sealed class MenuWindow : IDialogHost
     public void ShowContextMenu(IEnumerable<MenuCommand> actions, Vector2? position = null)
     {
         ContextMenuViewModel viewModel = new(actions, ClosePopups);
-        MarkupWindow popup = new("ContextMenu.xml", PopupOrder, viewModel);
+        MarkupWindow popup = new("ContextMenu.xml", PopupOrder, viewModel, ContextMenuSize(viewModel));
 
         ShowPopup(popup);
         popup.PositionAt(position ?? PlayerInput.MousePosition);
+    }
+
+    private static Point ContextMenuSize(ContextMenuViewModel viewModel)
+    {
+        float widest = 0f;
+
+        foreach (ContextOptionViewModel option in viewModel.Options)
+        {
+            RichString text = ViewMarkup.WithShortcut(option.Label, option.Shortcut, ViewMarkup.HintKey);
+
+            widest = MathF.Max(widest, GUIStyle.SmallFont.MeasureString(text, false).X * UiMetrics.TextScale);
+        }
+
+        int inset = UiMetrics.DipInt(Theme.MenuRowIndent) + UiMetrics.DipInt(Theme.Pad);
+
+        return new Point(
+            Math.Max(1, (int)MathF.Round(widest) + inset),
+            Math.Max(Theme.MenuMinRows, viewModel.Options.Count) * UiMetrics.DipInt(Theme.MenuRowHeight));
     }
 
     public void PickWorldPosition(Action<Vector2> onPicked)

@@ -86,11 +86,9 @@ internal readonly record struct Length(LengthKind Kind, float Value)
 
     private static Length? Keyword(string text)
     {
-        if (text.Equals("row", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("row", Percent(0.075f)); }
-        if (text.Equals("section", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("section", Percent(0.085f)); }
-        if (text.Equals("control", StringComparison.OrdinalIgnoreCase)) { return UiTokens.AsLength("control", Percent(0.84f)); }
+        Length token = UiTokens.AsLength(text, Auto);
 
-        return null;
+        return token.Kind == LengthKind.Auto ? null : token;
     }
 
     private static Length Reject(string text, Length fallback, Action<string>? report)

@@ -174,6 +174,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
             Control.Visible = value;
             Parent?.ChildVisibilityChanged(this);
             Parent?.ChildLayoutChanged(this);
+            Context?.RequestLayout(this);
         }
     }
 
@@ -780,7 +781,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
     public override string ToString() => GetType().Name;
 }
 
-internal interface IPropertyObserver
+public interface IPropertyObserver
 {
     void Observe(string property, Action<object?> changed);
 }

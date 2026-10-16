@@ -1,4 +1,4 @@
-<Window Width="880dip" Height="580dip">
+<Window ContentInset="16" Width="880dip" Height="580dip">
 
 <Stack Orientation="Vertical">
 
@@ -56,21 +56,23 @@
   </Stack>
 
   <!-- What the list is limited to. The two buttons each open a list of tick boxes on top of this window; the container
-       tick is a single one and only shows up when the browser came from an entry stored inside another item. -->
-  <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
-    <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
-    <Button Text="{Binding CategoryFilter}" Command="{Binding PickCategoriesCommand}" Width="1.5*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
-    <TextBox Text="{Binding Query, Mode=TwoWay}" Width="1.5*" Height="0.8" Clear="True" Focus="True" />
-    <Tick Text="{Binding ContainerFilterLabel}" Selected="{Binding ContainerOnly, Mode=TwoWay}" Width="1.5*"
-      Visible="{Binding ContainerFilterVisible}" />
-    <Tick Text="{Binding HiddenFilterLabel}" Selected="{Binding HideHidden, Mode=TwoWay}" Width="2*" />
-  </Stack>
+       tick is a single one and only shows up when the browser came from an entry stored inside another item. The list
+       sits inside its own frame so a hovered row reads as a highlight rather than as the window's gradient. -->
+  <Panel Skin="InnerFrame" Width="1" Height="90*" Padding="17,19,20,16">
+    <Stack Orientation="Vertical">
 
-  <!-- The window's own skin is a top-dark gradient and a row highlight is a translucent white, so the list needs this
-       frame under it or a hovered row reads as a gradient; the bands keep clear of its edges when a tile grows. -->
-  <Panel Skin="InnerFrame" Height="80*">
-    <List Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="1" Spacing="3" Virtual="True" Rows="5"
-          Padding="6,6" TileTemplate="ItemTile" />
+      <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft">
+        <Button Text="{Binding PackageFilter}" Command="{Binding PickPackagesCommand}" Width="2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
+        <Button Text="{Binding CategoryFilter}" Command="{Binding PickCategoriesCommand}" Width="1.5*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" />
+        <TextBox Text="{Binding Query, Mode=TwoWay}" Width="1.5*" Height="0.8" Clear="True" Focus="True" />
+        <Tick Text="{Binding ContainerFilterLabel}" Selected="{Binding ContainerOnly, Mode=TwoWay}" Width="1.5*"
+          Visible="{Binding ContainerFilterVisible}" />
+        <Tick Text="{Binding HiddenFilterLabel}" Selected="{Binding HideHidden, Mode=TwoWay}" Width="2*" />
+      </Stack>
+
+      <List Items="{Binding Rows}" Scroll="{Binding Scroll, Mode=TwoWay}" Height="80*" Spacing="3" Virtual="True" Rows="5" Padding="8,0,0,8"
+            TileTemplate="ItemTile" />
+    </Stack>
   </Panel>
 
 </Stack>

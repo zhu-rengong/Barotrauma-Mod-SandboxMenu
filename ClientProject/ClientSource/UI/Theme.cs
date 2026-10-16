@@ -25,6 +25,12 @@ internal static class Theme
 
     public const float RowHeight = 0.075f;
 
+    public const float MenuRowHeight = 21f;
+
+    public const int MenuMinRows = 5;
+
+    public const float MenuRowIndent = 10f;
+
     public const float SectionHeight = 0.085f;
 
     public const float ControlHeight = 0.84f;

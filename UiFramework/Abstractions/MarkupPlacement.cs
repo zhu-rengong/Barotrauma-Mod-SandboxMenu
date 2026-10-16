@@ -1,14 +1,20 @@
 namespace UiFramework.Abstractions;
 
-internal readonly record struct MarkupPlacement(float Width, float Height, Anchor Anchor)
+internal readonly record struct MarkupPlacement(float Width, float Height, Anchor Anchor, float HeightDip = 0f)
 {
     internal static MarkupPlacement Of(MarkupNode node, float defaultWidth, float defaultHeight, MarkupDiagnostics? diagnostics = null)
-        => new(
-            Size(node, "Width", defaultWidth, diagnostics),
-            Measure(node, "Height", defaultHeight, diagnostics),
-            ViewMarkup.AnchorOf(node.Text("Align"), Anchor.TopLeft));
+    {
+        (float height, float heightDip) = Measure(node, "Height", defaultHeight, diagnostics);
 
-    internal RectTransform ToRectTransform(RectTransform parent) => new(new Vector2(Width, Height), parent, Anchor);
+        return new(
+            Size(node, "Width", defaultWidth, diagnostics),
+            height,
+            ViewMarkup.AnchorOf(node.Text("Align"), Anchor.TopLeft),
+            heightDip);
+    }
+
+    internal RectTransform ToRectTransform(RectTransform parent)
+        => HeightDip > 0f ? Fixed(parent) : new RectTransform(new Vector2(Width, Height), parent, Anchor);
 
     internal static float Size(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
     {
@@ -27,17 +33,61 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
     internal static float Metric(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
         => Read(node, attribute, fallback, diagnostics, ratio: false);
 
-    internal static float Measure(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics = null)
+    private static (float Ratio, float Dip) Measure(
+        MarkupNode node,
+        string attribute,
+        float fallback,
+        MarkupDiagnostics? diagnostics)
     {
-        string text = (node.Text(attribute)?.Trim() ?? string.Empty);
+        string text = node.Text(attribute)?.Trim() ?? string.Empty;
 
-        if (text.Length == 0) { return fallback; }
-        if (text.Equals("row", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("row", 0.075f); }
-        if (text.Equals("section", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("section", 0.085f); }
-        if (text.Equals("control", StringComparison.OrdinalIgnoreCase)) { return UiTokens.Percent("control", 0.84f); }
-        if (text.Equals("Fill", StringComparison.OrdinalIgnoreCase) || text.Equals("*", StringComparison.Ordinal)) { return 1f; }
+        if (text.Length == 0) { return (fallback, 0f); }
+        if (Length.TryWeight(text, out _)) { return (1f, 0f); }
+        if (text.Equals("Fill", StringComparison.OrdinalIgnoreCase)) { return (1f, 0f); }
 
-        return Size(node, attribute, fallback, diagnostics);
+        Length token = UiTokens.AsLength(text, Length.Auto);
+
+        if (token.Kind == LengthKind.Dip) { return (0f, token.Value); }
+        if (token.Kind == LengthKind.Percent) { return (token.Value, 0f); }
+
+        if (text.EndsWith('%'))
+        {
+            return ValueParser.TryPercent(text, out float percent)
+                ? (percent, 0f)
+                : (Reject(text, fallback, attribute, "a percentage", diagnostics, node), 0f);
+        }
+
+        if (text.EndsWith("dip", StringComparison.OrdinalIgnoreCase))
+        {
+            return ValueParser.TryDip(text, out float dip)
+                ? (0f, dip)
+                : (Reject(text, fallback, attribute, "a DIP length", diagnostics, node), 0f);
+        }
+
+        if (!ValueParser.TryFloat(text, out float value))
+        {
+            return (Reject(text, fallback, attribute, "a fraction of the parent", diagnostics, node), 0f);
+        }
+
+        if (value > 1f)
+        {
+            diagnostics?.Report($"'{attribute}=\"{text}\"' is more than the whole parent; sizes inside a view are fractions", node);
+        }
+
+        return (value, 0f);
+    }
+
+    private RectTransform Fixed(RectTransform parent)
+    {
+        int height = UiMetrics.DipInt(HeightDip);
+
+        RectTransform transform = new(new Vector2(Width, 1f), parent, Anchor)
+        {
+            MinSize = new Point(0, height),
+            MaxSize = new Point(int.MaxValue, height)
+        };
+
+        return transform;
     }
 
     private static float Read(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics, bool ratio)

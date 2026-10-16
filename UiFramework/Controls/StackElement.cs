@@ -167,6 +167,7 @@ internal sealed class StackElement : ViewElement
         _group.NeedsToRecalculate = true;
 
         if (_horizontal ? Control.Rect.Width > 0 : Control.Rect.Height > 0) { LayoutFlush.Apply(Control); }
+        else { _view.RequestLayout(this); }
     }
 
     private float? Share(ViewElement child)
@@ -190,7 +191,24 @@ internal sealed class StackElement : ViewElement
 
     private float MainAxis(ViewElement child)
     {
-        Vector2 size = child.Control.RectTransform.RelativeSize;
+        RectTransform transform = child.Control.RectTransform;
+        Point min = transform.MinSize;
+        Point max = transform.MaxSize;
+        int low = _horizontal ? min.X : min.Y;
+        int high = _horizontal ? max.X : max.Y;
+
+        if (low > 0 && low == high)
+        {
+            int extent = _horizontal ? Control.Rect.Width : Control.Rect.Height;
+
+            if (extent <= 0) { return 0f; }
+
+            Rectangle rect = transform.Rect;
+
+            return (_horizontal ? rect.Width : rect.Height) / (float)extent;
+        }
+
+        Vector2 size = transform.RelativeSize;
 
         return _horizontal ? size.X : size.Y;
     }

@@ -26,6 +26,10 @@ internal sealed class AfflictionDisplay
 
     public bool LimbSpecific => _prefab.LimbSpecific;
 
+    private Color KindTextColor => _prefab.IsBuff ? Theme.BuffText : GUIStyle.Red;
+
+    private Color StrengthRangeColor => KindTextColor * 0.7f;
+
     public float MaxStrength => _prefab.MaxStrength > 0f ? _prefab.MaxStrength : 1f;
 
     public RichString Title => RichString.Rich(TooltipText.Bright(_name) + " " + TooltipText.Dim(Identifier));
@@ -71,9 +75,9 @@ internal sealed class AfflictionDisplay
                 _prefab.LimbSpecific ? "sandboxmenu.afflictions.field.limbspecific" : "sandboxmenu.afflictions.field.body",
                 GUIStyle.Orange);
 
-            return text + " " + (_prefab.IsBuff
-                ? TooltipText.Colored("sandboxmenu.afflictions.field.buff", Theme.BuffText)
-                : TooltipText.Colored("sandboxmenu.afflictions.field.debuff", GUIStyle.Red));
+            return text + " " + TooltipText.Colored(
+                _prefab.IsBuff ? "sandboxmenu.afflictions.field.buff" : "sandboxmenu.afflictions.field.debuff",
+                KindTextColor);
         }
     }
 
@@ -97,7 +101,7 @@ internal sealed class AfflictionDisplay
 
                 text += "\n" + TooltipText.Colorize(
                     "[" + TooltipText.Number(description.MinStrength) + "-" + TooltipText.Number(description.MaxStrength) + "]",
-                    Theme.TagText) + " " + description.Text;
+                    StrengthRangeColor) + " " + description.Text;
             }
 
             return text;

@@ -1,3 +1,5 @@
+using UiFramework.Styling;
+
 namespace UiFramework;
 
 public sealed class ElementContext
@@ -25,6 +27,8 @@ public sealed class ElementContext
         => Place(defaultWidth, defaultHeight).ToRectTransform(parent);
 
     public string? Text(string attribute) => Node.Text(attribute);
+
+    public GUIComponentStyle? Style(string? skin) => GuiStyles.Resolve(skin, message => View.Diagnostics.Report(message, Node));
 
     internal Insets Padding => Node.Padding;
 

@@ -15,13 +15,13 @@
 
   <!-- The view markup ships inside the assembly, so a build produces a single file to deploy. -->
   <ItemGroup>
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MainWindow.xml" LogicalName="SandboxMenu.MainWindow.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ContextMenu.xml" LogicalName="SandboxMenu.ContextMenu.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Browser.xml" LogicalName="SandboxMenu.Browser.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\CharacterBrowser.xml" LogicalName="SandboxMenu.CharacterBrowser.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\ColorPicker.xml" LogicalName="SandboxMenu.ColorPicker.xml" />
-    <EmbeddedResource Include="ClientSource\SandboxMenu\UI\Markup\Styling\Theme.xml" LogicalName="SandboxMenu.Theme.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\MainWindow.xml" LogicalName="SandboxMenu.MainWindow.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\ContextMenu.xml" LogicalName="SandboxMenu.ContextMenu.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\Browser.xml" LogicalName="SandboxMenu.Browser.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\CharacterBrowser.xml" LogicalName="SandboxMenu.CharacterBrowser.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\ColorPicker.xml" LogicalName="SandboxMenu.ColorPicker.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\Styling\Theme.xml" LogicalName="SandboxMenu.Theme.xml" />
   </ItemGroup>
 </Project>

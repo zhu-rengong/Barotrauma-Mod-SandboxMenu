@@ -4,9 +4,15 @@ internal static class MarkupSelfTest
 {
     private const int WarmupFrames = 4;
 
+    private const int SwitchPasses = 3;
+
+    private const int Tolerance = 1;
+
+    private const string MainView = "MainWindow.xml";
+
     private static readonly string[] Views =
     [
-        "MainWindow.xml",
+        MainView,
         "Browser.xml",
         "CharacterBrowser.xml",
         "MultiPicker.xml",
@@ -117,6 +123,8 @@ internal static class MarkupSelfTest
                 for (int frame = 0; frame < WarmupFrames; frame++) { loaded.RunFrameActions(); }
 
                 diagnostics += CountPrunedOverlays(window.Frame.RectTransform);
+
+                if (string.Equals(view, MainView, StringComparison.OrdinalIgnoreCase)) { diagnostics += VerifyFunctionSwitch(loaded, view); }
             }
         }
         catch (Exception e)
@@ -134,6 +142,81 @@ internal static class MarkupSelfTest
         }
 
         return diagnostics;
+    }
+
+    private static int VerifyFunctionSwitch(ViewContext view, string viewName)
+    {
+        if (view.RootElement?.DataContext is not SandboxMenuViewModel model) { return 0; }
+
+        if (view.FindElement("AfflictionTiles") is not { } tiles)
+        {
+            DebugConsole.NewMessage($"sandboxmenu.markup.selftest: {viewName} has no named affliction grid");
+            return 1;
+        }
+
+        RectTransform column = tiles.Control.RectTransform.Parent ?? tiles.Control.RectTransform;
+
+        model.Functions.SelectedIndex = (int)FunctionTab.Afflictions;
+        Pump(view);
+        Pump(view);
+
+        Rectangle baselineColumn = column.Rect;
+        Rectangle[] baseline = ChildRects(column);
+
+        for (int pass = 0; pass < SwitchPasses; pass++)
+        {
+            model.Functions.SelectedIndex = (int)FunctionTab.Spawn;
+            Pump(view);
+
+            model.Functions.SelectedIndex = (int)FunctionTab.Afflictions;
+            Pump(view);
+        }
+
+        int problems = 0;
+
+        problems += ReportDrift(viewName, "affliction column", baselineColumn, column.Rect);
+
+        Rectangle[] current = ChildRects(column);
+
+        for (int i = 0; i < current.Length && i < baseline.Length; i++)
+        {
+            problems += ReportDrift(viewName, $"affliction column child {i}", baseline[i], current[i]);
+        }
+
+        model.Functions.SelectedIndex = (int)FunctionTab.Spawn;
+        Pump(view);
+
+        return problems;
+    }
+
+    private static int ReportDrift(string viewName, string what, Rectangle baseline, Rectangle current)
+    {
+        if (Math.Abs(current.X - baseline.X) <= Tolerance
+            && Math.Abs(current.Y - baseline.Y) <= Tolerance
+            && Math.Abs(current.Width - baseline.Width) <= Tolerance
+            && Math.Abs(current.Height - baseline.Height) <= Tolerance)
+        {
+            return 0;
+        }
+
+        DebugConsole.NewMessage(
+            $"sandboxmenu.markup.selftest: {viewName} {what} went from {baseline} to {current} after switching");
+
+        return 1;
+    }
+
+    private static Rectangle[] ChildRects(RectTransform transform)
+    {
+        Rectangle[] rects = new Rectangle[transform.CountChildren];
+
+        for (int i = 0; i < rects.Length; i++) { rects[i] = transform.GetChild(i).Rect; }
+
+        return rects;
+    }
+
+    private static void Pump(ViewContext view)
+    {
+        for (int frame = 0; frame < WarmupFrames; frame++) { view.RunFrameActions(); }
     }
 
     private static void Configure(ViewContext view)

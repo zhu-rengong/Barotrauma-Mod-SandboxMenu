@@ -1,0 +1,39 @@
+<Window ContentInset="16" Width="496dip" Height="432dip">
+
+<Stack Orientation="Vertical">
+
+  <!-- The picker row is a template on the view model's type: the list asks for it by the item it presents.
+       The list holds a row for every entry it was given; the search text above hides the ones it is not looking
+       for, so the row follows the view model's visibility rather than being built and thrown away. -->
+  <Stack.Resources>
+    <DataTemplate DataType="OptionRowViewModel">
+      <Row Text="{Binding Text}" Command="{Binding PickCommand}" Visible="{Binding Visible}" Height="row" />
+    </DataTemplate>
+  </Stack.Resources>
+
+  <Panel Skin="None" Height="16*">
+    <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="0.78" Height="1" Padding="8" />
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
+            Align="CenterRight" />
+  </Panel>
+
+  <Panel Skin="InnerFrame" Width="1" Height="84*" Padding="17,19,20,16">
+    <Stack Orientation="Vertical" Spacing="6">
+
+      <!-- A filter, like the item browser: a component of a large prefab has a long list of properties. -->
+      <TextBox Text="{Binding Query, Mode=TwoWay}" Height="30dip" Clear="True" Focus="True" />
+
+      <!-- The property picker narrows by what the host's editors would let a player change or save; option lists that
+           have nothing to go by leave the row out, and the list takes the height it gives back. -->
+      <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Visible="{Binding ShowFilters}">
+        <Tick Text="{Binding EditableFilterLabel}" Selected="{Binding OnlyEditable, Mode=TwoWay}" Width="1*" />
+        <Tick Text="{Binding SaveableFilterLabel}" Selected="{Binding OnlySaveable, Mode=TwoWay}" Width="1*" />
+      </Stack>
+
+      <List Items="{Binding Options}" Height="64*" Spacing="3" />
+    </Stack>
+  </Panel>
+
+</Stack>
+
+</Window>

@@ -7,6 +7,7 @@ public sealed partial class Plugin
     private static readonly Dictionary<string, UiToken> Tokens = new(StringComparer.OrdinalIgnoreCase)
     {
         ["row"] = UiToken.Percent(Theme.RowHeight),
+        ["menuRow"] = UiToken.Dip(Theme.MenuRowHeight),
         ["section"] = UiToken.Percent(Theme.SectionHeight),
         ["control"] = UiToken.Percent(Theme.ControlHeight),
         ["labelWidth"] = UiToken.Percent(Theme.LabelWidth),

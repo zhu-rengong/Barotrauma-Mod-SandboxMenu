@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Microsoft.Xna.Framework.Graphics;
+using UiFramework.Layout;
 using KeyCode = Microsoft.Xna.Framework.Input.Keys;
 
 namespace UiFramework;
@@ -50,6 +51,7 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     private int _layoutBatch;
     private bool _flushingShares;
+    private bool _layoutRequested;
 
     private Action<string>? _diagnosticSink;
     private ICommand? _closeCommand;
@@ -75,11 +77,15 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     internal object? DataContext { get; set; }
 
+    public Point? ContentSize { get; set; }
+
     internal ResourceDictionary? Resources { get; set; }
 
     internal ViewElement? Root { get; set; }
 
     public ViewElement? RootElement => Root;
+
+    public ViewElement? FindElement(string name) => Names.Find(name);
 
     internal Action<string>? DiagnosticSink
     {
@@ -96,6 +102,8 @@ public sealed class ViewContext : IDisposable, IViewHost
     public bool Interactive { get; set; } = true;
 
     public Action? Close { get; set; }
+
+    public Func<bool>? CloseTransient { get; set; }
 
     public Action<RectTransform, RectTransform>? MakeDraggable { get; set; }
 
@@ -168,6 +176,43 @@ public sealed class ViewContext : IDisposable, IViewHost
     }
 
     internal void QueueShares(Controls.StackElement stack) => _batchedShares.Add(stack);
+
+    internal void RequestLayout(ViewElement origin)
+    {
+        for (ViewElement? current = origin; current is not null; current = current.Parent) { MarkLayoutDirty(current); }
+
+        MarkSubtree(origin);
+
+        if (_layoutRequested) { return; }
+
+        _layoutRequested = true;
+        Once(FlushLayout);
+    }
+
+    private void FlushLayout()
+    {
+        _layoutRequested = false;
+
+        if (Root is { } root) { LayoutFlush.Apply(root.Control); }
+    }
+
+    private static void MarkLayoutDirty(ViewElement element)
+    {
+        if (element.Control is GUILayoutGroup group) { group.NeedsToRecalculate = true; }
+
+        if (element.Control is GUIListBox listBox)
+        {
+            listBox.ChildrenNeedRecalculation = true;
+            listBox.DimensionsNeedRecalculation = true;
+        }
+    }
+
+    private static void MarkSubtree(ViewElement element)
+    {
+        MarkLayoutDirty(element);
+
+        foreach (ViewElement child in element.ChildElements) { MarkSubtree(child); }
+    }
 
     internal void FocusOnOpen(Action focus) => _focusOnOpen.Add(focus);
 
@@ -317,6 +362,7 @@ public sealed class ViewContext : IDisposable, IViewHost
         _batchedShares.Clear();
         _layoutBatch = 0;
         _flushingShares = false;
+        _layoutRequested = false;
         Window = null;
         Root = null;
     }

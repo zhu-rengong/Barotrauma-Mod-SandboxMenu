@@ -12,13 +12,15 @@ internal sealed class MarkupWindow : IDialogWindow
     private readonly ViewContext _view;
     private readonly int _order;
     private readonly int _id = ++_instances;
+    private readonly Point? _contentSize;
 
     private bool _closing;
     private bool? _interactive;
 
-    internal MarkupWindow(string markupFile, int updateOrder, object viewModel)
+    internal MarkupWindow(string markupFile, int updateOrder, object viewModel, Point? contentSize = null)
     {
         _order = updateOrder;
+        _contentSize = contentSize;
 
         _view = ViewLoader.Load(markupFile, viewModel, Configure, message => DebugConsole.AddWarning($"#{_id} {message}"), GUI.Canvas);
 
@@ -40,6 +42,7 @@ internal sealed class MarkupWindow : IDialogWindow
         view.Dispatch = FrameActions.Run;
         view.IsInputBlocked = () => InputBlocked;
         view.Close = Close;
+        view.ContentSize = _contentSize;
     }
 
     public Action? Closing { get; set; }
@@ -61,6 +64,10 @@ internal sealed class MarkupWindow : IDialogWindow
     }
 
     public Rectangle Rect => _frame.Rect;
+
+    internal bool HasTransient => _view.CloseTransient is not null;
+
+    internal bool DismissTransient() => _view.CloseTransient?.Invoke() ?? false;
 
     public void DrawInto(SpriteBatch spriteBatch, Point shift) => WindowDraw.DrawInto(_frame, spriteBatch, shift);
 
@@ -84,6 +91,8 @@ internal sealed class MarkupWindow : IDialogWindow
 
     internal void Close()
     {
+        DismissTransient();
+
         IsOpen = false;
         _frame.Visible = false;
         _frame.RemoveFromGUIUpdateList();

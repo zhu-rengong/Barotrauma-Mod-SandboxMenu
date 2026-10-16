@@ -10,11 +10,12 @@ internal sealed class SandboxMenuViewModel : Notifiable, IItemDropTarget, IListB
 
     internal SandboxMenuViewModel(IDialogHost host)
     {
+        Functions = new FunctionSelectorViewModel();
         Spawn = new SpawnPanelViewModel(host, Report);
         Afflictions = new AfflictionPanelViewModel(host, Report);
     }
 
-    public FunctionSelectorViewModel Functions { get; } = new();
+    public FunctionSelectorViewModel Functions { get; }
 
     public SpawnPanelViewModel Spawn { get; }
 

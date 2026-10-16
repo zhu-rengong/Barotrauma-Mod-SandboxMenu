@@ -27,6 +27,16 @@ public sealed class RowElement : ViewElement
     }
 
     [ElementProperty]
+    public string Font
+    {
+        set
+        {
+            _row.Font = ViewMarkup.FontOf(value);
+            _row.TextBlock.TextScale = _scale;
+        }
+    }
+
+    [ElementProperty]
     public string TextAlign { set => _row.TextBlock.TextAlignment = ViewMarkup.AlignmentOf(value, Alignment.CenterLeft); }
 
     [ElementProperty]
@@ -56,13 +66,23 @@ public sealed class RowElement : ViewElement
     private Color? _subTextColor;
 
     public RowElement(ElementContext context)
+        : this(context, RowSkin(context))
+    {
+    }
+
+    private RowElement(ElementContext context, string? skin)
         : base(new RowControl(
             context.Rect(context.Parent, 1f, Theme.RowHeight),
             string.Empty,
-            ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft)))
+            ViewMarkup.AlignmentOf(context.Text("TextAlign"), Alignment.CenterLeft),
+            skin))
     {
         _row = (RowControl)Control;
         _view = context.View;
+
+        if (_row.Skinned) { _indent = Theme.MenuRowIndent; }
+
+        _row.Font = ViewMarkup.FontOf(context.Text("Font"));
         _scale = ViewMarkup.TextScaleOf(context.Text("FontSize"), _row.TextBlock.Font);
 
         _row.TextBlock.TextScale = _scale;
@@ -93,6 +113,9 @@ public sealed class RowElement : ViewElement
             }
         });
     }
+
+    private static string? RowSkin(ElementContext context)
+        => context.Style(context.Skin) is null ? null : context.Skin;
 
     [ElementProperty(KeyText = true)]
     public RichString Text

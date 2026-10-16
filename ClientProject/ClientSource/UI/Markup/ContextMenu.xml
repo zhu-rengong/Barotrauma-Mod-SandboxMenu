@@ -1,0 +1,16 @@
+<Window Skin="GUIToolTip" Width="280dip" Height="240dip">
+
+<Stack Orientation="Vertical" Spacing="0">
+
+  <Stack.Resources>
+    <DataTemplate DataType="ContextOptionViewModel">
+      <Row Text="{Binding Label}" Command="{Binding InvokeCommand}" Shortcut="{Binding Shortcut}" Width="1"
+           Height="menuRow" Font="Small" Skin="GUITextBlock" Highlight="False" SelectedBarFill="Transparent" />
+    </DataTemplate>
+  </Stack.Resources>
+
+  <List Items="{Binding Options}" Height="1" Spacing="0" />
+
+</Stack>
+
+</Window>

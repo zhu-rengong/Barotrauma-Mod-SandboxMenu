@@ -1,4 +1,4 @@
-<Window Width="1008dip" Height="624dip">
+<Window ContentInset="16" Width="1008dip" Height="624dip">
 
 <Stack Orientation="Vertical">
 
@@ -47,7 +47,7 @@
     <DataTemplate DataType="BrowseRowViewModel">
       <Field LabelText="{Binding Label}">
         <TextBox Text="{Binding Text, Mode=TwoWay}" Focus="{Binding TakeFocus, Mode=TwoWay}" Width="0.72" />
-        <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" />
+        <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" Skin="GUIButtonSmall" />
       </Field>
     </DataTemplate>
 
@@ -85,12 +85,12 @@
           <ColorSwatch Color="{Binding Swatch}" Label="{Binding ColorLabel}" Command="{Binding PickColorCommand}"
                        Visible="{Binding IsColor}" Width="1*" Height="1" />
         </Stack>
-        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.14" Height="1" />
+        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.14" Height="1" Skin="GUIButtonSmall" />
       </Field>
     </DataTemplate>
 
     <DataTemplate DataType="ButtonRowViewModel">
-      <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" />
+      <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" Skin="GUIButtonSmall" />
     </DataTemplate>
     <DataTemplate DataType="TreeEntryViewModel">
       <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" IndentLevel="{Binding Depth}"
@@ -136,22 +136,17 @@
       </Tile>
     </DataTemplate>
   </Stack.Resources>
-  <!-- Title band: the title, the function entries right behind it, the shared status line and the close button take
+  <!-- Title band: the title, the function selector right behind it, the shared status line and the close button take
        the band in that order. It is a stack because the four regions divide the axis in sequence, and the status line
        is the share that soaks up what the fixed regions leave, which is what keeps the close button on the right
        edge. The status line is shared by every function: whichever panel reports writes into the window's own
-       status, so a switch neither blanks it nor shows the other function's leftovers. The entries sit flush because
-       the stack puts no spacing between them. -->
+       status, so a switch neither blanks it nor shows the other function's leftovers. -->
   <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
     <Panel Skin="None" Width="0.24" Height="1">
       <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
     </Panel>
-    <Row Text="{Binding Functions.SpawnTab.Label}" Selected="{Binding Functions.SpawnTab.IsActive}"
-         Command="{Binding Functions.SpawnTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
-         Width="0.17" Height="0.6" />
-    <Row Text="{Binding Functions.AfflictionsTab.Label}" Selected="{Binding Functions.AfflictionsTab.IsActive}"
-         Command="{Binding Functions.AfflictionsTab.SelectCommand}" SelectedBar="BottomCenter" TextAlign="Center"
-         Width="0.17" Height="0.6" />
+    <Dropdown Items="{Binding Functions.Items}" SelectedIndex="{Binding Functions.SelectedIndex, Mode=TwoWay}"
+              Width="0.26" Height="0.6" Skin="GUIDropDown" />
     <Text Text="{Binding Status}" Style="StatusText" Width="1*" Height="1" Padding="12" Color="Accent"
           Wrap="True" Clip="True" />
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
@@ -178,42 +173,47 @@
       <KeyBinding Key="OemPlus,Add" Modifiers="Shift" Command="{Binding Spawn.AddChildCommand}" RequiresNoTextInput="True" />
     </Stack.InputBindings>
 
-    <!-- body: the spawn set tree and the editor -->
-    <Stack Orientation="Horizontal" Height="75*">
-      <Panel Skin="InnerFrame" Width="36*">
-        <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
-      </Panel>
+    <Panel Skin="InnerFrame" Width="1" Height="1">
+      <Stack Orientation="Vertical" Width="0.97" Height="0.95" Align="Center" Spacing="6">
 
-      <Panel Skin="InnerFrame" Width="64*">
-        <List Items="{Binding Spawn.Editor.Rows}" Height="1" Spacing="4" />
-      </Panel>
-    </Stack>
+        <!-- body: the spawn set tree and the editor -->
+        <Stack Orientation="Horizontal" Height="75*" Spacing="10">
+          <Panel Skin="GUIFrameListBox" Width="36*">
+            <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
+          </Panel>
 
-    <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
-         be done with it -->
-    <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft">
-      <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
-        <TextBox Text="{Binding Spawn.PresetName, Mode=TwoWay}" Width="1" />
-      </Field>
-      <Button Text="sandboxmenu.preset.save" Command="{Binding Spawn.SavePresetCommand}" Width="0.15" Height="0.66" />
-      <Button Text="sandboxmenu.preset.load" Command="{Binding Spawn.LoadPresetCommand}" Width="0.15" Height="0.66" />
-      <Button Text="sandboxmenu.preset.reload" Command="{Binding Spawn.ReloadPresetCommand}" Width="0.15" Height="0.66" />
-      <Button Text="sandboxmenu.preset.open" Command="{Binding Spawn.OpenPresetCommand}" Width="0.15" Height="0.66" />
-    </Stack>
+          <Panel Skin="GUIFrameListBox" Width="64*">
+            <List Items="{Binding Spawn.Editor.Rows}" Height="1" Spacing="4" Padding="8" />
+          </Panel>
+        </Stack>
 
-    <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
-    <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
-      <Button Text="sandboxmenu.clear" Command="{Binding Spawn.ClearSetCommand}" Width="15*" Height="0.66" />
-      <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
-              Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
-      <Button Text="sandboxmenu.spawnatcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
+        <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
+             be done with it -->
+        <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft">
+          <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
+            <TextBox Text="{Binding Spawn.PresetName, Mode=TwoWay}" Width="1" />
+          </Field>
+          <Button Text="sandboxmenu.preset.save" Command="{Binding Spawn.SavePresetCommand}" Width="0.15" Height="0.66" />
+          <Button Text="sandboxmenu.preset.load" Command="{Binding Spawn.LoadPresetCommand}" Width="0.15" Height="0.66" />
+          <Button Text="sandboxmenu.preset.reload" Command="{Binding Spawn.ReloadPresetCommand}" Width="0.15" Height="0.66" />
+          <Button Text="sandboxmenu.preset.open" Command="{Binding Spawn.OpenPresetCommand}" Width="0.15" Height="0.66" />
+        </Stack>
 
-    </Stack>
+        <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
+        <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
+          <Button Text="sandboxmenu.clear" Command="{Binding Spawn.ClearSetCommand}" Width="15*" Height="0.66" />
+          <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
+                  Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
+          <Button Text="sandboxmenu.spawnatcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
+
+        </Stack>
+      </Stack>
+    </Panel>
   </Stack>
 
   <!-- The affliction function's area: the character it acts on leads the left column, the state they are already in
        sits under them there, and everything that can be laid on them takes the right column. -->
-  <Stack Orientation="Horizontal" Height="92*" Visible="{Binding Functions.ShowAfflictions}" Spacing="10">
+  <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowAfflictions}">
 
     <!-- Deleting the affliction the list has picked: the key belongs to this area, so it is live exactly while the
          afflictions are the ones on show. -->
@@ -221,78 +221,83 @@
       <KeyBinding Key="Delete" Command="{Binding Afflictions.DeletePickedCommand}" RequiresNoTextInput="True" />
     </Stack.InputBindings>
 
-    <!-- left column: who the function acts on leads it bare, so the list below keeps the frame to itself -->
-    <Stack Orientation="Vertical" Width="36*" Spacing="6">
+    <Panel Skin="InnerFrame" Width="1" Height="1">
+      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10">
 
-      <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
-        <Button Text="sandboxmenu.afflictions.characters" Command="{Binding Afflictions.OpenBrowserCommand}"
-                Width="1*" Height="1" SelfToolTip="False" />
-        <Button Text="sandboxmenu.afflictions.characters.controlled" Command="{Binding Afflictions.SelectControlledCommand}"
-                Width="1*" Height="1" SelfToolTip="False" />
-      </Stack>
+        <!-- left column: who the function acts on leads it bare, so the list below keeps the frame to itself -->
+        <Stack Orientation="Vertical" Width="36*" Spacing="6">
 
-      <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
-        <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Afflictions.ShowIcon}">
-          <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
-                         ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
-                         BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
-        </Panel>
-        <Text Text="{Binding Afflictions.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
-      </Stack>
-
-      <!-- what the character is already carrying, grouped by the limb it sits on; the list only reports what is there,
-           where a new affliction lands is set on the right -->
-      <Panel Skin="InnerFrame" Width="1" Height="85*">
-        <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
-          <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
-            <Tick Text="sandboxmenu.afflictions.sort.name" Selected="{Binding Afflictions.SortByName, Mode=TwoWay}" Width="1*"
-                  SelfToolTip="False" />
-            <Tick Text="sandboxmenu.afflictions.hide.empty" Selected="{Binding Afflictions.HideEmptyLimbs, Mode=TwoWay}" Width="1.6*" />
+          <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
+            <Button Text="sandboxmenu.afflictions.characters" Command="{Binding Afflictions.OpenBrowserCommand}"
+                    Width="1*" Height="1" SelfToolTip="False" />
+            <Button Text="sandboxmenu.afflictions.characters.controlled" Command="{Binding Afflictions.SelectControlledCommand}"
+                    Width="1*" Height="1" SelfToolTip="False" />
           </Stack>
-          <List Items="{Binding Afflictions.Rows}" Scroll="{Binding Afflictions.RowScroll, Mode=TwoWay}" Height="90*"
-                Spacing="3" Padding="6,6" />
-        </Stack>
-        <Text Text="{Binding Afflictions.RowsEmptyHint}" Visible="{Binding Afflictions.RowsEmpty}" FontSize="20"
-              Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
-      </Panel>
-    </Stack>
 
-    <!-- what can be laid on them, at the strength the slider gives: a left click on a tile applies it. Where it lands
-         and whether that strength scales with the target's max vitality are set here as well. The filters, the strength
-         and the grid share one frame so the whole browser reads as a single block. -->
-    <Panel Skin="InnerFrame" Width="64*">
-      <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
-        <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
-          <Button Text="{Binding Afflictions.PackageFilter}" Command="{Binding Afflictions.PickPackagesCommand}"
-                  Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          <Button Text="{Binding Afflictions.TypeFilter}" Command="{Binding Afflictions.PickTypesCommand}"
-                  Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          <Tick Text="{Binding Afflictions.HiddenFilterLabel}" Selected="{Binding Afflictions.HideHidden, Mode=TwoWay}"
-                Width="1.4*" />
+          <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
+            <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Afflictions.ShowIcon}">
+              <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
+                             ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                             BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+            </Panel>
+            <Text Text="{Binding Afflictions.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+          </Stack>
+
+          <!-- what the character is already carrying, grouped by the limb it sits on; the list only reports what is there,
+               where a new affliction lands is set on the right -->
+          <Panel Skin="GUIFrameListBox" Width="1" Height="85*">
+            <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
+              <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
+                <Tick Text="sandboxmenu.afflictions.sort.name" Selected="{Binding Afflictions.SortByName, Mode=TwoWay}" Width="1*"
+                      SelfToolTip="False" />
+                <Tick Text="sandboxmenu.afflictions.hide.empty" Selected="{Binding Afflictions.HideEmptyLimbs, Mode=TwoWay}" Width="1.6*" />
+              </Stack>
+              <List Items="{Binding Afflictions.Rows}" Scroll="{Binding Afflictions.RowScroll, Mode=TwoWay}" Height="90*"
+                    Spacing="3" Padding="6,6" />
+            </Stack>
+            <Text Text="{Binding Afflictions.RowsEmptyHint}" Visible="{Binding Afflictions.RowsEmpty}" FontSize="20"
+                  Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+          </Panel>
         </Stack>
-        <Stack Orientation="Horizontal" Height="0.1" ChildAnchor="CenterLeft" Spacing="6">
-          <TextBox Text="{Binding Afflictions.Query, Mode=TwoWay}" Width="1.4*" Height="0.8" Clear="True" />
-          <Button Text="{Binding Afflictions.ScopeFilter}" Command="{Binding Afflictions.PickScopesCommand}"
-                  Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          <Button Text="{Binding Afflictions.KindFilter}" Command="{Binding Afflictions.PickKindsCommand}"
-                  Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-        </Stack>
-        <Stack Orientation="Horizontal" Height="0.07" ChildAnchor="CenterLeft" Spacing="6">
-          <Text Text="sandboxmenu.afflictions.strength" FontSize="18" Width="0.2" Wrap="False" />
-          <Slider Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Max="100" Step="1" Width="1*" Height="0.6" />
-          <Number Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Width="0.16" Min="0" Max="100" Step="1" />
-        </Stack>
-        <Stack Orientation="Horizontal" Height="0.07" ChildAnchor="CenterLeft" Spacing="6">
-          <Button Text="{Binding Afflictions.TargetLabel}" Command="{Binding Afflictions.PickTargetsCommand}"
-                  Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
-          <Tick Text="sandboxmenu.afflictions.multiply.maxvitality" Selected="{Binding Afflictions.MultiplyByMaxVitality, Mode=TwoWay}"
-                Width="1.4*" SelfToolTip="True" />
-        </Stack>
-        <TileGrid Items="{Binding Afflictions.Tiles}" Scroll="{Binding Afflictions.TileScroll, Mode=TwoWay}"
-                  Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
+
+        <!-- what can be laid on them, at the strength the slider gives: a left click on a tile applies it. Where it lands
+             and whether that strength scales with the target's max vitality are set here as well. The filters, the strength
+             and the grid share one frame so the whole browser reads as a single block. -->
+        <Panel Skin="GUIFrameListBox" Width="64*">
+          <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="4">
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <Button Text="{Binding Afflictions.PackageFilter}" Command="{Binding Afflictions.PickPackagesCommand}"
+                      Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Button Text="{Binding Afflictions.TypeFilter}" Command="{Binding Afflictions.PickTypesCommand}"
+                      Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Tick Text="{Binding Afflictions.HiddenFilterLabel}" Selected="{Binding Afflictions.HideHidden, Mode=TwoWay}"
+                    Width="1.4*" />
+            </Stack>
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <TextBox Text="{Binding Afflictions.Query, Mode=TwoWay}" Width="1.4*" Height="0.8" Clear="True" />
+              <Button Text="{Binding Afflictions.ScopeFilter}" Command="{Binding Afflictions.PickScopesCommand}"
+                      Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Button Text="{Binding Afflictions.KindFilter}" Command="{Binding Afflictions.PickKindsCommand}"
+                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+            </Stack>
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <Text Text="sandboxmenu.afflictions.strength" FontSize="18" Width="0.2" Wrap="False" />
+              <Slider Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Max="100" Step="1" Width="1*" Height="0.6" />
+              <Number Value="{Binding Afflictions.StrengthPercent, Mode=TwoWay}" Width="0.16" Min="0" Max="100" Step="1" />
+            </Stack>
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <Button Text="{Binding Afflictions.TargetLabel}" Command="{Binding Afflictions.PickTargetsCommand}"
+                      Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Tick Text="sandboxmenu.afflictions.multiply.maxvitality" Selected="{Binding Afflictions.MultiplyByMaxVitality, Mode=TwoWay}"
+                    Width="1.4*" SelfToolTip="True" />
+            </Stack>
+            <TileGrid Name="AfflictionTiles" Items="{Binding Afflictions.Tiles}" Scroll="{Binding Afflictions.TileScroll, Mode=TwoWay}"
+                      Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
+          </Stack>
+          <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
+                Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+        </Panel>
       </Stack>
-      <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
-            Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
     </Panel>
   </Stack>
 

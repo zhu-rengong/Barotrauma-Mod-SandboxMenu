@@ -1,0 +1,19 @@
+# SandboxMenu 工程约束
+
+## 工程约束
+
+1. **语言与风格**：用 .NET 8 / C# 12 现代特性——集合表达式、模式匹配、record、FrozenDictionary、主构造函数等，不为旧语法让路；file-scoped namespace、可空标注、PascalCase 成员、camelCase 局部变量、显式 `StringComparison`。
+2. **注释几乎不留**：一条都不写，以防被注释误导。
+3. **宿主契约**：宿主程序集已 publicize，直接访问其类型与成员，不用反射。查 API 签名、字段与行为一律去本机反编译源码（`D:\Code Repository\FakeFish\Decompile\`，按程序集名找子目录），请勿凭记忆猜测。
+4. **只构建、只验证**：改完跑 Release 构建到 0 警告 0 错误并报告，**到此为止**——不部署、不启停宿主程序。本仓命令：`dotnet build SandboxMenu.slnf -c Release --nologo`。
+5. **不影响宿主**：不写宿主全局状态（样式表、全局 UI 单例、输入状态、全局菜单），不改宿主 UI 与行为，卸载后不留残留。
+6. **卸载必须可回收**：宿主在可回收的加载上下文中加载插件，任何被宿主和其他插件遗留强引用都会触发“未能完整卸载”警告并滞留内存。注册进宿主/插件服务的项不要手动注销，这是因为控制台命令、Hook、网络 Handler、各类注册器等服务会记录本插件注册了什么，插件卸载时将随服务释放一并自动清掉和注销。
+7. **跨平台（Linux / macOS / Windows）**：不依赖单一操作系统。
+8. **优先宿主原生接口，不自造轮子**：宿主已有的服务与扩展接口先用。
+   - 服务经 `PluginServiceProvider.GetService<T>()` 获取。
+   - UI、文本本地化、数据访问同样优先既有类型与机制，能用宿主 Hook/回调修补的就不用 Harmony 打补丁。
+   - 判定顺序：先到反编译源码确认宿主有无现成能力 → 有就直接用 → 确实没有才自研。宿主提供的成对 API 本身也是第 6 条的卸载保证。
+9. **只用宿主有意公开的 API 与扩展**：功能一律建立在游戏自己提供的扩展面上——服务走 `PluginServiceProvider.GetService<T>()`（`IDebugConsole`/`ISettingsService`/`IGameNetwork`/`IGameScreen`/`ISimpleHookService`/`IHarmonyProvider` 等），钩子走 `ISimpleHookService.RegisterHook`，网络走 `IGameNetwork`，设置走 `ISettingsService.RegisterSetting` + `BaseSetting<T>.CreateUI`，文本走 `TextManager`，UI 与数据访问用宿主既有类型与机制（第 8 条）。禁止把功能架在宿主之外的运行时上：外部进程与随附 exe、内嵌浏览器引擎（Chrome/CEF/WebView）、脚本（Python/JRE/Node 等）、本地服务器与套接字（`HttpListener`/`TcpListener`/`Socket`/`HttpClient`/`WebClient`/`WebRequest`）、内核与 P/Invoke（`DllImport`/`NativeLibrary`/`Marshal`）、运行时加载程序集或动态生成代码（`Assembly.Load`/`AssemblyLoadContext`/`LoadFrom`/`DynamicMethod`）。
+10. 游戏本体内容位于 `G:\SteamLibrary\steamapps\common\Barotrauma\Content`，可做参考。
+
+除以上条例外，实现方式自由发挥。
