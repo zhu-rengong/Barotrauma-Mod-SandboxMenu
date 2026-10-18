@@ -235,15 +235,42 @@ internal sealed class TalentPanelViewModel : Notifiable
             return;
         }
 
-        if (!character.GiveTalent(prefab, true))
-        {
-            Services.DebugConsole.AddWarning($"Failed to grant the talent \"{prefab.Identifier}\" to \"{character.Name}\".");
-            Report(StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.failed"));
-            return;
-        }
+        TalentOutcome outcome = ClientTalentDispatcher.Grant(character, prefab);
 
-        Report(StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.talents.status.granted", TooltipText.ValuePlaceholder, tile.Display.Name));
-        RebuildRows();
+        (StatusKind kind, LocalizedString message) = outcome switch
+        {
+            TalentOutcome.Sent => (StatusKind.Success, TextManager.Get("sandboxmenu.talents.status.senttoserver")),
+            TalentOutcome.Applied => (StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.talents.status.granted", TooltipText.ValuePlaceholder, tile.Display.Name)),
+            TalentOutcome.AlreadyKnown => (StatusKind.Warning, TextManager.GetWithVariable("sandboxmenu.talents.status.already", TooltipText.ValuePlaceholder, tile.Display.Name)),
+            TalentOutcome.NoCharacter => (StatusKind.Warning, TextManager.Get("sandboxmenu.talents.status.noinfo")),
+            TalentOutcome.Failed => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.failed")),
+            _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.sendfailed"))
+        };
+
+        Report(kind, message);
+
+        if (outcome == TalentOutcome.Applied) { RebuildRows(); }
+    }
+
+    internal void ApplyResult(TalentStatus status)
+    {
+        (StatusKind kind, LocalizedString message) = status switch
+        {
+            TalentStatus.Ok => (StatusKind.Success, TextManager.Get("sandboxmenu.talents.status.serverok")),
+            TalentStatus.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.serverdenied")),
+            TalentStatus.UnknownTalent => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.serverunknown")),
+            TalentStatus.NoCharacter => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.servernocharacter")),
+            TalentStatus.Throttled => (StatusKind.Warning, TextManager.Get("sandboxmenu.talents.status.serverthrottled")),
+            _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.sendfailed"))
+        };
+
+        Report(kind, message);
+
+        if (status == TalentStatus.Ok)
+        {
+            _shape = 0;
+            RefreshRows();
+        }
     }
 
     private void RefreshRows()

@@ -40,7 +40,7 @@ internal static class ClientAfflictionDispatcher
 
         _waitingFor = 0;
 
-        Settled?.Invoke(response.Status);
+        Settled?.Invoke((AfflictionStatus)response.Status);
     }
 
     private static AfflictionOutcome ApplyLocally(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets, bool multiplyByMaxVitality)
@@ -77,7 +77,7 @@ internal static class ClientAfflictionDispatcher
             strength,
             limbs,
             Protocol.Version,
-            mode,
+            (byte)mode,
             character.ID,
             requestId,
             multiplyByMaxVitality);

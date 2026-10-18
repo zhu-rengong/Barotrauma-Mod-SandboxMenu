@@ -189,6 +189,13 @@
   <sandboxmenu.talents.status.already>The character already has [value].</sandboxmenu.talents.status.already>
   <sandboxmenu.talents.status.noinfo>This character has no character info to grant talents to.</sandboxmenu.talents.status.noinfo>
   <sandboxmenu.talents.status.failed>Could not grant the talent. See the log for details.</sandboxmenu.talents.status.failed>
+  <sandboxmenu.talents.status.senttoserver>The talent request was sent to the server.</sandboxmenu.talents.status.senttoserver>
+  <sandboxmenu.talents.status.serverok>The server granted the talent.</sandboxmenu.talents.status.serverok>
+  <sandboxmenu.talents.status.serverdenied>The server does not let you grant talents.</sandboxmenu.talents.status.serverdenied>
+  <sandboxmenu.talents.status.serverunknown>The server does not know that talent.</sandboxmenu.talents.status.serverunknown>
+  <sandboxmenu.talents.status.servernocharacter>The server could not find that character.</sandboxmenu.talents.status.servernocharacter>
+  <sandboxmenu.talents.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.talents.status.serverthrottled>
+  <sandboxmenu.talents.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.talents.status.sendfailed>
 
   <sandboxmenu.limb.none>Other</sandboxmenu.limb.none>
   <sandboxmenu.limb.head>Head</sandboxmenu.limb.head>

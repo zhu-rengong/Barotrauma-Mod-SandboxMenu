@@ -189,6 +189,13 @@
   <sandboxmenu.talents.status.already>该角色已经拥有 [value]。</sandboxmenu.talents.status.already>
   <sandboxmenu.talents.status.noinfo>该角色没有角色信息，无法授予天赋。</sandboxmenu.talents.status.noinfo>
   <sandboxmenu.talents.status.failed>无法授予该天赋，详见日志。</sandboxmenu.talents.status.failed>
+  <sandboxmenu.talents.status.senttoserver>天赋请求已发送到服务器。</sandboxmenu.talents.status.senttoserver>
+  <sandboxmenu.talents.status.serverok>服务器已授予该天赋。</sandboxmenu.talents.status.serverok>
+  <sandboxmenu.talents.status.serverdenied>服务器不允许你授予天赋。</sandboxmenu.talents.status.serverdenied>
+  <sandboxmenu.talents.status.serverunknown>服务器不认识该天赋。</sandboxmenu.talents.status.serverunknown>
+  <sandboxmenu.talents.status.servernocharacter>服务器找不到该角色。</sandboxmenu.talents.status.servernocharacter>
+  <sandboxmenu.talents.status.serverthrottled>服务器仍在处理上一个请求。</sandboxmenu.talents.status.serverthrottled>
+  <sandboxmenu.talents.status.sendfailed>无法把请求发送给服务器，详见日志。</sandboxmenu.talents.status.sendfailed>
 
   <sandboxmenu.limb.none>其他</sandboxmenu.limb.none>
   <sandboxmenu.limb.head>头部</sandboxmenu.limb.head>

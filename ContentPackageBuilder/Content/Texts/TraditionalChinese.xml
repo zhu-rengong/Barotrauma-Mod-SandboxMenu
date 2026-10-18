@@ -188,6 +188,13 @@
   <sandboxmenu.talents.status.already>該角色已經擁有 [value]。</sandboxmenu.talents.status.already>
   <sandboxmenu.talents.status.noinfo>該角色沒有角色資訊，無法授予天賦。</sandboxmenu.talents.status.noinfo>
   <sandboxmenu.talents.status.failed>無法授予該天賦，詳見日誌。</sandboxmenu.talents.status.failed>
+  <sandboxmenu.talents.status.senttoserver>天賦請求已傳送到伺服器。</sandboxmenu.talents.status.senttoserver>
+  <sandboxmenu.talents.status.serverok>伺服器已授予該天賦。</sandboxmenu.talents.status.serverok>
+  <sandboxmenu.talents.status.serverdenied>伺服器不允許你授予天賦。</sandboxmenu.talents.status.serverdenied>
+  <sandboxmenu.talents.status.serverunknown>伺服器不認識該天賦。</sandboxmenu.talents.status.serverunknown>
+  <sandboxmenu.talents.status.servernocharacter>伺服器找不到該角色。</sandboxmenu.talents.status.servernocharacter>
+  <sandboxmenu.talents.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.talents.status.serverthrottled>
+  <sandboxmenu.talents.status.sendfailed>無法把請求傳送給伺服器，詳見日誌。</sandboxmenu.talents.status.sendfailed>
 
   <sandboxmenu.limb.none>其他</sandboxmenu.limb.none>
   <sandboxmenu.limb.head>頭部</sandboxmenu.limb.head>

@@ -11,7 +11,7 @@ public readonly record struct AfflictionRequest(
     [property: NetworkSerialize] float Strength,
     [property: NetworkSerialize(ArrayMaxSize = 24)] int[] Limbs,
     [property: NetworkSerialize] ushort ProtocolVersion,
-    [property: NetworkSerialize] AfflictionMode Mode,
+    [property: NetworkSerialize] byte Mode,
     [property: NetworkSerialize] ushort CharacterId,
     [property: NetworkSerialize] uint RequestId,
     [property: NetworkSerialize] bool MultiplyByMaxVitality) : INetSerializableStruct;

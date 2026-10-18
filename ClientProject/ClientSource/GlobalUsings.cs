@@ -1,6 +1,7 @@
 global using SandboxMenu.Domain.Afflictions;
 global using SandboxMenu.Domain.Persistence;
 global using SandboxMenu.Domain.Prefabs;
+global using SandboxMenu.Domain.Talents;
 global using SandboxMenu.Settings;
 global using SandboxMenu.UI;
 global using SandboxMenu.UI.Models;

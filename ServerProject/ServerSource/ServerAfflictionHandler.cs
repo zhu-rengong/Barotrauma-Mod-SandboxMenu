@@ -49,7 +49,7 @@ internal static class ServerAfflictionHandler
 
         int[] limbs = request.Limbs ?? [];
 
-        if (request.Mode == AfflictionMode.Remove)
+        if ((AfflictionMode)request.Mode == AfflictionMode.Remove)
         {
             AfflictionApplier.Remove(character.CharacterHealth, affliction, limbs);
 
@@ -90,7 +90,7 @@ internal static class ServerAfflictionHandler
 
     private static void Reply(Client client, uint requestId, AfflictionStatus status)
     {
-        AfflictionResponse response = new(requestId, status);
+        AfflictionResponse response = new(requestId, (byte)status);
 
         Services.GameNetwork.SendToClient(client, NetworkHeaders.AfflictionResponse, response);
     }

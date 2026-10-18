@@ -57,7 +57,7 @@ internal static class ServerSpawnHandler
             Services.DebugConsole.NewMessage($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
         }
 
-        SpawnTarget? target = request.Target switch
+        SpawnTarget? target = (SpawnTargetKind)request.Target switch
         {
             SpawnTargetKind.World => new SpawnTarget.AtWorld(request.Position, character),
             _ => character.Inventory is { } inventory ? new SpawnTarget.IntoInventory(inventory, character) : null
@@ -79,7 +79,7 @@ internal static class ServerSpawnHandler
     {
         SpawnResponse response = new(
             requestId,
-            status,
+            (byte)status,
             result?.QueuedCount ?? 0,
             SpawnMessageCodec.LimitProblems(result?.Problems ?? []));
 

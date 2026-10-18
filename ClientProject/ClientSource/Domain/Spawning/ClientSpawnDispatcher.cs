@@ -38,7 +38,7 @@ internal static class ClientSpawnDispatcher
 
         foreach (string problem in response.Problems ?? []) { Services.DebugConsole.AddWarning(problem); }
 
-        Settled?.Invoke(response.Status, response.Queued, response.Problems?.Length ?? 0);
+        Settled?.Invoke((SpawnStatus)response.Status, response.Queued, response.Problems?.Length ?? 0);
     }
 
     private static SpawnRefusal? Local(IReadOnlyList<SpawnEntry> entries, Character character)
@@ -72,7 +72,7 @@ internal static class ClientSpawnDispatcher
         SpawnRequest request = new(
             compressed,
             Protocol.Version,
-            target,
+            (byte)target,
             worldPosition,
             characterId,
             requestId);

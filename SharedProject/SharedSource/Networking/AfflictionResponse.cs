@@ -12,4 +12,4 @@ public enum AfflictionStatus
 
 public readonly record struct AfflictionResponse(
     [property: NetworkSerialize] uint RequestId,
-    [property: NetworkSerialize] AfflictionStatus Status) : INetSerializableStruct;
+    [property: NetworkSerialize] byte Status) : INetSerializableStruct;

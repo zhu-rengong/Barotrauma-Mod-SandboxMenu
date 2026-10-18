@@ -39,6 +39,7 @@ internal sealed class SandboxMenuHost : IDialogHost
 
         ClientSpawnDispatcher.Settled += _viewModel.Spawn.ApplySpawnResult;
         ClientAfflictionDispatcher.Settled += _viewModel.Afflictions.ApplyResult;
+        ClientTalentDispatcher.Settled += _viewModel.Talents.ApplyResult;
     }
 
     public bool IsOpen => _window?.IsOpen == true;
@@ -149,6 +150,7 @@ internal sealed class SandboxMenuHost : IDialogHost
 
         ClientSpawnDispatcher.Settled -= menu._viewModel.Spawn.ApplySpawnResult;
         ClientAfflictionDispatcher.Settled -= menu._viewModel.Afflictions.ApplyResult;
+        ClientTalentDispatcher.Settled -= menu._viewModel.Talents.ApplyResult;
 
         menu.Reset();
 
