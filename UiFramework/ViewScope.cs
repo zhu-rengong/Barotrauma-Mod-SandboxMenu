@@ -2,7 +2,7 @@ using UiFramework.Data;
 
 namespace UiFramework;
 
-internal sealed class ViewScope(List<ViewScope> live) : IDisposable, IPauseable
+internal sealed class ViewScope(List<ViewScope> live) : IDisposable
 {
     private readonly List<IDisposable> _owned = [];
     private readonly List<Binding> _bindings = [];
@@ -12,7 +12,7 @@ internal sealed class ViewScope(List<ViewScope> live) : IDisposable, IPauseable
     private bool _paused;
     private bool _disposed;
 
-    public bool IsPaused => _paused;
+    internal bool IsPaused => _paused;
 
     internal void Pause() => _paused = true;
 

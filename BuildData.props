@@ -1,7 +1,6 @@
 <Project>
   <PropertyGroup>
     <ModName>SandboxMenu</ModName>
-    <!-- Used for the RepositoryUrl assembly metadata injected in SharedItems.props (plugin metadata). -->
     <RepositoryURL>https://github.com/zhu-rengong/Barotrauma-Mod-SandboxMenu</RepositoryURL>
     <UsePublicizedAssemblies>true</UsePublicizedAssemblies>
   </PropertyGroup>
@@ -16,7 +15,6 @@
       <FilesToCopy Include="$(TargetDir)$(TargetName).dll" />
       <FilesToCopy Include="$(TargetDir)$(TargetName).deps.json" />
       <FilesToCopy Include="$(TargetDir)$(TargetName).pdb" />
-      <!-- The framework is a client concern and travels with it; the server assembly must not carry it. -->
       <FilesToCopy Include="$(TargetDir)UiFramework.dll" Condition="'$(BuildTarget)' == 'Client'" />
     </ItemGroup>
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(MSBuildThisFileDirectory)ContentPackageBuilder\Content\bin\$(PlatformName)" />

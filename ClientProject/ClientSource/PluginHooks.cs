@@ -18,9 +18,9 @@ internal static class PluginHooks
         try
         {
             if (Screen.Selected != GameMain.GameScreen) { return; }
-            if (MenuWindow.Current is not { IsOpen: true } menu) { return; }
+            if (!SandboxMenuHost.Instance.IsOpen) { return; }
 
-            menu.AddToUpdateList();
+            SandboxMenuHost.Instance.AddToUpdateList();
         }
         catch (Exception e)
         {
@@ -49,7 +49,7 @@ internal static class PluginHooks
             UiHost.AdvanceFrame(deltaTime);
 
             CharacterPreview.RenderPending();
-            MenuWindow.Current?.ServePendingScreenshot();
+            SandboxMenuHost.Instance.ServePendingScreenshot();
 
             if (Screen.Selected != GameMain.GameScreen) { return; }
 
@@ -68,7 +68,7 @@ internal static class PluginHooks
 
         if (SpawnPointPicker.IsActive) { return true; }
 
-        return MenuWindow.Current?.HandleEscape() ?? false;
+        return SandboxMenuHost.Instance.HandleEscape();
     }
 
     private static void HandleHotkeys()
@@ -85,13 +85,13 @@ internal static class PluginHooks
         {
             if (KeyBinds.Toggle.IsHit())
             {
-                MenuWindow.Instance.Toggle();
+                SandboxMenuHost.Instance.Toggle();
                 return;
             }
 
-            if (KeyBinds.Give.IsHit()) { MenuWindow.Instance.SpawnIntoInventory(); }
+            if (KeyBinds.Give.IsHit()) { SandboxMenuHost.Instance.SpawnIntoInventory(); }
         }
 
-        MenuWindow.Current?.HandleKeys();
+        SandboxMenuHost.Instance.HandleKeys();
     }
 }

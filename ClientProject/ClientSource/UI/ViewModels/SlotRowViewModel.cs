@@ -27,6 +27,6 @@ internal sealed class SlotRowViewModel(EntryEditorViewModel editor, ItemEntry it
 
         _item.EquipSlots = slots.Length == 0 ? null : [.. SpawnSlots.All.Where(slots.Contains)];
         Raise(nameof(Summary));
-        editor.NotifyEdited();
+        editor.Refresh();
     }
 }

@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Microsoft.Xna.Framework.Graphics;
+using UiFramework.Animation;
 using UiFramework.Layout;
 using KeyCode = Microsoft.Xna.Framework.Input.Keys;
 
@@ -32,7 +33,7 @@ internal sealed class ViewCommand(Action execute) : ICommand
     public void Execute(object? parameter) => execute();
 }
 
-public sealed class ViewContext : IDisposable, IViewHost
+public sealed class ViewContext : IDisposable
 {
     private readonly List<ViewScope> _scopes = [];
     private readonly List<ViewScope> _building;
@@ -40,6 +41,7 @@ public sealed class ViewContext : IDisposable, IViewHost
     private readonly List<Action> _firingOnce = [];
     private readonly List<Action> _focusOnOpen = [];
     private readonly List<Input.KeyBinding> _inputs = [];
+    private readonly Dictionary<KeyCode, List<Input.KeyBinding>> _byKey = [];
     private readonly HashSet<ViewElement> _stateWatchers = [];
     private readonly HashSet<ViewElement> _valueWatchers = [];
     private ViewElement[] _stateSnapshot = [];
@@ -56,7 +58,7 @@ public sealed class ViewContext : IDisposable, IViewHost
     private Action<string>? _diagnosticSink;
     private ICommand? _closeCommand;
 
-    internal ViewContext(string view, IViewRuntime animations)
+    internal ViewContext(string view, AnimationHost animations)
     {
         View = view;
         Diagnostics = new MarkupDiagnostics(view);
@@ -71,7 +73,7 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     internal MarkupDiagnostics Diagnostics { get; }
 
-    internal IViewRuntime Animations { get; }
+    internal AnimationHost Animations { get; }
 
     internal NameScope Names { get; } = new();
 
@@ -85,8 +87,6 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     public ViewElement? RootElement => Root;
 
-    public ViewElement? FindElement(string name) => Names.Find(name);
-
     internal Action<string>? DiagnosticSink
     {
         get => _diagnosticSink;
@@ -97,9 +97,7 @@ public sealed class ViewContext : IDisposable, IViewHost
         }
     }
 
-    public Func<bool> IsInputBlocked { get; set; } = static () => false;
-
-    public bool Interactive { get; set; } = true;
+    public Func<bool> IsListDragBlocked { get; set; } = static () => false;
 
     public Action? Close { get; set; }
 
@@ -144,7 +142,7 @@ public sealed class ViewContext : IDisposable, IViewHost
         if (_valueWatchers.Add(element)) { _valueDirty = true; }
     }
 
-    internal void ResetAnimations(IViewElement target) => Animations.Reset(target);
+    internal void ResetAnimations(ViewElement target) => Animations.Reset(target);
 
     public void Once(Action action) => _queuedOnce.Add(action);
 
@@ -223,7 +221,17 @@ public sealed class ViewContext : IDisposable, IViewHost
         for (int i = 0; i < _focusOnOpen.Count; i++) { FocusOnClickEnd(_focusOnOpen[i]); }
     }
 
-    internal void RegisterInput(Input.KeyBinding binding) => _inputs.Add(binding);
+    internal void RegisterInput(Input.KeyBinding binding)
+    {
+        _inputs.Add(binding);
+
+        foreach (KeyCode key in binding.Keys)
+        {
+            if (!_byKey.TryGetValue(key, out List<Input.KeyBinding>? sharers)) { _byKey[key] = sharers = []; }
+
+            sharers.Add(binding);
+        }
+    }
 
     public void RunInputBindings()
     {
@@ -359,6 +367,7 @@ public sealed class ViewContext : IDisposable, IViewHost
         _focusOnOpen.Clear();
         _overlays.Clear();
         _inputs.Clear();
+        _byKey.Clear();
         _batchedShares.Clear();
         _layoutBatch = 0;
         _flushingShares = false;
@@ -366,10 +375,6 @@ public sealed class ViewContext : IDisposable, IViewHost
         Window = null;
         Root = null;
     }
-
-    MarkupDiagnostics IViewHost.Diagnostics => Diagnostics;
-
-    void IViewHost.Own(IDisposable disposable) => Own(disposable);
 
     private void FocusOnClickEnd(Action focus) => Once(() =>
     {
@@ -384,29 +389,17 @@ public sealed class ViewContext : IDisposable, IViewHost
 
     private bool Outranked(Input.KeyBinding binding)
     {
-        for (int i = 0; i < _inputs.Count; i++)
+        foreach (KeyCode key in binding.Keys)
         {
-            Input.KeyBinding other = _inputs[i];
+            if (!_byKey.TryGetValue(key, out List<Input.KeyBinding>? sharers)) { continue; }
 
-            if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
-            if (!other.Owner.Control.Visible) { continue; }
-            if (!Shares(binding, other)) { continue; }
-            if (other.Held() && other.Pressed()) { return true; }
-        }
-
-        return false;
-    }
-
-    private static bool Shares(Input.KeyBinding left, Input.KeyBinding right)
-    {
-        KeyCode[] mine = left.Keys;
-        KeyCode[] theirs = right.Keys;
-
-        for (int i = 0; i < mine.Length; i++)
-        {
-            for (int j = 0; j < theirs.Length; j++)
+            for (int i = 0; i < sharers.Count; i++)
             {
-                if (mine[i] == theirs[j]) { return true; }
+                Input.KeyBinding other = sharers[i];
+
+                if (ReferenceEquals(other, binding) || other.Specificity <= binding.Specificity) { continue; }
+                if (!other.Owner.Control.Visible) { continue; }
+                if (other.Held() && other.Pressed()) { return true; }
             }
         }
 

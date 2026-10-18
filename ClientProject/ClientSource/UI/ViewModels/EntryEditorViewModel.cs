@@ -4,17 +4,24 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class EntryEditorViewModel : Notifiable
 {
-    private readonly SpawnPanelViewModel _menu;
-    private readonly EditorRowBuilder _rowBuilder;
+    private readonly Action<SpawnEntry> _refreshEntry;
+    private readonly Action _refreshEntries;
+    private readonly EditorRows _rowBuilder;
 
     private SpawnEntry? _entry;
     private ItemEntry? _container;
     private bool _rebuildQueued;
 
-    internal EntryEditorViewModel(SpawnPanelViewModel menu)
+    internal EntryEditorViewModel(
+        IDialogHost host,
+        Action<ItemEntry> giveToCharacter,
+        Action<StatusKind, LocalizedString> report,
+        Action<SpawnEntry> refreshEntry,
+        Action refreshEntries)
     {
-        _menu = menu;
-        _rowBuilder = new EditorRowBuilder(this, menu);
+        _refreshEntry = refreshEntry;
+        _refreshEntries = refreshEntries;
+        _rowBuilder = new EditorRows(this, host, giveToCharacter, report);
 
         Rebuild();
     }
@@ -37,15 +44,15 @@ internal sealed class EntryEditorViewModel : Notifiable
         QueueRebuild();
     }
 
-    internal void NotifyEdited()
+    internal void Refresh()
     {
         if (_entry is { } entry)
         {
-            _menu.RefreshSummaryFor(entry);
+            _refreshEntry(entry);
             return;
         }
 
-        _menu.RefreshSummaries();
+        _refreshEntries();
     }
 
     internal void FocusIdentifier()
@@ -90,7 +97,7 @@ internal sealed class EntryEditorViewModel : Notifiable
         _rebuildQueued = false;
         Rows.Clear();
 
-        _menu.RefreshSummaries();
+        _refreshEntries();
 
         _rowBuilder.Build(_entry, _container);
     }

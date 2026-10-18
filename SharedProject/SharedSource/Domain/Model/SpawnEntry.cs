@@ -6,13 +6,12 @@ namespace SandboxMenu.Domain.Model;
 
 internal abstract class SpawnEntry
 {
-    private static FrozenDictionary<string, Func<XElement, SpawnEntry>>? _readers;
-
-    private static FrozenDictionary<string, Func<XElement, SpawnEntry>> Readers => _readers ??= new Dictionary<string, Func<XElement, SpawnEntry>>(StringComparer.Ordinal)
-    {
-        ["Item"] = static element => ItemEntry.Read(element),
-        ["Ref"] = static element => ReferenceEntry.Read(element)
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    private static readonly FrozenDictionary<string, Func<XElement, SpawnEntry>> Readers =
+        new Dictionary<string, Func<XElement, SpawnEntry>>(StringComparer.Ordinal)
+        {
+            ["Item"] = static element => ItemEntry.Read(element),
+            ["Ref"] = static element => ReferenceEntry.Read(element)
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public ValueRange? Amount { get; set; }
 

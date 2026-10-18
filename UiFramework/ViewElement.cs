@@ -97,7 +97,7 @@ internal sealed class ValueWatch(string name, Func<object, object?>? read, Func<
     }
 }
 
-public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposable
+public abstract class ViewElement(GUIComponent control) : IDisposable
 {
     private bool _released;
 
@@ -127,24 +127,12 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
     private Point _measureSize;
     private bool _measureValid;
     private Dictionary<Type, DataTemplate>? _templates;
+    private Dictionary<string, PropertyMetadata?>? _properties;
+    private int _propertiesGeneration = -1;
 
     public GUIComponent Control { get; } = control;
 
     internal IReadOnlyList<ViewElement> ChildElements => _children;
-
-    internal bool IsReleased => _released;
-
-    internal int SubscriptionCount
-    {
-        get
-        {
-            int count = _valueWatches.Count + _listeners.Count + _overrides.Count;
-
-            for (int i = 0; i < _visualWatchers.Length; i++) { count += _visualWatchers[i]?.Count ?? 0; }
-
-            return count;
-        }
-    }
 
     internal void RememberContent(ViewElement child) => _children.Add(child);
 
@@ -258,11 +246,6 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
     internal void SetAttached(string name, object? value) => _attached[name] = value;
 
     internal object? Attached(string name) => _attached.GetValueOrDefault(name);
-
-    internal int AttachedInt(string name, int fallback)
-        => Attached(name) is int value ? value
-            : Attached(name) is string text && int.TryParse(text, out int parsed) ? parsed
-            : fallback;
 
     internal bool MeasureCached(GUITextBlock block, GUIFont font, out Point size)
     {
@@ -475,7 +458,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
                 return false;
             }
 
-            new PropertyAssignment(Context!, Node!, this, metadata) { Source = source }.SetText(value.Raw);
+            new PropertyAssignment(Context!, Node!, this, metadata, source: source).SetText(value.Raw);
             message = string.Empty;
             return true;
         }
@@ -488,7 +471,7 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
 
         try
         {
-            value.Extension.Apply(new PropertyAssignment(view, Node!, this, metadata) { Source = source });
+            value.Extension.Apply(new PropertyAssignment(view, Node!, this, metadata, source: source));
         }
         catch (Exception e)
         {
@@ -653,39 +636,6 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
         for (int i = 0; i < _visualWatchers.Length; i++) { _visualWatchers[i]?.Clear(); }
     }
 
-    MarkupNode? IViewElement.Node => Node;
-
-    object? IViewElement.DataContext => DataContext;
-
-    bool IViewElement.TryApplyValue(string property, object? value, ValueSource source, out string message)
-        => TryApplyValue(property, value, source, out message);
-
-    bool IViewElement.TryApplyMarkup(string property, MarkupValue value, ValueSource source, out string message)
-        => TryApplyMarkup(property, value, source, out message);
-
-    bool IViewElement.TryReadValue(string property, out object? value) => TryReadValue(property, out value);
-
-    bool IViewElement.HasBaseValue(string property) => HasBaseValue(property);
-
-    void IViewElement.RememberBaseValue(string property, object? value) => RememberBaseValue(property, value);
-
-    void IViewElement.RememberRestoreValue(string property, object? value) => RememberRestoreValue(property, value);
-
-    void IViewElement.RestoreBaseValue(string property) => RestoreBaseValue(property);
-
-    bool IViewElement.CanAnimate(string property, out string message) => CanAnimate(property, out message);
-
-    bool IViewElement.WatchValue(string property, Action<object?> changed) => WatchValue(property, changed);
-
-    bool IViewElement.Listen(string name, Action handler) => Listen(name, handler);
-
-    bool IViewElement.CanOverride(string property, out string reason) => CanOverride(property, out reason);
-
-    bool IViewElement.ApplyOverride(object source, int priority, string property, MarkupValue value, out string message)
-        => ApplyOverride(source, priority, property, value, out message);
-
-    void IViewElement.RemoveOverride(object source, string property) => RemoveOverride(source, property);
-
     private void SetVisual(VisualState visual, bool value)
     {
         if (IsVisual(visual) == value) { return; }
@@ -773,9 +723,21 @@ public abstract class ViewElement(GUIComponent control) : IViewElement, IDisposa
 
     private PropertyMetadata? Property(string name)
     {
-        if (ElementName is { } element && ElementRegistry.Property(element, name) is { } declared) { return declared; }
+        if (_properties is null || _propertiesGeneration != ElementRegistry.Generation)
+        {
+            _properties = new Dictionary<string, PropertyMetadata?>(StringComparer.OrdinalIgnoreCase);
+            _propertiesGeneration = ElementRegistry.Generation;
+        }
 
-        return AttachedProperties.Find(name);
+        if (_properties.TryGetValue(name, out PropertyMetadata? cached)) { return cached; }
+
+        PropertyMetadata? found = ElementName is { } element && ElementRegistry.Property(element, name) is { } declared
+            ? declared
+            : AttachedProperties.Find(name);
+
+        _properties[name] = found;
+
+        return found;
     }
 
     public override string ToString() => GetType().Name;

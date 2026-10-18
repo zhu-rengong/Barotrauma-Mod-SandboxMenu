@@ -9,18 +9,6 @@ public readonly record struct UiToken(float Value, bool IsDip)
 
 internal static class UiTokens
 {
-    private static readonly Dictionary<string, UiToken> _defaults = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["row"] = UiToken.Percent(0.075f),
-        ["section"] = UiToken.Percent(0.085f),
-        ["control"] = UiToken.Percent(0.84f),
-        ["labelWidth"] = UiToken.Percent(0.38f),
-        ["pad"] = UiToken.Dip(6f),
-        ["gap"] = UiToken.Dip(4f),
-        ["indent"] = UiToken.Dip(14f),
-        ["tile"] = UiToken.Dip(36f)
-    };
-
     private static readonly Dictionary<string, UiToken> _registered = new(StringComparer.OrdinalIgnoreCase);
 
     internal static void Register(IReadOnlyDictionary<string, UiToken> tokens)
@@ -43,7 +31,5 @@ internal static class UiTokens
         };
 
     private static UiToken? Find(string name)
-        => _registered.TryGetValue(name, out UiToken token) ? token
-            : _defaults.TryGetValue(name, out UiToken fallback) ? fallback
-            : null;
+        => _registered.TryGetValue(name, out UiToken token) ? token : null;
 }

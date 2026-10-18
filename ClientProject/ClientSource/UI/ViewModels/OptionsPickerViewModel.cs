@@ -26,7 +26,7 @@ internal sealed class OptionsPickerViewModel : Notifiable
             _rows.Add((picked, new OptionRowViewModel(picked.Label, () => onPicked(picked))));
         }
 
-        ApplyFilter();
+        Refresh();
     }
 
     public LocalizedString Title
@@ -46,7 +46,7 @@ internal sealed class OptionsPickerViewModel : Notifiable
         get => _onlyEditable;
         set
         {
-            if (Set(ref _onlyEditable, value)) { ApplyFilter(); }
+            if (Set(ref _onlyEditable, value)) { Refresh(); }
         }
     }
 
@@ -55,7 +55,7 @@ internal sealed class OptionsPickerViewModel : Notifiable
         get => _onlySaveable;
         set
         {
-            if (Set(ref _onlySaveable, value)) { ApplyFilter(); }
+            if (Set(ref _onlySaveable, value)) { Refresh(); }
         }
     }
 
@@ -64,13 +64,13 @@ internal sealed class OptionsPickerViewModel : Notifiable
         get => _query;
         set
         {
-            if (Set(ref _query, value ?? string.Empty)) { ApplyFilter(); }
+            if (Set(ref _query, value ?? string.Empty)) { Refresh(); }
         }
     }
 
     public ObservableCollection<OptionRowViewModel> Options { get; } = [];
 
-    private void ApplyFilter()
+    private void Refresh()
     {
         string filter = _query.Trim();
         Options.Clear();

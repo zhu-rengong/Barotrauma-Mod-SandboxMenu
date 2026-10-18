@@ -163,7 +163,7 @@ internal sealed class PropertyRowViewModel(
 
         if (kept is null) { _target.PropertyName = string.Empty; }
 
-        _editor.NotifyEdited();
+        _editor.Refresh();
         Refresh();
     }
 
@@ -173,7 +173,7 @@ internal sealed class PropertyRowViewModel(
         _target.PropertyName = option.Name;
         _target.Value = option.DefaultValue;
 
-        _editor.NotifyEdited();
+        _editor.Refresh();
         Refresh();
     }
 
@@ -276,7 +276,7 @@ internal sealed class PropertyRowViewModel(
         if (string.Equals(_target.Value, value, StringComparison.Ordinal)) { return; }
 
         _target.Value = value;
-        _editor.NotifyEdited();
+        _editor.Refresh();
         Refresh();
     }
 

@@ -7,11 +7,13 @@ internal interface IDialogWindow
 {
     bool IsOpen { get; }
 
-    Action? Closing { get; set; }
+    Action? Closed { get; set; }
 
     Rectangle Rect { get; }
 
     void Open();
+
+    void Close();
 
     void Register();
 

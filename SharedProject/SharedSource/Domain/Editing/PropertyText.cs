@@ -1,12 +1,44 @@
+using System.Collections.Frozen;
 using System.Globalization;
 
 namespace SandboxMenu.Domain.Editing;
 
-internal static class PropertyDefaults
+internal static class PropertyText
 {
+    private const int CacheLimit = 512;
+
+    private static readonly FrozenSet<Type> NetworkTypes = new[]
+    {
+        typeof(string), typeof(string[]), typeof(Identifier), typeof(float), typeof(int), typeof(bool),
+        typeof(Color), typeof(Vector2), typeof(Vector3), typeof(Vector4), typeof(Point), typeof(Rectangle)
+    }.ToFrozenSet();
+
+    private static readonly Dictionary<(ItemPrefab Prefab, string Component, int Index), ContentXElement?> Elements = [];
+
+    internal static bool Travels(object? value)
+        => value is not null && (value.GetType().IsEnum || NetworkTypes.Contains(value.GetType()));
+
     internal static ContentXElement? ElementOf(ItemPrefab? prefab, string componentName, int componentIndex)
     {
-        if (prefab?.ConfigElement is not { } root) { return null; }
+        if (prefab is null) { return null; }
+
+        string component = componentName ?? string.Empty;
+        (ItemPrefab, string, int) key = (prefab, component, componentIndex);
+
+        if (Elements.TryGetValue(key, out ContentXElement? cached)) { return cached; }
+
+        ContentXElement? resolved = ResolveElement(prefab, component, componentIndex);
+
+        if (Elements.Count >= CacheLimit) { Elements.Clear(); }
+
+        Elements[key] = resolved;
+
+        return resolved;
+    }
+
+    private static ContentXElement? ResolveElement(ItemPrefab prefab, string componentName, int componentIndex)
+    {
+        if (prefab.ConfigElement is not { } root) { return null; }
         if (string.IsNullOrWhiteSpace(componentName)) { return root; }
 
         return ComponentOrdinal.Find(root.Elements(), componentName, componentIndex, static element => element.Name.LocalName);

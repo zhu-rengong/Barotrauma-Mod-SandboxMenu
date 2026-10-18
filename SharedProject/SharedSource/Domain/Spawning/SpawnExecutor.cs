@@ -22,7 +22,11 @@ internal sealed class SpawnExecutor(
 
     internal void Run(IReadOnlyList<SpawnEntry> entries)
     {
-        if (Entity.Spawner is null) { return; }
+        if (Entity.Spawner is null)
+        {
+            _result.Report("This session has no entity spawner, so nothing could be spawned.");
+            return;
+        }
 
         foreach (SpawnEntry entry in entries)
         {
@@ -196,7 +200,7 @@ internal sealed class SpawnExecutor(
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Finishing a spawned item failed: {e}");
+            Services.DebugConsole.AddWarning($"Finishing a spawned item failed: {e}");
         }
     }
 
@@ -231,9 +235,9 @@ internal sealed class SpawnExecutor(
         if (entry.Properties.Count == 0) { return; }
 
         List<AppliedOverride> applied = [];
-        IReadOnlyList<string> problems = PropertyEditService.Apply(item, entry.Properties, applied);
+        IReadOnlyList<string> problems = ItemPropertyWriter.Apply(item, entry.Properties, applied);
 
-        SpawnPropertySync.Publish(item, applied, _result);
+        VanillaPropertySync.Publish(item, applied, _result);
 
         if (problems.Count == 0) { return; }
 

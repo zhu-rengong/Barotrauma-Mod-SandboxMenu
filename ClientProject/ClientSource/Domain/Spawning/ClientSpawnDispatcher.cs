@@ -11,6 +11,8 @@ internal static class ClientSpawnDispatcher
     private static uint _nextRequestId;
     private static uint _waitingFor;
 
+    internal static event Action<SpawnStatus, int, int>? Settled;
+
     internal static bool IsRemote => GameMain.NetworkMember is { IsClient: true };
 
     internal static SpawnRefusal? IntoInventory(IReadOnlyList<SpawnEntry> entries, Character character)
@@ -22,7 +24,8 @@ internal static class ClientSpawnDispatcher
     {
         if (IsRemote) { return TrySend(entries, SpawnTargetKind.World, worldPosition, character?.ID ?? 0); }
 
-        ItemSpawnService.SpawnAtWorld(entries, worldPosition, character, ResolveTemplate);
+        SpawnExecutor executor = new(new SpawnTarget.AtWorld(worldPosition, character), ResolveTemplate);
+        executor.Run(entries);
 
         return null;
     }
@@ -33,15 +36,18 @@ internal static class ClientSpawnDispatcher
 
         _waitingFor = 0;
 
-        foreach (string problem in response.Problems ?? []) { DebugConsole.AddWarning(problem); }
+        foreach (string problem in response.Problems ?? []) { Services.DebugConsole.AddWarning(problem); }
 
-        MenuWindow.Current?.ViewModel.Spawn.ApplySpawnResult(
-            (SpawnStatus)response.Status, response.Queued, response.Problems?.Length ?? 0);
+        Settled?.Invoke(response.Status, response.Queued, response.Problems?.Length ?? 0);
     }
 
     private static SpawnRefusal? Local(IReadOnlyList<SpawnEntry> entries, Character character)
     {
-        ItemSpawnService.SpawnIntoInventory(entries, character, ResolveTemplate);
+        if (character.Inventory is { } inventory)
+        {
+            SpawnExecutor executor = new(new SpawnTarget.IntoInventory(inventory, character), ResolveTemplate);
+            executor.Run(entries);
+        }
 
         return null;
     }
@@ -56,16 +62,17 @@ internal static class ClientSpawnDispatcher
     {
         _waitingFor = 0;
 
-        SpawnPayload payload = new();
+        SpawnMessage payload = new();
         CollectTemplates(payload, entries, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         payload.Entries.AddRange(entries);
 
-        if (!SpawnPayloadCodec.TryEncode(payload, out byte[] compressed)) { return SpawnRefusal.TooLarge; }
+        if (!SpawnMessageCodec.TryEncode(payload, out byte[] compressed)) { return SpawnRefusal.TooLarge; }
 
         uint requestId = ++_nextRequestId;
         SpawnRequest request = new(
             compressed,
-            (byte)target,
+            Protocol.Version,
+            target,
             worldPosition,
             characterId,
             requestId);
@@ -76,7 +83,7 @@ internal static class ClientSpawnDispatcher
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Sending the spawn request failed: {e}");
+            Services.DebugConsole.AddWarning($"Sending the spawn request failed: {e}");
             return SpawnRefusal.NotSent;
         }
 
@@ -85,7 +92,7 @@ internal static class ClientSpawnDispatcher
         return null;
     }
 
-    private static void CollectTemplates(SpawnPayload payload, IReadOnlyList<SpawnEntry> entries, HashSet<string> seen)
+    private static void CollectTemplates(SpawnMessage payload, IReadOnlyList<SpawnEntry> entries, HashSet<string> seen)
     {
         foreach (SpawnEntry entry in entries)
         {

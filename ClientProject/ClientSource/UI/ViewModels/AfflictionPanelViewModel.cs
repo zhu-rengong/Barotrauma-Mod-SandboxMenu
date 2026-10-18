@@ -1,44 +1,18 @@
-using System.Runtime.CompilerServices;
-
 namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class AfflictionPanelViewModel : Notifiable
 {
-
-    private const float VisibleStrength = 0.05f;
-
-    private static readonly LimbType[] PreferredLimbs =
-    [
-        LimbType.Torso, LimbType.Head, LimbType.Waist,
-        LimbType.LeftArm, LimbType.RightArm,
-        LimbType.LeftLeg, LimbType.RightLeg,
-        LimbType.LeftForearm, LimbType.RightForearm,
-        LimbType.LeftThigh, LimbType.RightThigh,
-        LimbType.LeftHand, LimbType.RightHand,
-        LimbType.LeftFoot, LimbType.RightFoot,
-        LimbType.Legs, LimbType.Tail, LimbType.Jaw, LimbType.None
-    ];
-
     private readonly IDialogHost _host;
     private readonly HashSet<string> _packages = new(PackageLabels.KeyComparer);
     private readonly HashSet<Identifier> _types = [];
     private readonly HashSet<int> _targets = [];
     private readonly List<AfflictionTileViewModel> _tiles = [];
-    private readonly List<AfflictionRowViewModel> _rows = [];
+    private readonly List<Notifiable> _rows = [];
 
-    private static readonly Dictionary<LimbType, int> LimbRanks = BuildRanks();
-
-    private readonly Dictionary<int, Limb> _limbIndex = [];
-
-    private IReadOnlyCollection<Affliction>? _afflictions;
-    private CharacterHealth? _afflictionsFrom;
-
-    private AfflictionPrefabEntry[] _entries = [];
-    private AfflictionTileViewModel?[] _builtTiles = [];
+    private FilteredCatalog<AfflictionPrefabEntry, AfflictionTileViewModel>? _catalog;
     private int _tickParity;
 
     private IReadOnlyList<AfflictionTileViewModel> _visibleTiles = [];
-    private IReadOnlyList<AfflictionRowViewModel> _visibleRows = [];
     private WeakReference<Character>? _selectedRef;
 
     private Character? _selected
@@ -53,7 +27,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     }
     private CharacterDisplay? _display;
     private AfflictionItemRowViewModel? _picked;
-    private readonly Action<LocalizedString> _report;
+    private readonly Action<StatusKind, LocalizedString> _report;
     private string _query = string.Empty;
     private float _percent = -1f;
     private float _tileScroll;
@@ -68,7 +42,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private readonly HashSet<AfflictionKind> _kinds = [];
     private bool _ready;
 
-    internal AfflictionPanelViewModel(IDialogHost host, Action<LocalizedString> report)
+    internal AfflictionPanelViewModel(IDialogHost host, Action<StatusKind, LocalizedString> report)
     {
         _host = host;
         _report = report;
@@ -76,7 +50,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         OpenBrowserCommand = new RelayCommand(() => _host.ShowCharacterBrowser(Select));
         SelectControlledCommand = new RelayCommand(() => Select(Character.Controlled));
         PickTargetsCommand = new RelayCommand(PickTargets);
-        DeletePickedCommand = new RelayCommand(() => Delete(_picked));
+        RemovePickedCommand = new RelayCommand(() => Remove(_picked));
         PickPackagesCommand = new RelayCommand(PickPackages);
         PickTypesCommand = new RelayCommand(PickTypes);
         PickScopesCommand = new RelayCommand(PickScopes);
@@ -89,7 +63,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     public RelayCommand PickTargetsCommand { get; }
 
-    public RelayCommand DeletePickedCommand { get; }
+    public RelayCommand RemovePickedCommand { get; }
 
     public RelayCommand PickPackagesCommand { get; }
 
@@ -109,8 +83,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         ? RichString.Rich(TextManager.Get("sandboxmenu.afflictions.none"))
         : RichString.Rich(TooltipText.Bright(_display?.Name ?? string.Empty));
 
-
-
     public RichString TargetLabel
         => RichString.Rich(_targets.Count == 0 ? TooltipText.Dim(TextManager.Get("sandboxmenu.afflictions.target.body")) : TargetName);
 
@@ -118,11 +90,11 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     public LocalizedString TilesEmptyHint => TextManager.Get("sandboxmenu.afflictions.tiles.empty");
 
-    public bool RowsEmpty => _visibleRows.Count == 0;
+    public bool RowsEmpty => _rows.Count == 0;
 
     public bool TilesEmpty => _visibleTiles.Count == 0;
 
-    public IReadOnlyList<AfflictionRowViewModel> Rows => _visibleRows;
+    public IReadOnlyList<Notifiable> Rows => _rows;
 
     public IReadOnlyList<AfflictionTileViewModel> Tiles => _visibleTiles;
 
@@ -163,7 +135,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         get => _hideHidden;
         set
         {
-            if (Set(ref _hideHidden, value)) { ApplyTileFilter(); }
+            if (Set(ref _hideHidden, value)) { RebuildTiles(); }
         }
     }
 
@@ -172,7 +144,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         get => _query;
         set
         {
-            if (Set(ref _query, value ?? string.Empty)) { ApplyTileFilter(); }
+            if (Set(ref _query, value ?? string.Empty)) { RebuildTiles(); }
         }
     }
 
@@ -194,13 +166,13 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         set => Set(ref _multiplyByMaxVitality, value);
     }
 
-    public LocalizedString PackageFilter => FilterLabel("sandboxmenu.filter.packages", _packages.Count);
+    public LocalizedString PackageFilter => FilterSummary.Label("sandboxmenu.filter.packages", _packages.Count);
 
-    public LocalizedString TypeFilter => FilterLabel("sandboxmenu.afflictions.filter.types", _types.Count);
+    public LocalizedString TypeFilter => FilterSummary.Label("sandboxmenu.afflictions.filter.types", _types.Count);
 
-    public LocalizedString ScopeFilter => FilterLabel("sandboxmenu.afflictions.filter.scope", _scopes.Count);
+    public LocalizedString ScopeFilter => FilterSummary.Label("sandboxmenu.afflictions.filter.scope", _scopes.Count);
 
-    public LocalizedString KindFilter => FilterLabel("sandboxmenu.afflictions.filter.kind", _kinds.Count);
+    public LocalizedString KindFilter => FilterSummary.Label("sandboxmenu.afflictions.filter.kind", _kinds.Count);
 
     internal void Tick()
     {
@@ -237,16 +209,9 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _selectedRef = character is null ? null : new WeakReference<Character>(character);
         _display = character is null ? null : new CharacterDisplay(character);
         _targets.Clear();
-        _limbIndex.Clear();
         _picked = null;
         _iconToolTipHealth = float.NaN;
         _shape = 0;
-
-        if (character is null)
-        {
-            _afflictions = null;
-            _afflictionsFrom = null;
-        }
 
         using (NotificationBatch.Begin())
         {
@@ -260,7 +225,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         if (character is null)
         {
             _rows.Clear();
-            _visibleRows = [];
 
             using (NotificationBatch.Begin())
             {
@@ -274,24 +238,28 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         RebuildRows();
     }
 
-    internal void Report(LocalizedString message) => _report(message);
+    internal void Report(StatusKind kind, LocalizedString message) => _report(kind, message);
 
     internal void ApplyResult(AfflictionStatus status)
-        => Report(status switch
+    {
+        (StatusKind kind, LocalizedString message) = status switch
         {
-            AfflictionStatus.Ok => TextManager.Get("sandboxmenu.afflictions.status.serverok"),
-            AfflictionStatus.Denied => TextManager.Get("sandboxmenu.afflictions.status.serverdenied"),
-            AfflictionStatus.UnknownAffliction => TextManager.Get("sandboxmenu.afflictions.status.serverunknown"),
-            AfflictionStatus.NoCharacter => TextManager.Get("sandboxmenu.afflictions.status.servernocharacter"),
-            AfflictionStatus.Throttled => TextManager.Get("sandboxmenu.afflictions.status.serverthrottled"),
-            _ => TextManager.Get("sandboxmenu.afflictions.status.sendfailed")
-        });
+            AfflictionStatus.Ok => (StatusKind.Success, TextManager.Get("sandboxmenu.afflictions.status.serverok")),
+            AfflictionStatus.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.serverdenied")),
+            AfflictionStatus.UnknownAffliction => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.serverunknown")),
+            AfflictionStatus.NoCharacter => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.servernocharacter")),
+            AfflictionStatus.Throttled => (StatusKind.Warning, TextManager.Get("sandboxmenu.afflictions.status.serverthrottled")),
+            AfflictionStatus.Blocked => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.blocked")),
+            _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
+        };
+
+        Report(kind, message);
+    }
 
     internal void ReleaseContent()
     {
         _tiles.Clear();
-        _entries = [];
-        _builtTiles = [];
+        _catalog = null;
         _packages.Clear();
         _types.Clear();
         _visibleTiles = [];
@@ -302,14 +270,10 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _display = null;
         _selectedRef = null;
         _targets.Clear();
-        _limbIndex.Clear();
         _picked = null;
-        _afflictions = null;
-        _afflictionsFrom = null;
         _iconToolTipHealth = float.NaN;
         _shape = 0;
         _rows.Clear();
-        _visibleRows = [];
 
         using (NotificationBatch.Begin())
         {
@@ -339,29 +303,11 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         {
             if (_targets.Count == 0) { return TextManager.Get("sandboxmenu.afflictions.target.body"); }
 
-            LocalizedString joined = LocalizedString.EmptyString;
-            string separator = TextManager.Get("sandboxmenu.list.separator").Value;
-
-            foreach (Limb limb in Targets())
-            {
-                joined += joined.IsNullOrEmpty() ? LimbLabel(limb) : separator + LimbLabel(limb);
-            }
-
-            return joined;
+            return _display is null ? LocalizedString.EmptyString : _display.LimbNames(_display.LimbsIn(_targets));
         }
     }
 
-    private IReadOnlyList<Limb> Targets()
-    {
-        List<Limb> limbs = [];
-
-        foreach (Limb limb in GroupLimbs())
-        {
-            if (_targets.Contains(limb.HealthIndex)) { limbs.Add(limb); }
-        }
-
-        return limbs;
-    }
+    private IReadOnlyList<Limb> Targets() => _display is null ? [] : _display.LimbsIn(_targets);
 
     private void Prepare()
     {
@@ -370,20 +316,19 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _ready = true;
         _percent = _percent < 0f ? 100f : _percent;
 
-        _entries = [.. AfflictionPrefabCatalog.All()];
-        _builtTiles = new AfflictionTileViewModel?[_entries.Length];
+        _catalog = new FilteredCatalog<AfflictionPrefabEntry, AfflictionTileViewModel>([.. AfflictionPrefabCatalog.All()]);
         _tiles.Clear();
 
         Raise(nameof(StrengthPercent));
 
-        ApplyTileFilter();
+        RebuildTiles();
     }
 
     private void Apply(AfflictionTileViewModel tile)
     {
         if (_selected is not { } character)
         {
-            Report(TextManager.Get("sandboxmenu.status.nocharacter"));
+            Report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.nocharacter"));
             return;
         }
 
@@ -394,25 +339,27 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
         AfflictionOutcome outcome = ClientAfflictionDispatcher.Apply(character, prefab, strength, targets, _multiplyByMaxVitality);
 
-        Report(outcome switch
+        (StatusKind kind, LocalizedString message) = outcome switch
         {
-            AfflictionOutcome.Sent => TextManager.Get("sandboxmenu.afflictions.status.senttoserver"),
-            AfflictionOutcome.Applied => TextManager.GetWithVariable("sandboxmenu.afflictions.status.applied", "[value]", tile.Display.Name),
-            AfflictionOutcome.Blocked => TextManager.Get("sandboxmenu.afflictions.status.blocked"),
-            _ => TextManager.Get("sandboxmenu.afflictions.status.sendfailed")
-        });
+            AfflictionOutcome.Sent => (StatusKind.Success, TextManager.Get("sandboxmenu.afflictions.status.senttoserver")),
+            AfflictionOutcome.Applied => (StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.afflictions.status.applied", "[value]", tile.Display.Name)),
+            AfflictionOutcome.Blocked => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.blocked")),
+            _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
+        };
+
+        Report(kind, message);
     }
 
     private void PickTargets()
     {
-        IReadOnlyList<Limb> limbs = GroupLimbs();
+        IReadOnlyList<Limb> limbs = _display is null ? [] : _display.Limbs();
 
         if (limbs.Count == 0) { return; }
 
         _host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.afflictions.targets"),
             limbs.Select(limb => new PickerToggle(
-                LimbLabel(limb),
+                CharacterDisplay.LimbLabel(limb),
                 () => _targets.Contains(limb.HealthIndex),
                 selected => SetTarget(limb.HealthIndex, selected))));
     }
@@ -433,21 +380,21 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         row.Selected = true;
     }
 
-    private void OpenMenu(AfflictionItemRowViewModel row)
+    private void ShowContextMenu(AfflictionItemRowViewModel row)
     {
         PickRow(row);
 
         _host.ShowContextMenu(
         [
-            new MenuCommand("sandboxmenu.delete", () => Delete(row), TextManager.Get("sandboxmenu.shortcut.delete"))
+            new MenuCommand("sandboxmenu.afflictions.remove", () => Remove(row), TextManager.Get("sandboxmenu.shortcut.delete"))
         ]);
     }
 
-    private void Delete(AfflictionItemRowViewModel? row)
+    private void Remove(AfflictionItemRowViewModel? row)
     {
         if (row is null || _selected is not { } character)
         {
-            Report(TextManager.Get("sandboxmenu.status.nocharacter"));
+            Report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.nocharacter"));
             return;
         }
 
@@ -455,24 +402,23 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
         if (row.Selected) { _picked = null; }
 
-        AfflictionOutcome outcome = ClientAfflictionDispatcher.Remove(character, prefab, row.HealthIndex);
+        AfflictionOutcome outcome = ClientAfflictionDispatcher.Remove(character, prefab, row.LimbHealthIndex);
 
-        Report(outcome switch
+        (StatusKind kind, LocalizedString message) = outcome switch
         {
-            AfflictionOutcome.Sent => TextManager.Get("sandboxmenu.afflictions.status.senttoserver"),
-            AfflictionOutcome.Removed => TextManager.GetWithVariable("sandboxmenu.afflictions.status.removed", "[value]", row.Display.Name),
-            _ => TextManager.Get("sandboxmenu.afflictions.status.sendfailed")
-        });
+            AfflictionOutcome.Sent => (StatusKind.Success, TextManager.Get("sandboxmenu.afflictions.status.senttoserver")),
+            AfflictionOutcome.Removed => (StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.afflictions.status.removed", "[value]", row.Display.Name)),
+            _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
+        };
+
+        Report(kind, message);
     }
 
     private void RefreshRows()
     {
-        if (_selected is null) { return; }
+        if (_display is not { } display || display.CharacterHealth is null) { return; }
 
-        CharacterHealth health = _selected.CharacterHealth;
-        int shape = ShapeHash(health);
-
-        if (shape != _shape)
+        if (display.Shape() != _shape)
         {
             RebuildRows();
             return;
@@ -491,40 +437,25 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _picked = null;
         _rows.Clear();
 
-        if (_selected?.CharacterHealth is not { } health)
+        if (_display is not { } display || display.CharacterHealth is not { } health)
         {
             _shape = 0;
             PublishRows();
             return;
         }
 
-        _shape = ShapeHash(health);
+        _shape = display.Shape();
 
-        List<Affliction> general = [];
-        Dictionary<int, List<Affliction>> byLimb = [];
-
-        foreach (Affliction affliction in AfflictionsOf(health))
+        foreach (CharacterDisplay.AfflictionGroup group in display.Groups(_hideEmptyLimbs, _sortByName))
         {
-            if (affliction.Strength < VisibleStrength) { continue; }
+            _rows.Add(new AfflictionGroupRowViewModel(group.Label) { Count = group.Items.Count });
 
-            if (health.GetAfflictionLimb(affliction) is not { } limb) { general.Add(affliction); continue; }
-
-            if (!byLimb.TryGetValue(limb.HealthIndex, out List<Affliction>? found)) { byLimb[limb.HealthIndex] = found = []; }
-
-            found.Add(affliction);
-        }
-
-        AddGroup(health, null, TextManager.Get("sandboxmenu.afflictions.group.body"), general);
-
-        foreach (Limb limb in GroupLimbs())
-        {
-            byLimb.Remove(limb.HealthIndex, out List<Affliction>? found);
-            AddGroup(health, limb, LimbLabel(limb), found);
-        }
-
-        foreach (KeyValuePair<int, List<Affliction>> pair in byLimb)
-        {
-            AddGroup(health, null, TextManager.Get("sandboxmenu.afflictions.group.other"), pair.Value);
+            foreach (Affliction affliction in group.Items)
+            {
+                AfflictionItemRowViewModel row = new(affliction, health, group.Limb, PickRow, ShowContextMenu);
+                row.Refresh();
+                _rows.Add(row);
+            }
         }
 
         PublishRows();
@@ -534,7 +465,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     private void Pick(Affliction affliction)
     {
-        foreach (AfflictionRowViewModel row in _rows)
+        foreach (Notifiable row in _rows)
         {
             if (row is not AfflictionItemRowViewModel item || !ReferenceEquals(item.Affliction, affliction)) { continue; }
 
@@ -545,107 +476,10 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         }
     }
 
-    private void AddGroup(CharacterHealth health, Limb? limb, LocalizedString label, List<Affliction>? found)
-    {
-        int count = found?.Count ?? 0;
-
-        if (count == 0 && _hideEmptyLimbs && limb is not null) { return; }
-
-        _rows.Add(new AfflictionGroupRowViewModel(label) { Count = count });
-
-        if (found is null) { return; }
-
-        found.Sort(Compare);
-
-        foreach (Affliction affliction in found)
-        {
-            AfflictionItemRowViewModel row = new(affliction, health, limb, PickRow, OpenMenu);
-            row.Refresh();
-            _rows.Add(row);
-        }
-    }
-
     private void PublishRows()
     {
-        _visibleRows = [.. _rows];
-
         Raise(nameof(Rows));
         Raise(nameof(RowsEmpty));
-    }
-
-    private int Compare(Affliction a, Affliction b)
-        => _sortByName
-            ? string.Compare(NameOf(a), NameOf(b), StringComparison.OrdinalIgnoreCase)
-            : b.Strength.CompareTo(a.Strength);
-
-    private static string NameOf(Affliction affliction) => AfflictionDisplay.For(affliction.Prefab).Name.Value;
-
-    private IReadOnlyList<Limb> GroupLimbs()
-    {
-        if (_selected?.AnimController is not { } controller) { return []; }
-
-        _limbIndex.Clear();
-
-        foreach (Limb limb in controller.Limbs)
-        {
-            if (limb.HealthIndex < 0) { continue; }
-
-            if (!_limbIndex.TryGetValue(limb.HealthIndex, out Limb? kept) || IsBetterName(limb, kept)) { _limbIndex[limb.HealthIndex] = limb; }
-        }
-
-        List<Limb> limbs = new(_limbIndex.Count);
-
-        limbs.AddRange(_limbIndex.Values);
-        limbs.Sort(static (left, right) => left.HealthIndex.CompareTo(right.HealthIndex));
-
-        return limbs;
-    }
-
-    private static bool IsBetterName(Limb candidate, Limb current)
-        => candidate.Hidden == current.Hidden ? Rank(candidate) < Rank(current) : !candidate.Hidden;
-
-    private static int Rank(Limb limb) => LimbRanks.TryGetValue(limb.type, out int rank) ? rank : int.MaxValue;
-
-    private static Dictionary<LimbType, int> BuildRanks()
-    {
-        Dictionary<LimbType, int> ranks = [];
-
-        for (int i = 0; i < PreferredLimbs.Length; i++) { ranks.TryAdd(PreferredLimbs[i], i); }
-
-        return ranks;
-    }
-
-    private static LocalizedString LimbLabel(Limb limb)
-    {
-        LocalizedString label = TextManager.Get("sandboxmenu.limb." + limb.type.ToString().ToLowerInvariant());
-
-        return label.IsNullOrWhiteSpace() ? limb.Name : label;
-    }
-
-    private int ShapeHash(CharacterHealth health)
-    {
-        int hash = 17;
-
-        foreach (Affliction affliction in AfflictionsOf(health))
-        {
-            if (affliction.Strength < VisibleStrength) { continue; }
-
-            hash = hash * 31 + RuntimeHelpers.GetHashCode(affliction);
-            hash = hash * 31 + (health.GetAfflictionLimb(affliction)?.HealthIndex ?? -1);
-        }
-
-        return hash;
-    }
-
-    private IReadOnlyCollection<Affliction> AfflictionsOf(CharacterHealth health)
-    {
-        if (!ReferenceEquals(_afflictionsFrom, health) || _afflictions is null)
-        {
-            _afflictionsFrom = health;
-            _afflictions = health.GetAllAfflictions();
-        }
-
-        return _afflictions;
     }
 
     private void PickPackages()
@@ -700,7 +534,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         HashSet<Identifier> available = [.. AfflictionPrefabCatalog.TypesIn(_packages)];
         _types.RemoveWhere(type => !available.Contains(type));
 
-        ApplyTileFilter();
+        RebuildTiles();
     }
 
     private void SetType(Identifier type, bool selected)
@@ -708,7 +542,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         if (selected) { _types.Add(type); }
         else { _types.Remove(type); }
 
-        ApplyTileFilter();
+        RebuildTiles();
     }
 
     private void SetScope(AfflictionScope scope, bool selected)
@@ -716,7 +550,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         if (selected) { _scopes.Add(scope); }
         else { _scopes.Remove(scope); }
 
-        ApplyTileFilter();
+        RebuildTiles();
     }
 
     private void SetKind(AfflictionKind kind, bool selected)
@@ -724,42 +558,28 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         if (selected) { _kinds.Add(kind); }
         else { _kinds.Remove(kind); }
 
-        ApplyTileFilter();
+        RebuildTiles();
     }
 
-    private void ApplyTileFilter()
+    private void RebuildTiles()
     {
-        if (NotificationBatch.Defer(this, nameof(ApplyTileFilter), RenewTileFilter)) { return; }
+        if (NotificationBatch.Defer(this, nameof(RebuildTiles), RebuildTilesNow)) { return; }
 
-        RenewTileFilter();
+        RebuildTilesNow();
     }
 
-    private void RenewTileFilter()
+    private void RebuildTilesNow()
     {
         string query = _query.Trim();
         AfflictionFilter filter = new(_packages, _types, _scopes, _kinds);
-        List<AfflictionTileViewModel> visible = new(_entries.Length);
 
-        for (int i = 0; i < _entries.Length; i++)
-        {
-            AfflictionPrefabEntry entry = _entries[i];
-
-            if (_hideHidden && entry.Hidden) { continue; }
-            if (!filter.Allows(entry)) { continue; }
-            if (query.Length != 0 && !entry.Matches(query)) { continue; }
-
-            AfflictionTileViewModel? tile = _builtTiles[i];
-
-            if (tile is null)
-            {
-                _builtTiles[i] = tile = new AfflictionTileViewModel(entry, _percent, Apply);
-                _tiles.Add(tile);
-            }
-
-            visible.Add(tile);
-        }
-
-        _visibleTiles = visible;
+        _visibleTiles = _catalog is null
+            ? []
+            : _catalog.Select(
+                entry => !(_hideHidden && entry.Hidden)
+                    && filter.Allows(entry)
+                    && (query.Length == 0 || entry.Matches(query)),
+                BuildTile);
 
         using (NotificationBatch.Begin())
         {
@@ -775,13 +595,12 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         }
     }
 
-    private static LocalizedString FilterLabel(string nameKey, int chosen)
+    private AfflictionTileViewModel BuildTile(AfflictionPrefabEntry entry)
     {
-        LocalizedString count = chosen.ToString();
+        AfflictionTileViewModel tile = new(entry, _percent, Apply);
 
-        return TextManager.GetWithVariables(
-            chosen == 0 ? "sandboxmenu.filter.summary.all" : "sandboxmenu.filter.summary.some",
-            ("[name]", TextManager.Get(nameKey)),
-            ("[count]", count));
+        _tiles.Add(tile);
+
+        return tile;
     }
 }

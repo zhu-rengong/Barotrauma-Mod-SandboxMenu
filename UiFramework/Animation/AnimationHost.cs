@@ -1,13 +1,13 @@
 namespace UiFramework.Animation;
 
-internal sealed class AnimationHost : IViewRuntime
+internal sealed class AnimationHost
 {
     private readonly List<StoryboardPlayer> _players = [];
-    private readonly Dictionary<IViewElement, List<StoryboardPlayer>> _targets = [];
+    private readonly Dictionary<ViewElement, List<StoryboardPlayer>> _targets = [];
 
-    public IAnimationPlayer Play(IStoryboard storyboard, IViewElement target, IPauseable? scope, IViewHost host)
+    public StoryboardPlayer Play(Storyboard storyboard, ViewElement target, ViewScope? scope, ViewContext? host)
     {
-        StoryboardPlayer player = new((Storyboard)storyboard, target, scope, host, OnStopped);
+        StoryboardPlayer player = new(storyboard, target, scope, host, OnStopped);
 
         _players.Add(player);
         Players(target).Add(player);
@@ -33,7 +33,7 @@ internal sealed class AnimationHost : IViewRuntime
         }
     }
 
-    public void Reset(IViewElement target)
+    public void Reset(ViewElement target)
     {
         if (!_targets.TryGetValue(target, out List<StoryboardPlayer>? players)) { return; }
 
@@ -48,7 +48,7 @@ internal sealed class AnimationHost : IViewRuntime
         _targets.Clear();
     }
 
-    private List<StoryboardPlayer> Players(IViewElement target)
+    private List<StoryboardPlayer> Players(ViewElement target)
     {
         if (_targets.TryGetValue(target, out List<StoryboardPlayer>? players)) { return players; }
 

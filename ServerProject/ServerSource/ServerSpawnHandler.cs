@@ -15,8 +15,16 @@ internal static class ServerSpawnHandler
 
         if (!ServerPolicy.IsAllowed(client))
         {
-            DebugConsole.NewMessage($"{client.Name} asked to spawn items without the permission to do so.");
+            Services.DebugConsole.NewMessage($"{client.Name} asked to spawn items without the permission to do so.");
             Reply(client, request.RequestId, SpawnStatus.Denied);
+            return;
+        }
+
+        if (request.ProtocolVersion != Protocol.Version)
+        {
+            Services.DebugConsole.AddWarning(
+                $"{client.Name} runs a spawn protocol version this server does not speak ({request.ProtocolVersion} against {Protocol.Version}).");
+            Reply(client, request.RequestId, SpawnStatus.BadPayload);
             return;
         }
 
@@ -26,7 +34,7 @@ internal static class ServerSpawnHandler
             return;
         }
 
-        if (!SpawnPayloadCodec.TryDecode(request.Payload, out SpawnPayload payload))
+        if (!SpawnMessageCodec.TryDecode(request.Payload, out SpawnMessage payload))
         {
             Reply(client, request.RequestId, SpawnStatus.BadPayload);
             return;
@@ -46,13 +54,13 @@ internal static class ServerSpawnHandler
 
         if (request.CharacterId != character.ID)
         {
-            DebugConsole.NewMessage($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
+            Services.DebugConsole.NewMessage($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
         }
 
-        SpawnTarget? target = (SpawnTargetKind)request.Target switch
+        SpawnTarget? target = request.Target switch
         {
             SpawnTargetKind.World => new SpawnTarget.AtWorld(request.Position, character),
-            _ => ItemSpawnService.InventoryTarget(character)
+            _ => character.Inventory is { } inventory ? new SpawnTarget.IntoInventory(inventory, character) : null
         };
 
         if (target is null)
@@ -61,17 +69,19 @@ internal static class ServerSpawnHandler
             return;
         }
 
-        SpawnResult result = ItemSpawnService.Spawn(target, payload.Entries, payload.ResolveTemplate);
-        Reply(client, request.RequestId, SpawnStatus.Ok, result);
+        SpawnExecutor executor = new(target, payload.ResolveTemplate);
+        executor.Run(payload.Entries);
+
+        Reply(client, request.RequestId, SpawnStatus.Ok, executor.Result);
     }
 
     private static void Reply(Client client, uint requestId, SpawnStatus status, SpawnResult? result = null)
     {
         SpawnResponse response = new(
             requestId,
-            (byte)status,
+            status,
             result?.QueuedCount ?? 0,
-            SpawnPayloadCodec.LimitProblems(result?.Problems ?? []));
+            SpawnMessageCodec.LimitProblems(result?.Problems ?? []));
 
         Services.GameNetwork.SendToClient(client, NetworkHeaders.SpawnResponse, response);
     }

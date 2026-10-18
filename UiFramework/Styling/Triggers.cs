@@ -78,21 +78,21 @@ internal sealed class EventTrigger
 internal sealed record Condition(string? Path, string? Property, MarkupValue Value);
 
 internal sealed class TriggerContext(
-    IViewHost view,
-    IViewRuntime runtime,
-    IViewElement element,
+    ViewContext view,
+    AnimationHost runtime,
+    ViewElement element,
     MarkupNode node,
-    IPauseable? scope)
+    ViewScope? scope)
 {
-    internal IViewHost View { get; } = view;
+    internal ViewContext View { get; } = view;
 
-    internal IViewRuntime Runtime { get; } = runtime;
+    internal AnimationHost Runtime { get; } = runtime;
 
-    internal IViewElement Element { get; } = element;
+    internal ViewElement Element { get; } = element;
 
     internal MarkupNode Node { get; } = node;
 
-    internal IPauseable? Scope { get; } = scope;
+    internal ViewScope? Scope { get; } = scope;
 
     internal StoryboardActionContext Actions() => new(Runtime, View, Element, Scope);
 
@@ -131,17 +131,26 @@ internal sealed class TriggerContext(
     internal void Report(string message) => View.Diagnostics.Report(message, Node);
 }
 
-internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger)
+internal sealed class TriggerRuntime
 {
-    private readonly StoryboardActionContext _actions = context.Actions();
-
+    private readonly TriggerContext _context;
+    private readonly TriggerBase _trigger;
+    private readonly StoryboardActionContext _actions;
     private readonly List<(Condition Condition, object? Value)> _conditions = [];
-    private readonly bool _checked = Check(context, trigger);
 
     private bool _active;
     private bool _evaluating;
 
-    private static bool Check(TriggerContext context, TriggerBase trigger)
+    internal TriggerRuntime(TriggerContext context, TriggerBase trigger)
+    {
+        _context = context;
+        _trigger = trigger;
+        _actions = context.Actions();
+
+        Validate(context, trigger);
+    }
+
+    private static void Validate(TriggerContext context, TriggerBase trigger)
     {
         foreach (Setter setter in trigger.Setters)
         {
@@ -149,8 +158,6 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
 
             context.Report($"a trigger sets '{setter.Property}': {reason}");
         }
-
-        return true;
     }
 
     internal Action<object?> Match(string expected) => value => Update(expected, value);
@@ -187,14 +194,14 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
         {
             _active = true;
 
-            foreach (Setter setter in trigger.Setters)
+            foreach (Setter setter in _trigger.Setters)
             {
-                if (context.Element.ApplyOverride(this, trigger.Priority, setter.Property, setter.Value, out string message)) { continue; }
+                if (_context.Element.ApplyOverride(this, _trigger.Priority, setter.Property, setter.Value, out string message)) { continue; }
 
-                context.Report($"a trigger sets '{setter.Property}': {message}");
+                _context.Report($"a trigger sets '{setter.Property}': {message}");
             }
 
-            foreach (StoryboardAction action in trigger.EnterActions)
+            foreach (StoryboardAction action in _trigger.EnterActions)
             {
                 UiGuard.Run((Action: action, Context: _actions), static state => state.Action.Run(state.Context));
             }
@@ -215,12 +222,12 @@ internal sealed class TriggerRuntime(TriggerContext context, TriggerBase trigger
         {
             _active = false;
 
-            foreach (Setter setter in trigger.Setters)
+            foreach (Setter setter in _trigger.Setters)
             {
-                context.Element.RemoveOverride(this, setter.Property);
+                _context.Element.RemoveOverride(this, setter.Property);
             }
 
-            foreach (StoryboardAction action in trigger.ExitActions)
+            foreach (StoryboardAction action in _trigger.ExitActions)
             {
                 UiGuard.Run((Action: action, Context: _actions), static state => state.Action.Run(state.Context));
             }

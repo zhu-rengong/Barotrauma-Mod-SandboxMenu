@@ -16,7 +16,15 @@ internal static class ServerAfflictionHandler
 
         if (!ServerPolicy.IsAllowed(client))
         {
-            DebugConsole.NewMessage($"{client.Name} asked to apply an affliction without the permission to do so.");
+            Services.DebugConsole.NewMessage($"{client.Name} asked to apply an affliction without the permission to do so.");
+            Reply(client, request.RequestId, AfflictionStatus.Denied);
+            return;
+        }
+
+        if (request.ProtocolVersion != Protocol.Version)
+        {
+            Services.DebugConsole.AddWarning(
+                $"{client.Name} runs an affliction protocol version this server does not speak ({request.ProtocolVersion} against {Protocol.Version}).");
             Reply(client, request.RequestId, AfflictionStatus.Denied);
             return;
         }
@@ -41,35 +49,23 @@ internal static class ServerAfflictionHandler
 
         int[] limbs = request.Limbs ?? [];
 
-        if ((AfflictionMode)request.Mode == AfflictionMode.Remove)
+        if (request.Mode == AfflictionMode.Remove)
         {
-            AfflictionEditor.Clear(character.CharacterHealth, afflictionInUse
-                => afflictionInUse.Prefab == affliction && Targets(character.CharacterHealth, afflictionInUse, limbs));
+            AfflictionApplier.Remove(character.CharacterHealth, affliction, limbs);
 
             Reply(client, request.RequestId, AfflictionStatus.Ok);
             return;
         }
 
-        float strength = Math.Clamp(request.Strength, 0f, affliction.MaxStrength > 0f ? affliction.MaxStrength : 1f);
+        AfflictionApplyResult applied = AfflictionApplier.Apply(
+            character, affliction, request.Strength, limbs, request.MultiplyByMaxVitality, client.Character);
 
-        if (request.MultiplyByMaxVitality) { strength *= character.MaxVitality / 100f; }
-
-        if (limbs.Length == 0)
+        Reply(client, request.RequestId, applied switch
         {
-            character.CharacterHealth.ApplyAffliction(null, affliction.Instantiate(strength, client.Character));
-
-            Reply(client, request.RequestId, AfflictionStatus.Ok);
-            return;
-        }
-
-        foreach (int index in limbs)
-        {
-            if (Limbs(character, index) is not { } limb) { continue; }
-
-            character.CharacterHealth.ApplyAffliction(limb, affliction.Instantiate(strength, client.Character));
-        }
-
-        Reply(client, request.RequestId, AfflictionStatus.Ok);
+            AfflictionApplyResult.Applied => AfflictionStatus.Ok,
+            AfflictionApplyResult.Blocked => AfflictionStatus.Blocked,
+            _ => AfflictionStatus.NoCharacter
+        });
     }
 
     private static AfflictionPrefab? FindAffliction(uint id)
@@ -89,40 +85,12 @@ internal static class ServerAfflictionHandler
         return found;
     }
 
-    private static bool Targets(CharacterHealth health, Affliction affliction, int[] limbs)
-    {
-        if (limbs.Length == 0) { return true; }
-
-        if (health.GetAfflictionLimb(affliction) is not { } limb) { return false; }
-
-        for (int i = 0; i < limbs.Length; i++)
-        {
-            if (limbs[i] == limb.HealthIndex) { return true; }
-        }
-
-        return false;
-    }
-
-    private static Limb? Limbs(Character character, int healthIndex)
-    {
-        if (character.AnimController is not { } controller) { return null; }
-
-        Limb[] candidates = controller.Limbs;
-
-        for (int i = 0; i < candidates.Length; i++)
-        {
-            if (candidates[i].HealthIndex == healthIndex) { return candidates[i]; }
-        }
-
-        return null;
-    }
-
     private static AfflictionPrefab? _resolved;
     private static uint _resolvedId;
 
     private static void Reply(Client client, uint requestId, AfflictionStatus status)
     {
-        AfflictionResponse response = new(requestId, (byte)status);
+        AfflictionResponse response = new(requestId, status);
 
         Services.GameNetwork.SendToClient(client, NetworkHeaders.AfflictionResponse, response);
     }

@@ -21,18 +21,18 @@ internal sealed record SetAction(Setter Setter) : StoryboardAction
 }
 
 internal sealed class StoryboardActionContext(
-    IStoryboardRunner runner,
-    IViewHost host,
-    IViewElement element,
-    IPauseable? scope)
+    AnimationHost runner,
+    ViewContext host,
+    ViewElement element,
+    ViewScope? scope)
 {
-    private readonly Dictionary<StoryboardAction, (IStoryboard Storyboard, IAnimationPlayer Player)> _players = [];
+    private readonly Dictionary<StoryboardAction, (Storyboard Storyboard, StoryboardPlayer Player)> _players = [];
 
-    internal IStoryboardRunner Runner { get; } = runner;
+    internal AnimationHost Runner { get; } = runner;
 
-    internal IViewHost Host { get; } = host;
+    internal ViewContext Host { get; } = host;
 
-    internal IViewElement Element { get; } = element;
+    internal ViewElement Element { get; } = element;
 
     internal void Play(Storyboard storyboard, StoryboardAction action)
     {
@@ -40,7 +40,7 @@ internal sealed class StoryboardActionContext(
 
         Stop(action);
 
-        foreach ((StoryboardAction started, (IStoryboard Started, IAnimationPlayer Player) entry) in _players.ToArray())
+        foreach ((StoryboardAction started, (Storyboard Started, StoryboardPlayer Player) entry) in _players.ToArray())
         {
             if (!entry.Started.SharesProperty(storyboard)) { continue; }
 
@@ -55,12 +55,12 @@ internal sealed class StoryboardActionContext(
     {
         if (action is { } target)
         {
-            if (_players.Remove(target, out (IStoryboard Storyboard, IAnimationPlayer Player) player)) { player.Player.Stop(); }
+            if (_players.Remove(target, out (Storyboard Storyboard, StoryboardPlayer Player) player)) { player.Player.Stop(); }
 
             return;
         }
 
-        foreach ((IStoryboard _, IAnimationPlayer player) in _players.Values) { player.Stop(); }
+        foreach ((Storyboard _, StoryboardPlayer player) in _players.Values) { player.Stop(); }
 
         _players.Clear();
     }

@@ -29,11 +29,6 @@
   <ItemGroup>
     <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
     <PackageReference Include="Barotrauma.ReferenceAssemblies.Libraries" Version="*-*" />
-    <!-- Kept so a future patch finds HarmonyLib at hand; nothing in the mod patches today — every mount point is a
-         host hook or service. When one is needed, patch through the host's IHarmonyProvider rather than a Harmony
-         instance of the mod's own: it hands out one the game creates, names and disposes. Its MonoMod is also what
-         declares IgnoresAccessChecksToAttribute, which AssemblySettings.cs needs three times — so this reference
-         carries the mod's access to the host's internals as well, and is not just an idle one. -->
     <PackageReference Include="HarmonyX" Version="2.15.0" />
   </ItemGroup>
 

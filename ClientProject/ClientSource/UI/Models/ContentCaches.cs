@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.Models;
 
-internal static class CachedContent
+internal static class ContentCaches
 {
     internal static void Drop()
     {
@@ -9,6 +9,6 @@ internal static class CachedContent
         ItemDisplay.Reset();
         AfflictionDisplay.Reset();
         PropertyCatalog.Reset();
-        StatusTones.Reset();
+        ContainerRules.Reset();
     }
 }

@@ -14,15 +14,12 @@ internal sealed class MarkupWindow : IDialogWindow
     private readonly int _id = ++_instances;
     private readonly Point? _contentSize;
 
-    private bool _closing;
-    private bool? _interactive;
-
     internal MarkupWindow(string markupFile, int updateOrder, object viewModel, Point? contentSize = null)
     {
         _order = updateOrder;
         _contentSize = contentSize;
 
-        _view = ViewLoader.Load(markupFile, viewModel, Configure, message => DebugConsole.AddWarning($"#{_id} {message}"), GUI.Canvas);
+        _view = ViewLoader.Load(markupFile, viewModel, Configure, message => Services.DebugConsole.AddWarning($"#{_id} {message}"), GUI.Canvas);
 
         if (_view.RootElement is not IViewWindow chrome)
         {
@@ -35,32 +32,16 @@ internal sealed class MarkupWindow : IDialogWindow
 
     public bool IsOpen { get; private set; }
 
-    public static bool InputBlocked { get; set; }
+    public Action? Closed { get; set; }
+
+    internal bool ListDragBlocked { get; set; }
 
     private void Configure(ViewContext view)
     {
         view.Dispatch = FrameActions.Run;
-        view.IsInputBlocked = () => InputBlocked;
+        view.IsListDragBlocked = () => ListDragBlocked;
         view.Close = Close;
         view.ContentSize = _contentSize;
-    }
-
-    public Action? Closing { get; set; }
-
-    private void NotifyClosing()
-    {
-        if (_closing) { return; }
-
-        _closing = true;
-
-        try
-        {
-            Closing?.Invoke();
-        }
-        catch (Exception e)
-        {
-            DebugConsole.AddWarning($"Handing over the state of window #{_id} failed: {e}");
-        }
     }
 
     public Rectangle Rect => _frame.Rect;
@@ -85,11 +66,10 @@ internal sealed class MarkupWindow : IDialogWindow
         _frame.RectTransform.Parent = GUI.Canvas;
         IsOpen = true;
         _frame.Visible = true;
-        InputBlocked = true;
         _view.RequestFocus();
     }
 
-    internal void Close()
+    public void Close()
     {
         DismissTransient();
 
@@ -97,8 +77,8 @@ internal sealed class MarkupWindow : IDialogWindow
         _frame.Visible = false;
         _frame.RemoveFromGUIUpdateList();
         _frame.RectTransform.Parent = null;
-        InputBlocked = false;
-        NotifyClosing();
+
+        Closed?.Invoke();
     }
 
     public void Register()
@@ -125,29 +105,7 @@ internal sealed class MarkupWindow : IDialogWindow
         _frame.Visible = false;
         _frame.RemoveFromGUIUpdateList();
         _frame.RectTransform.Parent = null;
-        InputBlocked = false;
-        NotifyClosing();
         _view.Dispose();
-    }
-
-    internal void SetInteractive(bool interactive)
-    {
-        _view.Interactive = interactive;
-
-        if (_interactive == interactive) { return; }
-
-        _interactive = interactive;
-        SetAutoUpdate(_frame, interactive);
-    }
-
-    private static void SetAutoUpdate(GUIComponent component, bool enabled)
-    {
-        component.AutoUpdate = enabled;
-
-        foreach (RectTransform child in component.RectTransform.Children)
-        {
-            if (child.GUIComponent is { } control) { SetAutoUpdate(control, enabled); }
-        }
     }
 
     private void KeepOnScreen()

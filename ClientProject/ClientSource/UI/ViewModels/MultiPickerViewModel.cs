@@ -28,7 +28,7 @@ internal sealed class MultiPickerViewModel : Notifiable
         get => _query;
         set
         {
-            if (Set(ref _query, value ?? string.Empty)) { ApplyFilter(); }
+            if (Set(ref _query, value ?? string.Empty)) { Refresh(); }
         }
     }
 
@@ -56,7 +56,7 @@ internal sealed class MultiPickerViewModel : Notifiable
         }
     }
 
-    private void ApplyFilter()
+    private void Refresh()
     {
         string filter = _query.Trim();
 

@@ -5,7 +5,7 @@ internal sealed class ItemPreviewRowViewModel : ItemRowViewModel
     private string _fallbackTitle = string.Empty;
     private LocalizedString _fallbackSubText = LocalizedString.EmptyString;
 
-    private ItemPreviewRowViewModel() => Show(string.Empty);
+    private ItemPreviewRowViewModel() { }
 
     public override RichString Title => Display is null ? _fallbackTitle : base.Title;
 

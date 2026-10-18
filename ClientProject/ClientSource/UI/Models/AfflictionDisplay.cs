@@ -32,8 +32,6 @@ internal sealed class AfflictionDisplay
 
     public float MaxStrength => _prefab.MaxStrength > 0f ? _prefab.MaxStrength : 1f;
 
-    public RichString Title => RichString.Rich(TooltipText.Bright(_name) + " " + TooltipText.Dim(Identifier));
-
     public Color ColorAt(float strength)
         => _prefab.Icon is null ? Color.White : CharacterHealth.GetAfflictionIconColor(_prefab, MathHelper.Clamp(strength, 0f, MaxStrength));
 

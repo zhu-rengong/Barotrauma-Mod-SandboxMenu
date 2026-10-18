@@ -68,7 +68,7 @@ internal sealed class SwatchButton : GUIButton
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Painting the colour swatch failed: {e}");
+            Services.DebugConsole.AddWarning($"Painting the colour swatch failed: {e}");
         }
     }
 }

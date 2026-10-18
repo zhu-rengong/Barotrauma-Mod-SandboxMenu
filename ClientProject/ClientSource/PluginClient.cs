@@ -30,8 +30,10 @@ public sealed partial class Plugin
         UiHost.RegisterTokens(Tokens);
         UiHost.RegisterGlobalResources(ViewLoader.LoadResources("Theme.xml"));
 
-        Services.GameScreen.RegisterResolutionChangeEvent(_resolutionChangedEvent, MenuWindow.ResolutionChanged);
+        SandboxMenuHost.Create();
+
+        Services.GameScreen.RegisterResolutionChangeEvent(_resolutionChangedEvent, SandboxMenuHost.ResolutionChanged);
     }
 
-    partial void DisposeProjSpecific() => MenuWindow.Shutdown();
+    partial void DisposeProjSpecific() => SandboxMenuHost.Shutdown();
 }

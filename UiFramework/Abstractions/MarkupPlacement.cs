@@ -45,36 +45,11 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
         if (Length.TryWeight(text, out _)) { return (1f, 0f); }
         if (text.Equals("Fill", StringComparison.OrdinalIgnoreCase)) { return (1f, 0f); }
 
-        Length token = UiTokens.AsLength(text, Length.Auto);
+        Reading reading = ReadKind(node, attribute, ratio: true, diagnostics);
 
-        if (token.Kind == LengthKind.Dip) { return (0f, token.Value); }
-        if (token.Kind == LengthKind.Percent) { return (token.Value, 0f); }
+        if (!reading.Ok) { return (fallback, 0f); }
 
-        if (text.EndsWith('%'))
-        {
-            return ValueParser.TryPercent(text, out float percent)
-                ? (percent, 0f)
-                : (Reject(text, fallback, attribute, "a percentage", diagnostics, node), 0f);
-        }
-
-        if (text.EndsWith("dip", StringComparison.OrdinalIgnoreCase))
-        {
-            return ValueParser.TryDip(text, out float dip)
-                ? (0f, dip)
-                : (Reject(text, fallback, attribute, "a DIP length", diagnostics, node), 0f);
-        }
-
-        if (!ValueParser.TryFloat(text, out float value))
-        {
-            return (Reject(text, fallback, attribute, "a fraction of the parent", diagnostics, node), 0f);
-        }
-
-        if (value > 1f)
-        {
-            diagnostics?.Report($"'{attribute}=\"{text}\"' is more than the whole parent; sizes inside a view are fractions", node);
-        }
-
-        return (value, 0f);
+        return reading.Kind == LengthKind.Dip ? (0f, reading.Value) : (reading.Value, 0f);
     }
 
     private RectTransform Fixed(RectTransform parent)
@@ -92,32 +67,52 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
 
     private static float Read(MarkupNode node, string attribute, float fallback, MarkupDiagnostics? diagnostics, bool ratio)
     {
-        if (node.Text(attribute) is not { } raw) { return fallback; }
+        Reading reading = ReadKind(node, attribute, ratio, diagnostics);
 
-        string text = raw.Trim();
-        if (text.Length == 0) { return fallback; }
+        if (!reading.Ok) { return fallback; }
+
+        if (reading.Kind == LengthKind.Dip && ratio)
+        {
+            Reject(node, attribute, "a fraction of the parent; DIP is taken at the window", diagnostics);
+            return fallback;
+        }
+
+        if (reading.Kind == LengthKind.Percent && !ratio)
+        {
+            Reject(node, attribute, "a length; a percentage of the parent is not one", diagnostics);
+            return fallback;
+        }
+
+        return reading.Value;
+    }
+
+    private static Reading ReadKind(MarkupNode node, string attribute, bool ratio, MarkupDiagnostics? diagnostics)
+    {
+        string text = node.Text(attribute)?.Trim() ?? string.Empty;
+
+        if (text.Length == 0) { return Reading.Missing; }
+
+        Length token = UiTokens.AsLength(text, Length.Auto);
+
+        if (token.Kind is LengthKind.Dip or LengthKind.Percent) { return new Reading(token.Kind, token.Value); }
 
         if (text.EndsWith('%'))
         {
-            if (!ratio) { return Reject(text, fallback, attribute, "a length; a percentage of the parent is not one", diagnostics, node); }
-
             return ValueParser.TryPercent(text, out float percent)
-                ? percent
-                : Reject(text, fallback, attribute, "a percentage", diagnostics, node);
+                ? new Reading(LengthKind.Percent, percent)
+                : Invalid(node, attribute, "a percentage", diagnostics);
         }
 
         if (text.EndsWith("dip", StringComparison.OrdinalIgnoreCase))
         {
-            if (ratio) { return Reject(text, fallback, attribute, "a fraction of the parent; DIP is taken at the window", diagnostics, node); }
-
             return ValueParser.TryDip(text, out float dip)
-                ? dip
-                : Reject(text, fallback, attribute, "a DIP length", diagnostics, node);
+                ? new Reading(LengthKind.Dip, dip)
+                : Invalid(node, attribute, "a DIP length", diagnostics);
         }
 
         if (!ValueParser.TryFloat(text, out float value))
         {
-            return Reject(text, fallback, attribute, ratio ? "a fraction of the parent" : "a DIP length", diagnostics, node);
+            return Invalid(node, attribute, ratio ? "a fraction of the parent" : "a DIP length", diagnostics);
         }
 
         if (ratio && value > 1f)
@@ -125,12 +120,22 @@ internal readonly record struct MarkupPlacement(float Width, float Height, Ancho
             diagnostics?.Report($"'{attribute}=\"{text}\"' is more than the whole parent; sizes inside a view are fractions", node);
         }
 
-        return value;
+        return new Reading(ratio ? LengthKind.Percent : LengthKind.Dip, value);
     }
 
-    private static float Reject(string text, float fallback, string attribute, string expected, MarkupDiagnostics? diagnostics, MarkupNode node)
+    private static Reading Invalid(MarkupNode node, string attribute, string expected, MarkupDiagnostics? diagnostics)
     {
-        diagnostics?.Report($"'{attribute}=\"{text}\"' is not {expected}", node);
-        return fallback;
+        Reject(node, attribute, expected, diagnostics);
+        return Reading.Missing;
+    }
+
+    private static void Reject(MarkupNode node, string attribute, string expected, MarkupDiagnostics? diagnostics)
+    {
+        diagnostics?.Report($"'{attribute}=\"{node.Text(attribute)?.Trim()}\"' is not {expected}", node);
+    }
+
+    private readonly record struct Reading(LengthKind Kind, float Value, bool Ok = true)
+    {
+        internal static Reading Missing { get; } = new(LengthKind.Auto, 0f, false);
     }
 }

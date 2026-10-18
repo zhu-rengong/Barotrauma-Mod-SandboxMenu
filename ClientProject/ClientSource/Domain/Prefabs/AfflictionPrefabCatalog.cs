@@ -69,13 +69,6 @@ internal static class AfflictionPrefabCatalog
         return _packages;
     }
 
-    internal static IReadOnlyList<Identifier> Types()
-    {
-        EnsureBuilt();
-
-        return _types;
-    }
-
     internal static IReadOnlyList<Identifier> TypesIn(IReadOnlySet<string> packages)
     {
         EnsureBuilt();

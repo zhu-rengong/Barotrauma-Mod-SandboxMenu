@@ -167,7 +167,7 @@ internal static class PropertyCatalog
             options.Add(new PropertyOption(
                 property.Name,
                 kind,
-                PropertyDefaults.Format(serialize.DefaultValue),
+                PropertyText.Format(serialize.DefaultValue),
                 editable,
                 saveable,
                 KindOf(typeName, property.PropertyType),

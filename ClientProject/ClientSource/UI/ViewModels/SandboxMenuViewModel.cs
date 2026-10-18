@@ -45,14 +45,12 @@ internal sealed class SandboxMenuViewModel : Notifiable, IItemDropTarget, IListB
 
     public void Drop(object source, object? target, DropMode mode) => Spawn.Drop(source, target, mode);
 
-    public void ShowBackgroundMenu(Vector2 position) => Spawn.ShowBackgroundMenu(position);
+    public void ShowContextMenu(Vector2 position) => Spawn.ShowContextMenu(position);
 
-    internal void Report(LocalizedString message)
+    internal void Report(StatusKind kind, LocalizedString message)
     {
-        StatusKind = StatusTones.Of(message);
+        StatusKind = kind;
         StatusPulse = !_statusPulse;
         Status = message;
     }
-
-    internal void RefreshStatusKind() => StatusKind = StatusTones.Of(_status);
 }

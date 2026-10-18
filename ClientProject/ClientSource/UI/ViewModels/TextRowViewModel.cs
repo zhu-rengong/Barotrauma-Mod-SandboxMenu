@@ -15,7 +15,7 @@ internal sealed class TextRowViewModel(EntryEditorViewModel editor, LocalizedStr
             if (!Set(ref _text, value ?? string.Empty)) { return; }
 
             _apply(_text);
-            _editor.NotifyEdited();
+            _editor.Refresh();
         }
     }
 }

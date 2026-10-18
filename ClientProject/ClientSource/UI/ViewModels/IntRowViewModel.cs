@@ -33,6 +33,6 @@ internal sealed class IntRowViewModel(EntryEditorViewModel editor, LocalizedStri
     {
         LabelActive = _enabled;
         _apply(_enabled ? Math.Clamp(_value, 0, Limit) : null);
-        _editor.NotifyEdited();
+        _editor.Refresh();
     }
 }

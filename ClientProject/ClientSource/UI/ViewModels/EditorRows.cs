@@ -3,7 +3,11 @@ using Barotrauma.Items.Components;
 
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelViewModel menu)
+internal sealed class EditorRows(
+    EntryEditorViewModel editor,
+    IDialogHost host,
+    Action<ItemEntry> giveToCharacter,
+    Action<StatusKind, LocalizedString> report)
 {
     private const float AmountLimit = 100000f;
 
@@ -59,7 +63,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
             TextManager.Get("sandboxmenu.field.amountround"),
             entry.AmountRound,
             value => entry.AmountRound = value,
-            editor.NotifyEdited));
+            editor.Refresh));
 
         if (entry is ItemEntry filling)
         {
@@ -75,7 +79,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
         {
             item.Identifier = identifier;
             editor.Rebuild();
-            editor.NotifyEdited();
+            editor.Refresh();
         }
 
         _rows.Add(new BrowseRowViewModel(
@@ -87,13 +91,13 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
                 item.Identifier = value;
                 preview.Show(value);
             },
-            () => menu.Host.ShowItemBrowser(
+            () => host.ShowItemBrowser(
                 identifier => FrameActions.Post(() => Take(identifier)),
                 container,
                 identifier => FrameActions.Post(() =>
                 {
                     Take(identifier);
-                    menu.GiveToCharacter(item);
+                    giveToCharacter(item);
                 }))));
 
         _rows.Add(preview);
@@ -158,7 +162,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
                 {
                     item.Properties.Remove(target);
                     editor.Rebuild();
-                    editor.NotifyEdited();
+                    editor.Refresh();
                 }));
 
             _rows.Add(row);
@@ -168,7 +172,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
         {
             item.Properties.Add(new PropertyOverride());
             editor.Rebuild();
-            editor.NotifyEdited();
+            editor.Refresh();
         })));
     }
 
@@ -180,13 +184,13 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
             value => reference.TemplateName = value));
 
     private void AddTick(string labelKey, bool value, Action<bool> apply)
-        => _rows.Add(new TickRowViewModel(TextManager.Get(labelKey), value, apply, editor.NotifyEdited));
+        => _rows.Add(new TickRowViewModel(TextManager.Get(labelKey), value, apply, editor.Refresh));
 
     private void BrowseComponents(ItemEntry item, PropertyRowViewModel? row)
     {
         if (row is null) { return; }
 
-        menu.Host.ShowOptions(
+        host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.component"),
             PropertyCatalog.Targets(item.Identifier)
                 .Select(target => new PickerOption(target.Label, () => SetComponent(item, row, target))));
@@ -203,7 +207,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
 
         if (declared.Kind == PropertyKind.Flags)
         {
-            menu.Host.ShowMultiPicker(
+            host.ShowMultiPicker(
                 TextManager.Get("sandboxmenu.browse.enumvalue"),
                 declared.Values.Select(value => new PickerToggle(
                     value,
@@ -213,7 +217,7 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
             return;
         }
 
-        menu.Host.ShowOptions(
+        host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.enumvalue"),
             declared.Values.Select(value => new PickerOption(value, () => row.SetEnumValue(value))),
             filterable: true);
@@ -223,14 +227,14 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
     {
         if (row is null) { return; }
 
-        menu.Host.ShowColorPicker(row.Swatch, color => row.Swatch = color);
+        host.ShowColorPicker(row.Swatch, color => row.Swatch = color);
     }
 
     private void BrowseEquipSlots(ItemEntry item, SlotRowViewModel? row)
     {
         if (row is null) { return; }
 
-        menu.Host.ShowMultiPicker(
+        host.ShowMultiPicker(
             TextManager.Get("sandboxmenu.field.equipslots"),
             SpawnSlots.All.Select(slot => new PickerToggle(
                 slot.ToString(),
@@ -247,11 +251,11 @@ internal sealed class EditorRowBuilder(EntryEditorViewModel editor, SpawnPanelVi
 
         if (options.Count == 0)
         {
-            menu.Report(TextManager.Get("sandboxmenu.pick.noproperties"));
+            report(StatusKind.Warning, TextManager.Get("sandboxmenu.pick.noproperties"));
             return;
         }
 
-        menu.Host.ShowOptions(
+        host.ShowOptions(
             TextManager.Get("sandboxmenu.browse.property"),
             options.Select(option => new PickerOption(option.Label, () => row.SetProperty(option), option.Editable, option.Saveable)),
             filterable: true);

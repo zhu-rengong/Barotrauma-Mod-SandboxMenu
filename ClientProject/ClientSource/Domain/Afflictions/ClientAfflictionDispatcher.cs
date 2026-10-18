@@ -9,11 +9,6 @@ internal enum AfflictionOutcome
     NotSent
 }
 
-internal enum AfflictionRefusal
-{
-    NotSent
-}
-
 internal readonly record struct AfflictionTargets(bool WholeBody, IReadOnlyList<Limb> Limbs);
 
 internal static class ClientAfflictionDispatcher
@@ -21,17 +16,23 @@ internal static class ClientAfflictionDispatcher
     private static uint _nextRequestId;
     private static uint _waitingFor;
 
+    internal static event Action<AfflictionStatus>? Settled;
+
     internal static bool IsRemote => GameMain.NetworkMember is { IsClient: true };
 
     internal static AfflictionOutcome Apply(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets, bool multiplyByMaxVitality)
         => IsRemote
-            ? Sent(TrySend(character, prefab, strength, LimbsOf(targets), AfflictionMode.Apply, multiplyByMaxVitality))
+            ? (TrySend(character, prefab, strength, LimbsOf(targets), AfflictionMode.Apply, multiplyByMaxVitality)
+                ? AfflictionOutcome.Sent
+                : AfflictionOutcome.NotSent)
             : ApplyLocally(character, prefab, strength, targets, multiplyByMaxVitality);
 
-    internal static AfflictionOutcome Remove(Character character, AfflictionPrefab prefab, int healthIndex)
+    internal static AfflictionOutcome Remove(Character character, AfflictionPrefab prefab, int? limbHealthIndex)
         => IsRemote
-            ? Sent(TrySend(character, prefab, 0f, [healthIndex], AfflictionMode.Remove, false))
-            : RemoveLocally(character, prefab, healthIndex);
+            ? (TrySend(character, prefab, 0f, LimbIndexes(limbHealthIndex), AfflictionMode.Remove, false)
+                ? AfflictionOutcome.Sent
+                : AfflictionOutcome.NotSent)
+            : RemoveLocally(character, prefab, limbHealthIndex);
 
     internal static void OnResponse(AfflictionResponse response)
     {
@@ -39,42 +40,27 @@ internal static class ClientAfflictionDispatcher
 
         _waitingFor = 0;
 
-        MenuWindow.Current?.ViewModel.Afflictions.ApplyResult((AfflictionStatus)response.Status);
+        Settled?.Invoke(response.Status);
     }
 
     private static AfflictionOutcome ApplyLocally(Character character, AfflictionPrefab prefab, float strength, AfflictionTargets targets, bool multiplyByMaxVitality)
     {
-        CharacterHealth health = character.CharacterHealth;
+        AfflictionApplyResult applied = AfflictionApplier.Apply(
+            character, prefab, strength, LimbsOf(targets), multiplyByMaxVitality, Character.Controlled);
 
-        if (character.GodMode || (!prefab.IsBuff && health.Unkillable)) { return AfflictionOutcome.Blocked; }
-
-        if (multiplyByMaxVitality) { strength *= character.MaxVitality / 100f; }
-
-        if (targets.WholeBody)
-        {
-            health.ApplyAffliction(null, prefab.Instantiate(strength, Character.Controlled));
-            return AfflictionOutcome.Applied;
-        }
-
-        foreach (Limb limb in targets.Limbs)
-        {
-            health.ApplyAffliction(limb, prefab.Instantiate(strength, Character.Controlled));
-        }
-
-        return AfflictionOutcome.Applied;
+        return applied == AfflictionApplyResult.Applied ? AfflictionOutcome.Applied : AfflictionOutcome.Blocked;
     }
 
-    private static AfflictionOutcome RemoveLocally(Character character, AfflictionPrefab prefab, int healthIndex)
+    private static AfflictionOutcome RemoveLocally(Character character, AfflictionPrefab prefab, int? limbHealthIndex)
     {
-        AfflictionEditor.Clear(
-            character.CharacterHealth,
-            affliction => affliction.Prefab == prefab
-                && (character.CharacterHealth.GetAfflictionLimb(affliction)?.HealthIndex ?? -1) == healthIndex);
+        AfflictionApplier.Remove(character.CharacterHealth, prefab, LimbIndexes(limbHealthIndex));
 
         return AfflictionOutcome.Removed;
     }
 
-    private static AfflictionRefusal? TrySend(
+    private static int[] LimbIndexes(int? limbHealthIndex) => limbHealthIndex is { } index ? [index] : [];
+
+    private static bool TrySend(
         Character character,
         AfflictionPrefab prefab,
         float strength,
@@ -90,7 +76,8 @@ internal static class ClientAfflictionDispatcher
             prefab.UintIdentifier,
             strength,
             limbs,
-            (byte)mode,
+            Protocol.Version,
+            mode,
             character.ID,
             requestId,
             multiplyByMaxVitality);
@@ -101,18 +88,15 @@ internal static class ClientAfflictionDispatcher
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Sending the affliction request failed: {e}");
-            return AfflictionRefusal.NotSent;
+            Services.DebugConsole.AddWarning($"Sending the affliction request failed: {e}");
+            return false;
         }
 
         _waitingFor = requestId;
 
-        return null;
+        return true;
     }
 
     private static int[] LimbsOf(AfflictionTargets targets)
         => targets.WholeBody ? [] : [.. targets.Limbs.Select(limb => limb.HealthIndex)];
-
-    private static AfflictionOutcome Sent(AfflictionRefusal? refusal)
-        => refusal is null ? AfflictionOutcome.Sent : AfflictionOutcome.NotSent;
 }

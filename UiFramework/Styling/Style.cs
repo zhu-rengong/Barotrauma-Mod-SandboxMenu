@@ -1,6 +1,6 @@
 namespace UiFramework.Styling;
 
-internal sealed class Style : IStyleResource
+internal sealed class Style
 {
     internal string? Key { get; init; }
 
@@ -13,9 +13,6 @@ internal sealed class Style : IStyleResource
     internal IReadOnlyList<TriggerBase> Triggers { get; init; } = [];
 
     internal IReadOnlyList<EventTrigger> Events { get; init; } = [];
-
-    string? IStyleResource.Key => Key;
-
     internal static Style Read(MarkupNode node, Action<string>? report = null)
     {
         List<Setter> setters = [];

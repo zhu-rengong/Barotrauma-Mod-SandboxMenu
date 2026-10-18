@@ -6,29 +6,28 @@ namespace SandboxMenu.UI.ViewModels;
 internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBackground
 {
     private readonly IDialogHost _host;
-    private readonly SpawnSetTree _tree;
-    private readonly EntryTreeEditor _treeEditor;
+    private readonly TreeRows _tree;
+    private readonly TreeDragDrop _treeEditor;
     private readonly PresetFiles _presets;
-    private readonly SpawnRequests _requests;
+    private readonly SpawnActions _requests;
 
     private TreeEntryViewModel? _selectedEntry;
-    private readonly Action<LocalizedString> _report;
-    private bool _treeRefreshQueued;
+    private readonly Action<StatusKind, LocalizedString> _report;
 
-    internal SpawnPanelViewModel(IDialogHost host, Action<LocalizedString> report)
+    internal SpawnPanelViewModel(IDialogHost host, Action<StatusKind, LocalizedString> report)
     {
         _host = host;
         _report = report;
-        _tree = new SpawnSetTree(this, Set);
-        Editor = new EntryEditorViewModel(this);
-        _treeEditor = new EntryTreeEditor(this);
-        _presets = new PresetFiles(this, Set);
-        _requests = new SpawnRequests(this, Set);
+        _tree = new TreeRows(Set, Select, row => ShowContextMenu(row));
+        Editor = new EntryEditorViewModel(host, GiveToCharacter, report, RefreshEntry, RefreshEntries);
+        _treeEditor = new TreeDragDrop(Set, _tree, () => SelectedEntry, Select, ClearSelection);
+        _presets = new PresetFiles(report, host, Set, ReloadSet);
+        _requests = new SpawnActions(report, host, Set);
 
         SavePresetCommand = new RelayCommand(_presets.Save);
         LoadPresetCommand = new RelayCommand(_presets.Load);
         ReloadPresetCommand = new RelayCommand(_presets.Reload);
-        OpenPresetCommand = new RelayCommand(_presets.Open);
+        CopyPresetPathCommand = new RelayCommand(_presets.CopyPath);
         ClearSetCommand = new RelayCommand(ClearSet);
         SpawnIntoInventoryCommand = new RelayCommand(_requests.Give);
         SpawnAtCursorCommand = new RelayCommand(_requests.AtCursor);
@@ -64,7 +63,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public EntryEditorViewModel Editor { get; }
 
-    internal SpawnSetTree Tree => _tree;
+    internal TreeRows Tree => _tree;
 
     internal void RefreshHints()
     {
@@ -80,7 +79,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public RelayCommand ReloadPresetCommand { get; }
 
-    public RelayCommand OpenPresetCommand { get; }
+    public RelayCommand CopyPresetPathCommand { get; }
 
     public RelayCommand ClearSetCommand { get; }
 
@@ -108,7 +107,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public LocalizedString GiveShortcut => KeyBinds.Give.ToString();
 
-    internal void Report(LocalizedString message) => _report(message);
+    internal void Report(StatusKind kind, LocalizedString message) => _report(kind, message);
 
     internal void RefreshShortcuts() => Raise(nameof(GiveShortcut));
 
@@ -151,34 +150,11 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         Editor.Clear();
     }
 
-    internal void RefreshSummaries() => _tree.RefreshSummaries();
+    internal void RefreshEntries() => _tree.Refresh();
 
-    internal void RefreshSummaryFor(SpawnEntry entry) => _tree.RefreshSummaryFor(entry);
+    internal void RefreshEntry(SpawnEntry entry) => _tree.Refresh(entry);
 
-    internal void NotifyEdited()
-    {
-        if (_treeRefreshQueued) { return; }
-
-        _treeRefreshQueued = true;
-        SpawnEntry? selected = SelectedEntry?.Entry;
-        FrameActions.Post(() =>
-        {
-            _treeRefreshQueued = false;
-            _tree.Rebuild();
-
-            if (selected is not null && _tree.Find(selected) is { } row)
-            {
-                foreach (TreeEntryViewModel entry in Entries)
-                {
-                    entry.IsSelected = ReferenceEquals(entry, row);
-                }
-
-                SelectedEntry = row;
-            }
-        });
-    }
-
-    internal void ContentChanged() => FrameActions.Post(Editor.Rebuild);
+    internal void Rebuild() => FrameActions.Post(Editor.Rebuild);
 
     internal void ReleaseContent()
     {
@@ -186,9 +162,9 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         Editor.ReleaseContent();
     }
 
-    public void ShowBackgroundMenu(Vector2 position) => OpenMenu(null, position);
+    public void ShowContextMenu(Vector2 position) => ShowContextMenu(null, position);
 
-    internal void OpenMenu(TreeEntryViewModel? row, Vector2? position = null)
+    internal void ShowContextMenu(TreeEntryViewModel? row, Vector2? position = null)
     {
         if (row is not null) { Select(row); }
 
@@ -249,6 +225,6 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
             Editor.Clear();
         });
 
-        Report(TextManager.Get("sandboxmenu.status.cleared"));
+        Report(StatusKind.Success, TextManager.Get("sandboxmenu.status.cleared"));
     }
 }

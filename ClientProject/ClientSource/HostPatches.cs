@@ -9,7 +9,7 @@ internal static class ContentPackageSortPatch
     {
         try
         {
-            MenuWindow.Invalidated();
+            SandboxMenuHost.Invalidated();
         }
         catch (Exception e)
         {
@@ -25,7 +25,7 @@ internal static class LanguageVersionPatch
     {
         try
         {
-            MenuWindow.Invalidated();
+            SandboxMenuHost.Invalidated();
         }
         catch (Exception e)
         {

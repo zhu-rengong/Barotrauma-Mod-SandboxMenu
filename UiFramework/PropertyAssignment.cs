@@ -1,20 +1,22 @@
 using System.Windows.Input;
 using UiFramework.Data;
+using UiFramework.Styling;
 
 namespace UiFramework;
 
-internal sealed class PropertyAssignment(
+internal readonly struct PropertyAssignment(
     ViewContext view,
     MarkupNode node,
     ViewElement element,
     PropertyMetadata property,
-    object? target = null) : IValueAssignment
+    object? target = null,
+    ValueSource source = ValueSource.Base)
 {
     public PropertyMetadata Property { get; } = property;
 
     internal ViewElement Element { get; } = element;
 
-    internal ValueSource Source { get; init; } = ValueSource.Base;
+    internal ValueSource Source { get; } = source;
 
     private object Target { get; } = target ?? element;
 
@@ -69,6 +71,9 @@ internal sealed class PropertyAssignment(
 
     public void Bind(BindingOptions options)
     {
+        PropertyAssignment self = this;
+        ViewContext context = view;
+
         object? source = ResolveSource(options, out string sourceName);
         Binding? binding = null;
 
@@ -86,8 +91,8 @@ internal sealed class PropertyAssignment(
             Path = options.Path,
             Mode = mode,
             TargetType = Property.ValueType,
-            Apply = value => SetValue(value, sourceName),
-            Changed = value => view.Dispatch(() => binding?.PushFromTarget(value)),
+            Apply = value => self.SetValue(value, sourceName),
+            Changed = value => context.Dispatch(() => binding?.PushFromTarget(value)),
             Converter = options.Converter is { } name ? ValueConverters.Find(name) : null,
             ConverterParameter = options.ConverterParameter,
             Format = options.Format,
@@ -128,9 +133,11 @@ internal sealed class PropertyAssignment(
             return;
         }
 
+        PropertyAssignment self = this;
+        Type targetType = Property.ValueType;
         object?[] values = new object?[bindings.Count];
 
-        void Recompute() => SetValue(multi.Convert(values, Property.ValueType, parameter), "multi binding");
+        void Recompute() => self.SetValue(multi.Convert(values, targetType, parameter), "multi binding");
 
         for (int i = 0; i < bindings.Count; i++)
         {
@@ -163,7 +170,7 @@ internal sealed class PropertyAssignment(
             return;
         }
 
-        if (resource is IStyleResource)
+        if (resource is Style)
         {
             Report($"'{key}' is a style and cannot be the value of '{Property.Name}'");
             return;

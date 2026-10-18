@@ -56,9 +56,6 @@
         ToolTip="{Binding ToolTip}" Height="0.12" />
     </DataTemplate>
 
-    <!-- The editors of the types this row is not are bound all the same and only hidden: the stack drops a hidden
-         child from the layout and hands its room to the ones left, so the editor in use fills the slot on its own
-         (and a two component value splits it between its two boxes). -->
     <DataTemplate DataType="PropertyRowViewModel">
       <Field LabelText="{Binding Label}" LabelWidth="0.07" ControlWidth="0.91">
         <Button Text="{Binding ComponentLabel}" Command="{Binding BrowseComponentCommand}" Width="0.24" Height="1"
@@ -136,11 +133,6 @@
       </Tile>
     </DataTemplate>
   </Stack.Resources>
-  <!-- Title band: the title, the function selector right behind it, the shared status line and the close button take
-       the band in that order. It is a stack because the four regions divide the axis in sequence, and the status line
-       is the share that soaks up what the fixed regions leave, which is what keeps the close button on the right
-       edge. The status line is shared by every function: whichever panel reports writes into the window's own
-       status, so a switch neither blanks it nor shows the other function's leftovers. -->
   <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
     <Panel Skin="None" Width="0.24" Height="1">
       <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
@@ -152,16 +144,8 @@
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
   </Stack>
 
-  <!-- The spawn function's area: everything below the title band belongs to it, so a switch takes the whole area
-       away and hands its room to the other function. The shares inside (75/9/8 of the area) keep the band sizes the
-       window had before there were function areas. -->
   <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowSpawn}">
 
-    <!-- The menu's own keys, acting on the entry the left list has selected. They hang off this area, so they are
-         live exactly while it is the one on show. The arrows walk the list and, with Alt, move the entry inside it;
-         Enter takes the editor to the identifier. Del and "+" are text keys and stand back while a box has the
-         keyboard; "+" sits on Shifted "=" on most layouts, so without Shift the new entry lands next to the selection
-         and with Shift it is nested inside it. -->
     <Stack.InputBindings>
       <KeyBinding Key="Up" Command="{Binding Spawn.StepUpCommand}" />
       <KeyBinding Key="Down" Command="{Binding Spawn.StepDownCommand}" />
@@ -176,7 +160,6 @@
     <Panel Skin="InnerFrame" Width="1" Height="1">
       <Stack Orientation="Vertical" Width="0.97" Height="0.95" Align="Center" Spacing="6">
 
-        <!-- body: the spawn set tree and the editor -->
         <Stack Orientation="Horizontal" Height="75*" Spacing="10">
           <Panel Skin="GUIFrameListBox" Width="36*">
             <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
@@ -187,8 +170,6 @@
           </Panel>
         </Stack>
 
-        <!-- preset: what the set is called (the name it is saved under and the one a reference names), then what can
-             be done with it -->
         <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft">
           <Field LabelText="sandboxmenu.preset.name" LabelWidth="0.3" Width="0.3" Height="0.66">
             <TextBox Text="{Binding Spawn.PresetName, Mode=TwoWay}" Width="1" />
@@ -196,10 +177,9 @@
           <Button Text="sandboxmenu.preset.save" Command="{Binding Spawn.SavePresetCommand}" Width="0.15" Height="0.66" />
           <Button Text="sandboxmenu.preset.load" Command="{Binding Spawn.LoadPresetCommand}" Width="0.15" Height="0.66" />
           <Button Text="sandboxmenu.preset.reload" Command="{Binding Spawn.ReloadPresetCommand}" Width="0.15" Height="0.66" />
-          <Button Text="sandboxmenu.preset.open" Command="{Binding Spawn.OpenPresetCommand}" Width="0.15" Height="0.66" />
+          <Button Text="sandboxmenu.preset.copypath" Command="{Binding Spawn.CopyPresetPathCommand}" Width="0.15" Height="0.66" />
         </Stack>
 
-        <!-- action band: emptying the set belongs with the two ways of spawning it, so it leads them -->
         <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
           <Button Text="sandboxmenu.clear" Command="{Binding Spawn.ClearSetCommand}" Width="15*" Height="0.66" />
           <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
@@ -211,20 +191,15 @@
     </Panel>
   </Stack>
 
-  <!-- The affliction function's area: the character it acts on leads the left column, the state they are already in
-       sits under them there, and everything that can be laid on them takes the right column. -->
   <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowAfflictions}">
 
-    <!-- Deleting the affliction the list has picked: the key belongs to this area, so it is live exactly while the
-         afflictions are the ones on show. -->
     <Stack.InputBindings>
-      <KeyBinding Key="Delete" Command="{Binding Afflictions.DeletePickedCommand}" RequiresNoTextInput="True" />
+      <KeyBinding Key="Delete" Command="{Binding Afflictions.RemovePickedCommand}" RequiresNoTextInput="True" />
     </Stack.InputBindings>
 
     <Panel Skin="InnerFrame" Width="1" Height="1">
       <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10">
 
-        <!-- left column: who the function acts on leads it bare, so the list below keeps the frame to itself -->
         <Stack Orientation="Vertical" Width="36*" Spacing="6">
 
           <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
@@ -243,8 +218,6 @@
             <Text Text="{Binding Afflictions.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
           </Stack>
 
-          <!-- what the character is already carrying, grouped by the limb it sits on; the list only reports what is there,
-               where a new affliction lands is set on the right -->
           <Panel Skin="GUIFrameListBox" Width="1" Height="85*">
             <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
               <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
@@ -260,9 +233,6 @@
           </Panel>
         </Stack>
 
-        <!-- what can be laid on them, at the strength the slider gives: a left click on a tile applies it. Where it lands
-             and whether that strength scales with the target's max vitality are set here as well. The filters, the strength
-             and the grid share one frame so the whole browser reads as a single block. -->
         <Panel Skin="GUIFrameListBox" Width="64*">
           <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="4">
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">

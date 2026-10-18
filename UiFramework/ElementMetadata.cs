@@ -23,7 +23,6 @@ public sealed class ElementPropertyAttribute(string? name = null) : Attribute
 }
 
 internal sealed record ElementMetadata(
-    string Name,
     Func<ElementContext, ViewElement> Create,
     FrozenDictionary<string, PropertyMetadata> Properties);
 

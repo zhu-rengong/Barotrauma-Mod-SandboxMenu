@@ -7,21 +7,19 @@ internal static class AnimationClock
     internal static void Advance(float delta) => Delta = Math.Clamp(delta, 0f, 0.25f);
 }
 
-internal sealed class Storyboard : IStoryboard
+internal sealed class Storyboard
 {
     internal string? Key { get; init; }
 
     internal IReadOnlyList<AnimationBase> Animations { get; init; } = [];
 
-    public bool IsEmpty => Animations.Count == 0;
+    internal bool IsEmpty => Animations.Count == 0;
 
-    public bool SharesProperty(IStoryboard other)
+    internal bool SharesProperty(Storyboard other)
     {
-        if (other is not Storyboard storyboard) { return false; }
-
         foreach (AnimationBase mine in Animations)
         {
-            foreach (AnimationBase theirs in storyboard.Animations)
+            foreach (AnimationBase theirs in other.Animations)
             {
                 if (string.Equals(mine.Property, theirs.Property, StringComparison.Ordinal)) { return true; }
             }
@@ -31,12 +29,12 @@ internal sealed class Storyboard : IStoryboard
     }
 }
 
-internal sealed class StoryboardPlayer : IAnimationPlayer
+internal sealed class StoryboardPlayer
 {
     private readonly Storyboard _storyboard;
-    private readonly IViewElement _target;
-    private readonly IPauseable? _scope;
-    private readonly IViewHost? _host;
+    private readonly ViewElement _target;
+    private readonly ViewScope? _scope;
+    private readonly ViewContext? _host;
     private readonly Action<StoryboardPlayer>? _onStopped;
     private readonly float[] _elapsed;
     private readonly object?[] _start;
@@ -46,9 +44,9 @@ internal sealed class StoryboardPlayer : IAnimationPlayer
 
     internal StoryboardPlayer(
         Storyboard storyboard,
-        IViewElement target,
-        IPauseable? scope,
-        IViewHost? host,
+        ViewElement target,
+        ViewScope? scope,
+        ViewContext? host,
         Action<StoryboardPlayer>? stopped)
     {
         _storyboard = storyboard;
@@ -80,7 +78,7 @@ internal sealed class StoryboardPlayer : IAnimationPlayer
         }
     }
 
-    internal IViewElement Target => _target;
+    internal ViewElement Target => _target;
 
     public bool Tick(float delta)
     {

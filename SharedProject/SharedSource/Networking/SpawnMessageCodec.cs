@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Networking;
 
-internal static class SpawnPayloadCodec
+internal static class SpawnMessageCodec
 {
     internal const int MaxCompressedBytes = 48 * 1024;
     internal const int MaxPayloadBytes = 256 * 1024;
@@ -25,7 +25,7 @@ internal static class SpawnPayloadCodec
         CloseOutput = false
     };
 
-    internal static bool TryEncode(SpawnPayload payload, out byte[] compressed)
+    internal static bool TryEncode(SpawnMessage payload, out byte[] compressed)
     {
         compressed = [];
 
@@ -48,7 +48,7 @@ internal static class SpawnPayloadCodec
 
             if (output.Length > MaxCompressedBytes)
             {
-                DebugConsole.AddWarning($"Spawn request is too large to send ({xmlLength} bytes of XML compress to {output.Length}).");
+                Services.DebugConsole.AddWarning($"Spawn request is too large to send ({xmlLength} bytes of XML compress to {output.Length}).");
                 return false;
             }
 
@@ -57,16 +57,16 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Packing the spawn request failed: {e}");
+            Services.DebugConsole.AddWarning($"Packing the spawn request failed: {e}");
             return false;
         }
     }
 
-    internal static bool TryDecode(byte[]? compressed, out SpawnPayload payload)
+    internal static bool TryDecode(byte[]? compressed, out SpawnMessage payload)
     {
         if (compressed is not { Length: > 0 } || compressed.Length > MaxCompressedBytes)
         {
-            payload = new SpawnPayload();
+            payload = new SpawnMessage();
             return false;
         }
 
@@ -99,9 +99,9 @@ internal static class SpawnPayloadCodec
         return limited;
     }
 
-    private static bool TryParse(byte[] compressed, byte[] buffer, int limit, out SpawnPayload payload)
+    private static bool TryParse(byte[] compressed, byte[] buffer, int limit, out SpawnMessage payload)
     {
-        payload = new SpawnPayload();
+        payload = new SpawnMessage();
 
         int length;
         try
@@ -110,13 +110,13 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Unpacking a spawn request failed: {e}");
+            Services.DebugConsole.AddWarning($"Unpacking a spawn request failed: {e}");
             return false;
         }
 
         if (length < 0)
         {
-            DebugConsole.AddWarning($"A spawn request unpacked to more than {MaxPayloadBytes} bytes.");
+            Services.DebugConsole.AddWarning($"A spawn request unpacked to more than {MaxPayloadBytes} bytes.");
             return false;
         }
 
@@ -132,24 +132,24 @@ internal static class SpawnPayloadCodec
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"A spawn request carried XML that could not be read: {e}");
+            Services.DebugConsole.AddWarning($"A spawn request carried XML that could not be read: {e}");
             return false;
         }
 
-        if (root is null || root.Name.LocalName != SpawnPayload.RootName) { return false; }
+        if (root is null || root.Name.LocalName != SpawnMessage.RootName) { return false; }
 
         if (!WithinDepthLimit(root))
         {
-            DebugConsole.AddWarning("A spawn request nested its entries deeper than the mod accepts.");
+            Services.DebugConsole.AddWarning("A spawn request nested its entries deeper than the mod accepts.");
             return false;
         }
 
-        payload = SpawnPayload.FromXml(root);
+        payload = SpawnMessage.FromXml(root);
 
         if (payload.TemplateCount > MaxTemplates || !payload.WithinEntryLimit())
         {
-            DebugConsole.AddWarning("A spawn request asked for more entries than the mod accepts.");
-            payload = new SpawnPayload();
+            Services.DebugConsole.AddWarning("A spawn request asked for more entries than the mod accepts.");
+            payload = new SpawnMessage();
             return false;
         }
 

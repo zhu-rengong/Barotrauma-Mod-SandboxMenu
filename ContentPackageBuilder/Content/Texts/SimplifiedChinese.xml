@@ -90,7 +90,7 @@
   <sandboxmenu.preset.save>保存预设</sandboxmenu.preset.save>
   <sandboxmenu.preset.load>载入预设</sandboxmenu.preset.load>
   <sandboxmenu.preset.reload>重载预设</sandboxmenu.preset.reload>
-  <sandboxmenu.preset.open>打开预设文件</sandboxmenu.preset.open>
+  <sandboxmenu.preset.copypath>复制预设路径</sandboxmenu.preset.copypath>
   <sandboxmenu.status.presetsaved>预设已保存。</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>已清空生成集合。</sandboxmenu.status.cleared>
   <sandboxmenu.status.screenshot>截图已保存为“[name]”。</sandboxmenu.status.screenshot>
@@ -102,8 +102,8 @@
   <sandboxmenu.status.presetsavefailed>保存预设“[name]”失败，详见日志。</sandboxmenu.status.presetsavefailed>
   <sandboxmenu.status.templatecycle>该预设通过其他预设引用了它自己。请换个名称或移除该引用后再保存。</sandboxmenu.status.templatecycle>
   <sandboxmenu.status.presetnotfound>还没有名为“[name]”的预设文件，请先保存一次。</sandboxmenu.status.presetnotfound>
-  <sandboxmenu.status.presetopened>已用系统默认程序打开预设文件“[name]”。</sandboxmenu.status.presetopened>
-  <sandboxmenu.status.presetopenfailed>打开预设文件“[name]”失败，详见日志。</sandboxmenu.status.presetopenfailed>
+  <sandboxmenu.status.presetpathcopied>预设“[name]”的路径已复制到剪贴板。</sandboxmenu.status.presetpathcopied>
+  <sandboxmenu.status.presetpathcopyfailed>复制预设“[name]”的路径失败，详见日志。</sandboxmenu.status.presetpathcopyfailed>
   <sandboxmenu.status.nopresetname>请先填写预设名称。</sandboxmenu.status.nopresetname>
   <sandboxmenu.status.nopresets>没有找到任何预设。</sandboxmenu.status.nopresets>
 
@@ -144,6 +144,7 @@
   <sandboxmenu.afflictions.strength>施加强度 %</sandboxmenu.afflictions.strength>
   <sandboxmenu.afflictions.multiply.maxvitality>以最大生命力为倍率</sandboxmenu.afflictions.multiply.maxvitality>
   <sandboxmenu.afflictions.apply.hint>[鼠标左键] 把该状态效果施加给所选角色。</sandboxmenu.afflictions.apply.hint>
+  <sandboxmenu.afflictions.remove>移除</sandboxmenu.afflictions.remove>
   <sandboxmenu.afflictions.rows.empty>请先选择一个角色，才能查看其状态效果。</sandboxmenu.afflictions.rows.empty>
   <sandboxmenu.afflictions.tiles.empty>没有符合筛选的状态效果。</sandboxmenu.afflictions.tiles.empty>
 

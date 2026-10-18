@@ -20,11 +20,14 @@ internal sealed class CharacterPreview : IDisposable
 
     private const int HeadZoomDivisor = 4;
 
+    private const double PurgeInterval = 1.0;
+
     private static readonly Dictionary<Character, CharacterPreview?[]> _cache = new(ReferenceEqualityComparer.Instance);
     private static readonly Queue<CharacterPreview> _queued = new();
     private static readonly HashSet<CharacterPreview> _pending = new(ReferenceEqualityComparer.Instance);
 
     private static SpriteBatch? _batch;
+    private static double _purgedAt;
 
     private readonly Character _character;
     private readonly CharacterPreviewFraming _framing;
@@ -84,7 +87,15 @@ internal sealed class CharacterPreview : IDisposable
 
     internal static void RenderPending()
     {
-        PurgeDead();
+        if (_queued.Count == 0) { return; }
+
+        double now = Timing.TotalTime;
+
+        if (now - _purgedAt >= PurgeInterval)
+        {
+            _purgedAt = now;
+            PurgeDead();
+        }
 
         while (_queued.Count > 0)
         {
@@ -98,7 +109,7 @@ internal sealed class CharacterPreview : IDisposable
             }
             catch (Exception e)
             {
-                DebugConsole.AddWarning($"Drawing a character preview failed: {e}");
+                Services.DebugConsole.AddWarning($"Drawing a character preview failed: {e}");
             }
         }
     }

@@ -21,7 +21,7 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
         }
     }
 
-    internal void RefreshHints()
+    internal virtual void RefreshHints()
     {
         Raise(nameof(ToolTip));
         Raise(nameof(TileToolTip));

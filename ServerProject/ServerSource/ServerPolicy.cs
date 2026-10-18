@@ -27,7 +27,7 @@ internal static class ServerPolicy
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"{action} failed: {e}");
+            Services.DebugConsole.AddWarning($"{action} failed: {e}");
         }
     }
 }

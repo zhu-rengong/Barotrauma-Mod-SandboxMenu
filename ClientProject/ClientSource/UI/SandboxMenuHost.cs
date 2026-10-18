@@ -3,20 +3,20 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SandboxMenu.UI;
 
-internal sealed class MenuWindow : IDialogHost
+internal sealed class SandboxMenuHost : IDialogHost
 {
     private const int WindowOrder = 10;
     private const int DialogOrder = 30;
     private const int PopupOrder = 60;
 
-    private static MenuWindow? _instance;
+    private const double PanelTickInterval = 0.1;
 
-    public static MenuWindow Instance => _instance ??= new MenuWindow();
+    private static SandboxMenuHost? _instance;
 
-    public static MenuWindow? Current => _instance;
+    public static SandboxMenuHost Instance => _instance ??= new SandboxMenuHost();
 
     private readonly SandboxMenuViewModel _viewModel;
-    private readonly List<IDialogWindow> _popups = [];
+    private readonly List<Popup> _popups = [];
 
     private MarkupWindow? _window;
 
@@ -28,19 +28,24 @@ internal sealed class MenuWindow : IDialogHost
 
     private MarkupWindow? _multiPicker;
 
-    private const int ToolTipTickInterval = 4;
-
     private int _popupGrace;
-    private int _toolTipTick;
+    private double _panelTickAt;
     private bool _pressedInsidePopup;
     private bool _screenshotQueued;
-    private WeakReference<Character>? _hintedFor;
 
-    private MenuWindow() => _viewModel = new SandboxMenuViewModel(this);
+    private SandboxMenuHost()
+    {
+        _viewModel = new SandboxMenuViewModel(this);
+
+        ClientSpawnDispatcher.Settled += _viewModel.Spawn.ApplySpawnResult;
+        ClientAfflictionDispatcher.Settled += _viewModel.Afflictions.ApplyResult;
+    }
 
     public bool IsOpen => _window?.IsOpen == true;
 
     internal SandboxMenuViewModel ViewModel => _viewModel;
+
+    internal static void Create() => _ = Instance;
 
     public void Toggle()
     {
@@ -53,8 +58,17 @@ internal sealed class MenuWindow : IDialogHost
         _window ??= new MarkupWindow("MainWindow.xml", WindowOrder, _viewModel);
 
         _viewModel.Spawn.RefreshShortcuts();
-
+        RefreshHints();
         _window.Open();
+        UpdateInputState();
+    }
+
+    public void Close()
+    {
+        _window?.Close();
+        ClosePopups();
+        FrameActions.Clear();
+        UpdateInputState();
     }
 
     internal bool HandleEscape()
@@ -90,18 +104,24 @@ internal sealed class MenuWindow : IDialogHost
 
         if (_window is { IsOpen: true } window) { drawn.Add(window); }
 
-        foreach (IDialogWindow popup in _popups)
+        foreach (Popup entry in _popups)
         {
-            if (popup.IsOpen) { drawn.Add(popup); }
+            if (entry.Window.IsOpen) { drawn.Add(entry.Window); }
         }
 
         if (drawn.Count == 0)
         {
-            _viewModel.Spawn.Report(TextManager.Get("sandboxmenu.status.screenshotclosed"));
+            _viewModel.Spawn.Report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.screenshotclosed"));
             return;
         }
 
         ScreenshotWriter.Write(drawn, _viewModel.Spawn.Report);
+    }
+
+    internal void RefreshHints()
+    {
+        _viewModel.Spawn.RefreshHints();
+        _browserModel?.RefreshHints();
     }
 
     public void ShowCharacterBrowser(Action<Character> onPicked)
@@ -112,47 +132,41 @@ internal sealed class MenuWindow : IDialogHost
             _characterBrowser = new MarkupWindow("CharacterBrowser.xml", DialogOrder, _characterBrowserModel);
         }
 
-        _characterBrowserModel.Refresh();
+        _characterBrowserModel.Rebuild();
         _characterBrowserModel.PickInto(character =>
         {
             ClosePopups();
             onPicked(character);
         });
 
-        ShowPopup(_characterBrowser);
-    }
-
-    public void Close()
-    {
-        _window?.Close();
-        ClosePopups();
-        _multiPicker?.Dispose();
-        _multiPicker = null;
-        FrameActions.Clear();
+        ShowPopup(_characterBrowser, reusable: true, closed: _characterBrowserModel.Release);
     }
 
     internal static void Shutdown()
     {
-        if (_instance is { } menu) { menu.DropWindows(); }
+        if (_instance is not { } menu) { return; }
+
+        ClientSpawnDispatcher.Settled -= menu._viewModel.Spawn.ApplySpawnResult;
+        ClientAfflictionDispatcher.Settled -= menu._viewModel.Afflictions.ApplyResult;
+
+        menu.Reset();
 
         _instance = null;
     }
 
     internal static void Invalidated()
     {
-        CachedContent.Drop();
-        CharacterPreview.ReleaseAll();
+        ContentCaches.Drop();
 
         if (_instance is not { } menu) { return; }
 
-        menu.DropWindows();
+        menu.Reset();
         menu._viewModel.Spawn.ReleaseContent();
-        menu._viewModel.Spawn.ContentChanged();
+        menu._viewModel.Spawn.Rebuild();
         menu._viewModel.Afflictions.ReleaseContent();
-        menu._viewModel.RefreshStatusKind();
     }
 
-    internal static void ResolutionChanged() => _instance?.DropWindows();
+    internal static void ResolutionChanged() => _instance?.Reset();
 
     public void AddToUpdateList()
     {
@@ -160,6 +174,14 @@ internal sealed class MenuWindow : IDialogHost
         UpdateViews();
         RegisterViews();
         FrameActions.Drain();
+    }
+
+    private void Reset()
+    {
+        DropWindows();
+        FrameActions.Clear();
+        NotificationBatch.Reset();
+        UpdateInputState();
     }
 
     private void DropWindows()
@@ -187,10 +209,13 @@ internal sealed class MenuWindow : IDialogHost
     {
         for (int i = _popups.Count - 1; i >= 0; i--)
         {
-            if (!_popups[i].IsOpen) { continue; }
+            if (!_popups[i].Window.IsOpen) { continue; }
 
-            ClosePopup(_popups[i]);
+            Popup entry = _popups[i];
             _popups.RemoveAt(i);
+
+            ClosePopup(entry);
+            UpdateInputState();
 
             return true;
         }
@@ -200,12 +225,13 @@ internal sealed class MenuWindow : IDialogHost
 
     private void DrivePopups()
     {
-        MarkupWindow.InputBlocked = AnyPopupOpen();
+        if (!AnyPopupOpen()) { return; }
 
         TrackPopupPress();
 
-        if (_popupGrace > 0) { _popupGrace--; }
-        else { DismissPopupsOnOutsideClick(); }
+        if (_popupGrace > 0) { _popupGrace--; return; }
+
+        DismissPopupsOnOutsideClick();
     }
 
     private void TrackPopupPress()
@@ -217,9 +243,9 @@ internal sealed class MenuWindow : IDialogHost
 
     private bool IsInsidePopup(Point mouse)
     {
-        foreach (IDialogWindow popup in _popups)
+        foreach (Popup entry in _popups)
         {
-            if (popup.IsOpen && popup.Rect.Contains(mouse)) { return true; }
+            if (entry.Window.IsOpen && entry.Window.Rect.Contains(mouse)) { return true; }
         }
 
         return false;
@@ -228,14 +254,25 @@ internal sealed class MenuWindow : IDialogHost
     private void UpdateViews()
     {
         _window?.Update();
-        RefreshHints();
-        RefreshAfflictions();
-        RefreshCharacterToolTips();
+
+        TickPanels();
 
         for (int i = 0; i < _popups.Count; i++)
         {
-            if (_popups[i].IsOpen) { _popups[i].Update(); }
+            if (_popups[i].Window.IsOpen) { _popups[i].Window.Update(); }
         }
+    }
+
+    private void TickPanels()
+    {
+        double now = Timing.TotalTime;
+
+        if (now - _panelTickAt < PanelTickInterval) { return; }
+
+        _panelTickAt = now;
+
+        RefreshAfflictions();
+        RefreshCharacterToolTips();
     }
 
     private void RefreshAfflictions()
@@ -253,33 +290,22 @@ internal sealed class MenuWindow : IDialogHost
         if (_characterBrowserModel is null || _characterBrowser is not { IsOpen: true }) { return; }
         if (!_characterBrowser.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { return; }
 
-        if (++_toolTipTick % ToolTipTickInterval != 0) { return; }
-
-        _characterBrowserModel.RefreshStates();
-    }
-
-    private void RefreshHints()
-    {
-        Character? controlled = Character.Controlled;
-
-        if (_hintedFor is { } hinted && hinted.TryGetTarget(out Character? last) && ReferenceEquals(last, controlled)) { return; }
-        if (_hintedFor is null && controlled is null) { return; }
-
-        _hintedFor = controlled is null ? null : new WeakReference<Character>(controlled);
-
-        _viewModel.Spawn.RefreshHints();
-        _browserModel?.RefreshHints();
+        _characterBrowserModel.RefreshTiles();
     }
 
     private void RegisterViews()
     {
-        _window?.SetInteractive(!AnyPopupOpen());
         _window?.Register();
 
         for (int i = 0; i < _popups.Count; i++)
         {
-            if (_popups[i].IsOpen) { _popups[i].Register(); }
+            if (_popups[i].Window.IsOpen) { _popups[i].Window.Register(); }
         }
+    }
+
+    private void UpdateInputState()
+    {
+        _window?.ListDragBlocked = AnyPopupOpen();
     }
 
     public void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null, Action<string>? onSelf = null)
@@ -292,6 +318,7 @@ internal sealed class MenuWindow : IDialogHost
 
         _browserModel.UseParent(container);
         _browserModel.UseOnSelf(onSelf);
+        _browserModel.RefreshHints();
 
         _browserModel.PickInto(identifier =>
         {
@@ -299,20 +326,20 @@ internal sealed class MenuWindow : IDialogHost
             onPicked(identifier);
         });
 
-        ShowPopup(_browser);
+        ShowPopup(_browser, reusable: true);
     }
 
     public void ShowMultiPicker(LocalizedString title, IEnumerable<PickerToggle> options)
     {
         if (_multiPicker is { IsOpen: true } previous)
         {
-            _popups.Remove(previous);
-            ClosePopup(previous);
+            _popups.RemoveAll(entry => ReferenceEquals(entry.Window, previous));
+            ClosePopup(new Popup(previous, false, null));
         }
 
         _multiPicker = new MarkupWindow("MultiPicker.xml", DialogOrder + 1, new MultiPickerViewModel(title, options));
 
-        ShowPopup(_multiPicker, keepOpen: true);
+        ShowPopup(_multiPicker, keepOthers: true);
     }
 
     public void ShowOptions(LocalizedString title, IEnumerable<PickerOption> options, bool filterable = false)
@@ -362,47 +389,72 @@ internal sealed class MenuWindow : IDialogHost
         SpawnPointPicker.Begin(onPicked, Open);
     }
 
-    private void ShowPopup(IDialogWindow popup, bool keepOpen = false)
+    private void ShowPopup(IDialogWindow popup, bool keepOthers = false, bool reusable = false, Action? closed = null)
     {
-        if (!keepOpen) { ClosePopups(); }
+        if (!keepOthers) { ClosePopups(); }
 
+        popup.Closed = () => PopupClosed(popup);
         popup.Open();
-        _popups.Add(popup);
+        _popups.Add(new Popup(popup, reusable, closed));
         _popupGrace = 2;
+
+        UpdateInputState();
     }
 
     private void ClosePopups()
     {
-        foreach (IDialogWindow popup in _popups) { ClosePopup(popup); }
+        if (_popups.Count == 0) { return; }
 
+        Popup[] entries = [.. _popups];
         _popups.Clear();
+
+        foreach (Popup entry in entries) { ClosePopup(entry); }
+
+        UpdateInputState();
     }
 
-    private void ClosePopup(IDialogWindow popup)
+    private void ClosePopup(Popup entry)
     {
         try
         {
-            popup.Closing?.Invoke();
+            entry.Closed?.Invoke();
 
-            if (ReferenceEquals(popup, _browser)) { _browser.Close(); }
-            else if (ReferenceEquals(popup, _characterBrowser))
-            {
-                _characterBrowser.Close();
-                _characterBrowserModel?.Release();
-            }
-            else { popup.Dispose(); }
+            if (entry.Reusable) { entry.Window.Close(); }
+            else { entry.Window.Dispose(); }
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Disposing a popup failed: {e}");
+            Services.DebugConsole.AddWarning($"Disposing a popup failed: {e}");
         }
+    }
+
+    private void PopupClosed(IDialogWindow window)
+    {
+        int index = _popups.FindIndex(entry => ReferenceEquals(entry.Window, window));
+        if (index < 0) { return; }
+
+        Popup entry = _popups[index];
+        _popups.RemoveAt(index);
+
+        try
+        {
+            entry.Closed?.Invoke();
+
+            if (!entry.Reusable) { entry.Window.Dispose(); }
+        }
+        catch (Exception e)
+        {
+            Services.DebugConsole.AddWarning($"Closing a popup failed: {e}");
+        }
+
+        UpdateInputState();
     }
 
     private bool AnyPopupOpen()
     {
         for (int i = 0; i < _popups.Count; i++)
         {
-            if (_popups[i].IsOpen) { return true; }
+            if (_popups[i].Window.IsOpen) { return true; }
         }
 
         return false;
@@ -410,11 +462,12 @@ internal sealed class MenuWindow : IDialogHost
 
     private void DismissPopupsOnOutsideClick()
     {
-        if (_popups.Count == 0) { return; }
         if (!PlayerInput.PrimaryMouseButtonClicked() && !PlayerInput.SecondaryMouseButtonClicked()) { return; }
         if (_pressedInsidePopup) { return; }
         if (IsInsidePopup(PlayerInput.MousePosition.ToPoint())) { return; }
 
         ClosePopups();
     }
+
+    private readonly record struct Popup(IDialogWindow Window, bool Reusable, Action? Closed);
 }

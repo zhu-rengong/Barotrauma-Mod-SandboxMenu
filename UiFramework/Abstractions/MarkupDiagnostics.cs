@@ -7,6 +7,8 @@ internal sealed record MarkupDiagnostic(string Message, MarkupNode? Node)
 
 internal sealed class MarkupDiagnostics(string view)
 {
+    private const int Limit = 64;
+
     private readonly List<MarkupDiagnostic> _items = [];
 
     internal Action<string>? Sink { get; set; }
@@ -14,9 +16,14 @@ internal sealed class MarkupDiagnostics(string view)
     internal void Report(string message, MarkupNode? node = null)
     {
         MarkupDiagnostic item = new(message, node);
-        _items.Add(item);
 
-        Sink?.Invoke($"{view}: {item}");
+        if (Sink is { } sink)
+        {
+            sink($"{view}: {item}");
+            return;
+        }
+
+        if (_items.Count < Limit) { _items.Add(item); }
     }
 
     internal void Flush(Action<string>? sink)

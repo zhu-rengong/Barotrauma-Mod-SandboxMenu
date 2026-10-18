@@ -307,7 +307,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
         rowPool.EnsureTiles(tiles, band, list.Index[start], capacity);
 
         int count = Math.Min(shown, Math.Min(capacity, tiles.Count));
-        bool interactive = list.View.Interactive;
 
         for (int i = 0; i < count; i++)
         {
@@ -317,7 +316,6 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
             if (ReferenceEquals(tile.Item, item))
             {
                 tile.Element.Control.Visible = true;
-                tile.Element.Control.AutoUpdate = interactive;
                 continue;
             }
 
@@ -334,8 +332,7 @@ internal sealed class ListBandLayout(ListBoxElement list, ListRowPool rowPool)
                 break;
             }
 
-            tiles[i] = ListRowPool.Reuse(tile, item);
-            tiles[i].Element.Control.AutoUpdate = interactive;
+            tiles[i] = rowPool.Reuse(tile, item);
         }
 
         for (int i = count; i < tiles.Count; i++) { tiles[i].Element.Control.Visible = false; }

@@ -95,13 +95,11 @@ internal sealed class RowControl : GUIButton
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Painting a list row failed: {e}");
+            Services.DebugConsole.AddWarning($"Painting a list row failed: {e}");
         }
     }
 
-    internal Rectangle? SlotBoxRect => SlotBox();
-
-    private Rectangle? SlotBox()
+    internal Rectangle? SlotBox()
     {
         if (SlotIcon is not { } icon) { return null; }
 

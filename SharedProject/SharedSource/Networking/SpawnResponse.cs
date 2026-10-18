@@ -13,6 +13,6 @@ public enum SpawnStatus
 
 public readonly record struct SpawnResponse(
     [property: NetworkSerialize] uint RequestId,
-    [property: NetworkSerialize] byte Status,
+    [property: NetworkSerialize] SpawnStatus Status,
     [property: NetworkSerialize] int Queued,
-    [property: NetworkSerialize(ArrayMaxSize = SpawnPayloadCodec.MaxProblems)] string[] Problems) : INetSerializableStruct;
+    [property: NetworkSerialize(ArrayMaxSize = SpawnMessageCodec.MaxProblems)] string[] Problems) : INetSerializableStruct;

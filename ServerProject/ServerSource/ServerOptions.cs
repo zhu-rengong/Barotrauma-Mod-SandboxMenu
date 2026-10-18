@@ -1,6 +1,6 @@
 using Barotrauma.Networking;
 
-namespace SandboxMenu.Networking;
+namespace SandboxMenu;
 
 [RunConstructorOnInit]
 internal static class ServerOptions

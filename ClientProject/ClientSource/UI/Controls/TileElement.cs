@@ -344,7 +344,7 @@ public sealed class TileElement : ViewElement, ITileCell
     {
         if (_glowFill.A == 0) { return; }
 
-        Rectangle rect = _tile.SlotBoxRect ?? component.Rect;
+        Rectangle rect = _tile.SlotBox() ?? component.Rect;
 
         if (rect.Width <= 0 || rect.Height <= 0) { return; }
 
@@ -354,7 +354,7 @@ public sealed class TileElement : ViewElement, ITileCell
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Drawing a tile glow failed: {e}");
+            Services.DebugConsole.AddWarning($"Drawing a tile glow failed: {e}");
         }
     }
 

@@ -10,6 +10,7 @@ internal sealed class ListRowPool
     private readonly ListBoxElement _owner;
     private readonly GUIListBox _listBox;
     private readonly Dictionary<object, BuiltRow> _byItem = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<object, BuiltRow> _visible = new(ReferenceEqualityComparer.Instance);
     private readonly Queue<object> _order = new();
     private readonly Dictionary<Type, Templating.DataTemplate> _rowTemplates = [];
     private readonly Dictionary<Type, Templating.DataTemplate> _tileTemplates = [];
@@ -45,6 +46,9 @@ internal sealed class ListRowPool
 
     private string? TileTemplateKey { get; }
 
+    internal BuiltRow? Find(object? item)
+        => item is not null && _visible.TryGetValue(item, out BuiltRow? row) ? row : null;
+
     internal BuiltRow? Build(object item)
         => RowTemplate(item) is { } template ? Build(item, template) : ReportMissingRowTemplate(item);
 
@@ -74,9 +78,12 @@ internal sealed class ListRowPool
 
         row.Parent = _owner;
         row.Control.UserData = item;
-        row.Control.AutoUpdate = _view.Interactive;
 
-        return new BuiltRow(item, row, row.Control as GUIButton, scope, template);
+        BuiltRow built = new(item, row, row.Control as GUIButton, scope, template);
+
+        _visible.TryAdd(item, built);
+
+        return built;
     }
 
     internal void FlushLayout()
@@ -93,7 +100,10 @@ internal sealed class ListRowPool
 
         BuiltRow? row = TakeRecycled(template, item) ?? Build(item, template);
 
-        if (row is not null) { row.Element.Control.AutoUpdate = _view.Interactive; }
+        if (row is not null)
+        {
+            _visible.TryAdd(item, row);
+        }
 
         return row;
     }
@@ -111,7 +121,7 @@ internal sealed class ListRowPool
         if (tile is not null)
         {
             tile.Element.Control.RectTransform.Parent = band.RectTransform;
-            tile.Element.Control.AutoUpdate = _view.Interactive;
+            _visible.TryAdd(item, tile);
         }
 
         return tile;
@@ -141,7 +151,7 @@ internal sealed class ListRowPool
         return template;
     }
 
-    internal static BuiltRow Reuse(BuiltRow row, object item)
+    internal BuiltRow Reuse(BuiltRow row, object item)
     {
         if (!ReferenceEquals(row.Item, item)) { row.Element.ResetAnimatedValues(); }
 
@@ -151,7 +161,13 @@ internal sealed class ListRowPool
         row.Element.Control.Visible = true;
         row.Scope.Resume();
 
-        return row with { Item = item };
+        Forget(row);
+
+        BuiltRow reused = row with { Item = item };
+
+        _visible.TryAdd(item, reused);
+
+        return reused;
     }
 
     internal bool TryTakeBack(object item, out BuiltRow? row)
@@ -163,8 +179,10 @@ internal sealed class ListRowPool
         }
 
         kept.Element.Control.Visible = true;
-        kept.Element.Control.AutoUpdate = _view.Interactive;
         kept.Scope.Resume();
+
+        _visible[item] = kept;
+
         row = kept;
         return true;
     }
@@ -174,6 +192,8 @@ internal sealed class ListRowPool
         row.Element.Control.RectTransform.Parent = null;
         row.Element.Control.Visible = false;
         row.Scope.Pause();
+
+        Forget(row);
 
         if (_owner.Windowed)
         {
@@ -195,6 +215,8 @@ internal sealed class ListRowPool
 
     internal void Drop(BuiltRow row)
     {
+        Forget(row);
+
         row.Element.Control.Visible = false;
         row.Element.Control.RectTransform.Parent = null;
         row.Scope.Dispose();
@@ -215,8 +237,14 @@ internal sealed class ListRowPool
         foreach (BuiltRow row in _byItem.Values) { Drop(row); }
 
         _byItem.Clear();
+        _visible.Clear();
         _order.Clear();
         DropRecycled();
+    }
+
+    private void Forget(BuiltRow row)
+    {
+        if (_visible.TryGetValue(row.Item, out BuiltRow? mapped) && ReferenceEquals(mapped, row)) { _visible.Remove(row.Item); }
     }
 
     private BuiltRow? ReportMissingRowTemplate(object item)

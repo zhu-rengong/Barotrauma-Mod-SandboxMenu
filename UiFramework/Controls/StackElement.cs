@@ -51,6 +51,8 @@ internal sealed class StackElement : ViewElement
     {
         set
         {
+            if (_group.ChildAnchor == value) { return; }
+
             _group.ChildAnchor = value;
             ApplyShares();
         }
@@ -61,6 +63,8 @@ internal sealed class StackElement : ViewElement
     {
         set
         {
+            if (_group.Stretch == value) { return; }
+
             _group.Stretch = value;
             ApplyShares();
         }
@@ -71,7 +75,11 @@ internal sealed class StackElement : ViewElement
     {
         set
         {
-            _group.AbsoluteSpacing = UiMetrics.DipInt(value);
+            int dip = UiMetrics.DipInt(value);
+
+            if (_group.AbsoluteSpacing == dip) { return; }
+
+            _group.AbsoluteSpacing = dip;
             ApplyShares();
         }
     }
@@ -81,6 +89,8 @@ internal sealed class StackElement : ViewElement
     {
         set
         {
+            if (MathF.Abs(_group.RelativeSpacing - value) < 0.0001f) { return; }
+
             _group.RelativeSpacing = value;
             ApplyShares();
         }
@@ -150,7 +160,7 @@ internal sealed class StackElement : ViewElement
 
         if (shares > 0f)
         {
-            float available = Math.Max(0f, 1f - taken - Gaps(shown));
+            float available = StackShares.Remaining(taken, StackShares.Gaps(shown, _group.RelativeSpacing, _group.AbsoluteSpacing, Extent()));
 
             for (int i = 0; i < _children.Count; i++)
             {
@@ -158,7 +168,7 @@ internal sealed class StackElement : ViewElement
 
                 if (!child.Control.Visible || Share(child) is not { } weight) { continue; }
 
-                if (SetMainAxis(child, Math.Max(0f, available * weight / shares - MarginOf(child)))) { changed = true; }
+                if (SetMainAxis(child, Math.Max(0f, available * StackShares.Fraction(weight, shares) - MarginOf(child)))) { changed = true; }
             }
         }
 
@@ -183,7 +193,7 @@ internal sealed class StackElement : ViewElement
 
         if (margin.IsEmpty) { return 0f; }
 
-        int extent = _horizontal ? Control.Rect.Width : Control.Rect.Height;
+        int extent = Extent();
         if (extent <= 0) { return 0f; }
 
         return (_horizontal ? margin.Horizontal : margin.Vertical) / (float)extent;
@@ -224,18 +234,7 @@ internal sealed class StackElement : ViewElement
         return true;
     }
 
-    private float Gaps(int shown)
-    {
-        if (shown < 2) { return 0f; }
-
-        int count = shown - 1;
-        int extent = _horizontal ? Control.Rect.Width : Control.Rect.Height;
-        float gaps = _group.RelativeSpacing * count;
-
-        if (_group.AbsoluteSpacing > 0 && extent > 0) { gaps += _group.AbsoluteSpacing * count / (float)extent; }
-
-        return gaps;
-    }
+    private int Extent() => _horizontal ? Control.Rect.Width : Control.Rect.Height;
 
     private static GUILayoutGroup Create(ElementContext context)
     {

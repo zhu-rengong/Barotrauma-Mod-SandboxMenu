@@ -17,7 +17,7 @@ internal sealed class BrowseRowViewModel(EntryEditorViewModel editor, LocalizedS
             if (!Set(ref _text, value ?? string.Empty)) { return; }
 
             _apply(_text);
-            _editor.NotifyEdited();
+            _editor.Refresh();
         }
     }
 

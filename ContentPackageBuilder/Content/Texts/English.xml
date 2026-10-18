@@ -90,7 +90,7 @@
   <sandboxmenu.preset.save>Save preset</sandboxmenu.preset.save>
   <sandboxmenu.preset.load>Load preset</sandboxmenu.preset.load>
   <sandboxmenu.preset.reload>Reload preset</sandboxmenu.preset.reload>
-  <sandboxmenu.preset.open>Open preset file</sandboxmenu.preset.open>
+  <sandboxmenu.preset.copypath>Copy preset path</sandboxmenu.preset.copypath>
   <sandboxmenu.status.presetsaved>Preset saved.</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>Spawn set cleared.</sandboxmenu.status.cleared>
   <sandboxmenu.status.screenshot>Screenshot saved as "[name]".</sandboxmenu.status.screenshot>
@@ -102,8 +102,8 @@
   <sandboxmenu.status.presetsavefailed>Could not save the preset "[name]". See the log for details.</sandboxmenu.status.presetsavefailed>
   <sandboxmenu.status.templatecycle>The preset refers back to itself through another preset. Rename it or remove the reference, then save again.</sandboxmenu.status.templatecycle>
   <sandboxmenu.status.presetnotfound>There is no preset file "[name]" yet. Save the preset first.</sandboxmenu.status.presetnotfound>
-  <sandboxmenu.status.presetopened>Preset file "[name]" was opened in the program your system uses for it.</sandboxmenu.status.presetopened>
-  <sandboxmenu.status.presetopenfailed>Could not open the preset file "[name]". See the log for details.</sandboxmenu.status.presetopenfailed>
+  <sandboxmenu.status.presetpathcopied>The path of the preset "[name]" was copied to the clipboard.</sandboxmenu.status.presetpathcopied>
+  <sandboxmenu.status.presetpathcopyfailed>Could not copy the path of the preset "[name]". See the log for details.</sandboxmenu.status.presetpathcopyfailed>
   <sandboxmenu.status.nopresetname>Enter a preset name first.</sandboxmenu.status.nopresetname>
   <sandboxmenu.status.nopresets>No presets were found.</sandboxmenu.status.nopresets>
 
@@ -144,6 +144,7 @@
   <sandboxmenu.afflictions.strength>Strength %</sandboxmenu.afflictions.strength>
   <sandboxmenu.afflictions.multiply.maxvitality>Multiply by max vitality</sandboxmenu.afflictions.multiply.maxvitality>
   <sandboxmenu.afflictions.apply.hint>[Left-click] Apply this affliction to the character.</sandboxmenu.afflictions.apply.hint>
+  <sandboxmenu.afflictions.remove>Remove</sandboxmenu.afflictions.remove>
   <sandboxmenu.afflictions.rows.empty>Select a character to see their afflictions.</sandboxmenu.afflictions.rows.empty>
   <sandboxmenu.afflictions.tiles.empty>No affliction got through the filters.</sandboxmenu.afflictions.tiles.empty>
 

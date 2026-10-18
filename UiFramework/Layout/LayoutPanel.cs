@@ -84,7 +84,7 @@ internal abstract class LayoutPanel : ViewElement
         }
 
         int gap = UiMetrics.DipInt(_gap);
-        int available = Math.Max(0, extent - fixedTotal - gap * Math.Max(0, _measured.Count - 1));
+        int available = StackShares.RemainingPixels(extent, fixedTotal, gap, _measured.Count);
         int cursor = horizontal ? area.X : area.Y;
 
         for (int i = 0; i < _measured.Count; i++)
@@ -92,7 +92,7 @@ internal abstract class LayoutPanel : ViewElement
             (ViewElement child, int size, Length length) = _measured[i];
 
             int main = length.Kind == LengthKind.Star
-                ? length.Resolve(available, size, starTotal is 0f ? 0f : length.Value / starTotal)
+                ? StackShares.PixelsOf(available, StackShares.Fraction(length.Value, starTotal))
                 : size;
 
             Rectangle childArea = horizontal

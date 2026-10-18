@@ -21,7 +21,7 @@ internal abstract class MarkupExtension
     internal static MarkupExtension? ForElement(MarkupNode node)
         => Elements.TryGetValue(node.Name, out Func<MarkupNode, MarkupExtension>? read) ? read(node) : null;
 
-    internal abstract void Apply(IValueAssignment assignment);
+    internal abstract void Apply(PropertyAssignment assignment);
 
     internal static MarkupExtension Parse(string text)
     {
@@ -36,7 +36,7 @@ internal sealed class UnknownExtension(string body) : MarkupExtension
 {
     private readonly string _body = body;
 
-    internal override void Apply(IValueAssignment assignment)
+    internal override void Apply(PropertyAssignment assignment)
         => assignment.Report($"unknown markup extension '{{{_body}}}'");
 }
 
@@ -48,7 +48,7 @@ internal sealed class BindingExtension(BindingOptions options) : MarkupExtension
 
     internal static MarkupExtension ReadNode(MarkupNode node) => new BindingExtension(BindingOptions.Read(node));
 
-    internal override void Apply(IValueAssignment assignment) => assignment.Bind(_options);
+    internal override void Apply(PropertyAssignment assignment) => assignment.Bind(_options);
 }
 
 internal sealed class MultiBindingExtension : MarkupExtension
@@ -79,7 +79,7 @@ internal sealed class MultiBindingExtension : MarkupExtension
         return new MultiBindingExtension(bindings, node.Text("Converter"), node.Text("ConverterParameter"));
     }
 
-    internal override void Apply(IValueAssignment assignment) => assignment.BindMulti(_bindings, _converter, _parameter);
+    internal override void Apply(PropertyAssignment assignment) => assignment.BindMulti(_bindings, _converter, _parameter);
 }
 
 internal sealed class StaticResourceExtension(string key) : MarkupExtension
@@ -88,7 +88,7 @@ internal sealed class StaticResourceExtension(string key) : MarkupExtension
 
     internal static MarkupExtension Read(string body) => new StaticResourceExtension(body.Split(' ', 2, StringSplitOptions.TrimEntries)[^1]);
 
-    internal override void Apply(IValueAssignment assignment) => assignment.SetResource(_key, reevaluate: false);
+    internal override void Apply(PropertyAssignment assignment) => assignment.SetResource(_key, reevaluate: false);
 }
 
 internal sealed class DynamicResourceExtension(string key) : MarkupExtension
@@ -97,5 +97,5 @@ internal sealed class DynamicResourceExtension(string key) : MarkupExtension
 
     internal static MarkupExtension Read(string body) => new DynamicResourceExtension(body.Split(' ', 2, StringSplitOptions.TrimEntries)[^1]);
 
-    internal override void Apply(IValueAssignment assignment) => assignment.SetResource(_key, reevaluate: true);
+    internal override void Apply(PropertyAssignment assignment) => assignment.SetResource(_key, reevaluate: true);
 }

@@ -4,21 +4,24 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
 {
     private bool _isSelected;
 
-    internal TreeEntryViewModel(SpawnPanelViewModel menu, SpawnEntry entry, List<SpawnEntry> owner, int depth, ItemEntry? container)
+    internal TreeEntryViewModel(
+        SpawnEntry entry,
+        List<SpawnEntry> owner,
+        int depth,
+        ItemEntry? container,
+        Action<TreeEntryViewModel> select,
+        Action<TreeEntryViewModel> showContextMenu)
     {
-        Menu = menu;
         Entry = entry;
         Owner = owner;
         Container = container;
         Depth = depth;
 
-        SelectCommand = new RelayCommand(() => menu.Select(this));
-        OpenMenuCommand = new RelayCommand(() => menu.OpenMenu(this));
+        SelectCommand = new RelayCommand(() => select(this));
+        OpenMenuCommand = new RelayCommand(() => showContextMenu(this));
 
         Refresh();
     }
-
-    public SpawnPanelViewModel Menu { get; }
 
     public SpawnEntry Entry { get; }
 
@@ -47,9 +50,13 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
 
     internal void Refresh()
     {
-        Display = Entry is ItemEntry item ? ItemDisplay.For(item.Identifier) : null;
+        ItemDisplay? display = Entry is ItemEntry item ? ItemDisplay.For(item.Identifier) : null;
+        bool unchanged = ReferenceEquals(Display, display);
 
-        Raise(nameof(Title));
+        Display = display;
+
+        if (unchanged) { Raise(nameof(Title)); }
+
         Raise(nameof(IsReference));
     }
 }

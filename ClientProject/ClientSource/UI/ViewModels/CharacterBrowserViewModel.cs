@@ -1,45 +1,5 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed record SpeciesOption(Identifier Species, LocalizedString Label);
-
-internal sealed record TeamOption(CharacterTeamType Team, LocalizedString Label);
-
-internal sealed class CharacterTileViewModel(CharacterDisplay display, Action<Character> onPicked) : Notifiable
-{
-    private float _toolTipHealth = float.NaN;
-    private bool _disabled = display.Removed;
-
-    public CharacterDisplay Display { get; } = display;
-
-    public RelayCommand PickCommand { get; } = new(() =>
-    {
-        if (display.Removed) { return; }
-
-        onPicked(display.Character);
-    });
-
-    public bool Disabled
-    {
-        get => _disabled;
-        private set => Set(ref _disabled, value);
-    }
-
-    internal void RefreshDisabled() => Disabled = Display.Removed;
-
-    public RichString ToolTip => Display.ToolTip;
-
-    internal void RaiseToolTipIfHealthChanged()
-    {
-        float health = Display.Health;
-
-        if (health == _toolTipHealth) { return; }
-
-        _toolTipHealth = health;
-
-        Raise(nameof(ToolTip));
-    }
-}
-
 internal sealed class CharacterBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
@@ -69,11 +29,11 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
     public LocalizedString Title => TextManager.Get("sandboxmenu.characters.title");
 
-    public LocalizedString PackageFilter => FilterLabel("sandboxmenu.filter.packages", _packages.Count);
+    public LocalizedString PackageFilter => FilterSummary.Label("sandboxmenu.filter.packages", _packages.Count);
 
-    public LocalizedString SpeciesFilter => FilterLabel("sandboxmenu.filter.species", _species.Count);
+    public LocalizedString SpeciesFilter => FilterSummary.Label("sandboxmenu.filter.species", _species.Count);
 
-    public LocalizedString TeamFilter => FilterLabel("sandboxmenu.filter.teams", _teams.Count);
+    public LocalizedString TeamFilter => FilterSummary.Label("sandboxmenu.filter.teams", _teams.Count);
 
     public LocalizedString EmptyHint => TextManager.Get("sandboxmenu.characters.empty");
 
@@ -92,7 +52,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         get => _query;
         set
         {
-            if (Set(ref _query, value ?? string.Empty)) { ApplyFilter(); }
+            if (Set(ref _query, value ?? string.Empty)) { Refresh(); }
         }
     }
 
@@ -104,7 +64,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
     internal void PickInto(Action<Character> onPicked) => _onPicked = onPicked;
 
-    internal void RefreshStates()
+    internal void RefreshTiles()
     {
         for (int i = 0; i < _rows.Count; i++)
         {
@@ -113,7 +73,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         }
     }
 
-    internal void Refresh()
+    internal void Rebuild()
     {
         PruneDisplays();
 
@@ -161,7 +121,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         _species.Clear();
         _teams.Clear();
 
-        ApplyFilter();
+        Refresh();
     }
 
     private void PruneDisplays()
@@ -229,7 +189,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         if (selected) { _packages.Add(package); }
         else { _packages.Remove(package); }
 
-        ApplyFilter();
+        Refresh();
     }
 
     private void SetSpecies(Identifier species, bool selected)
@@ -237,7 +197,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         if (selected) { _species.Add(species); }
         else { _species.Remove(species); }
 
-        ApplyFilter();
+        Refresh();
     }
 
     private void SetTeam(CharacterTeamType team, bool selected)
@@ -245,29 +205,21 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         if (selected) { _teams.Add(team); }
         else { _teams.Remove(team); }
 
-        ApplyFilter();
+        Refresh();
     }
 
-    private void ApplyFilter()
+    private void Refresh()
     {
-        if (NotificationBatch.Defer(this, nameof(ApplyFilter), RenewFilter)) { return; }
+        if (NotificationBatch.Defer(this, nameof(Refresh), RefreshNow)) { return; }
 
-        RenewFilter();
+        RefreshNow();
     }
 
-    private void RenewFilter()
+    private void RefreshNow()
     {
         string query = _query.Trim();
-        List<CharacterTileViewModel> visible = new(_rows.Count);
 
-        for (int i = 0; i < _rows.Count; i++)
-        {
-            CharacterTileViewModel row = _rows[i];
-
-            if (Shows(row.Display, query)) { visible.Add(row); }
-        }
-
-        _visible = visible;
+        _visible = RowFilter.Select(_rows, row => Shows(row.Display, query));
 
         using (NotificationBatch.Begin())
         {
@@ -295,14 +247,4 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         => display.Name.Value.Contains(query, StringComparison.OrdinalIgnoreCase)
             || display.Identifier.Contains(query, StringComparison.OrdinalIgnoreCase)
             || display.Character.Group.Value.Contains(query, StringComparison.OrdinalIgnoreCase);
-
-    private static LocalizedString FilterLabel(string nameKey, int chosen)
-    {
-        LocalizedString count = chosen.ToString();
-
-        return TextManager.GetWithVariables(
-            chosen == 0 ? "sandboxmenu.filter.summary.all" : "sandboxmenu.filter.summary.some",
-            ("[name]", TextManager.Get(nameKey)),
-            ("[count]", count));
-    }
 }

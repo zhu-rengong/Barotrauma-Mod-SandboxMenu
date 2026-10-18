@@ -1,28 +1,30 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
+internal sealed class TreeDragDrop(
+    SpawnSet set,
+    TreeRows tree,
+    Func<TreeEntryViewModel?> selected,
+    Action<TreeEntryViewModel> select,
+    Action clearSelection)
 {
-    private readonly SpawnSet _set = menu.Set;
-    private readonly SpawnSetTree _tree = menu.Tree;
-
     internal void AddItem(bool asChild)
     {
-        TreeEntryViewModel? selected = menu.SelectedEntry;
+        TreeEntryViewModel? current = selected();
 
-        if (asChild && selected is not null) { AddChild(selected); return; }
+        if (asChild && current is not null) { AddChild(current); return; }
         if (asChild) { return; }
 
-        Add(new ItemEntry(), selected);
+        Add(new ItemEntry(), current);
     }
 
     internal void DeleteSelected()
     {
-        if (menu.SelectedEntry is { } selected) { Delete(selected); }
+        if (selected() is { } current) { Delete(current); }
     }
 
     internal void Add(SpawnEntry entry, TreeEntryViewModel? after)
     {
-        List<SpawnEntry> owner = after?.Owner ?? _set.Entries;
+        List<SpawnEntry> owner = after?.Owner ?? set.Entries;
         int index = after is null ? owner.Count : Math.Clamp(owner.IndexOf(after.Entry) + 1, 0, owner.Count);
 
         owner.Insert(index, entry);
@@ -60,10 +62,10 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
 
         FrameActions.Post(() =>
         {
-            _tree.Rebuild();
+            tree.Rebuild();
 
-            if (next is not null && _tree.Find(next) is { } selected) { menu.Select(selected); }
-            else { menu.ClearSelection(); }
+            if (next is not null && tree.Find(next) is { } row2) { select(row2); }
+            else { clearSelection(); }
         });
     }
 
@@ -82,22 +84,22 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
 
     internal void MoveSelection(int direction)
     {
-        if (menu.SelectedEntry is { } selected) { Move(selected, direction); }
+        if (selected() is { } current) { Move(current, direction); }
     }
 
     internal void Step(TreeEntryViewModel row, int direction)
     {
-        int index = _tree.Rows.IndexOf(row);
+        int index = tree.IndexOf(row);
         int target = index + direction;
 
-        if (index < 0 || target < 0 || target >= _tree.Rows.Count) { return; }
+        if (index < 0 || target < 0 || target >= tree.Rows.Count) { return; }
 
-        menu.Select(_tree.Rows[target]);
+        select(tree.Rows[target]);
     }
 
     internal void StepSelection(int direction)
     {
-        if (menu.SelectedEntry is { } selected) { Step(selected, direction); }
+        if (selected() is { } current) { Step(current, direction); }
     }
 
     internal void Drop(object source, object? target, DropMode mode)
@@ -105,7 +107,7 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
         if (source is not TreeEntryViewModel dragged) { return; }
 
         TreeEntryViewModel? onto = target as TreeEntryViewModel;
-        if (onto is not null && SpawnTree.Contains(dragged.Entry, onto.Entry))
+        if (onto is not null && tree.Contains(dragged.Entry, onto.Entry))
         {
             DropIntoDescendant(dragged, onto, mode);
             return;
@@ -116,7 +118,7 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
 
         if (onto is null)
         {
-            owner = _set.Entries;
+            owner = set.Entries;
             index = owner.Count;
         }
         else if (mode == DropMode.Nest && onto.Entry is ItemEntry container)
@@ -147,7 +149,7 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
 
         if (mode == DropMode.Nest)
         {
-            if (onto.Entry is ItemEntry container && SpawnTree.ReparentIntoDescendant(dragged.Owner, moved, container))
+            if (onto.Entry is ItemEntry container && EntryTree.ReparentIntoDescendant(dragged.Owner, moved, container, tree.Parents))
             {
                 SelectNewEntry(moved, container.Inventory);
             }
@@ -158,7 +160,7 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
         bool liftedTarget = ReferenceEquals(onto.Owner, moved.Inventory);
         if (!liftedTarget && onto.Owner.IndexOf(onto.Entry) < 0) { return; }
 
-        if (!SpawnTree.LiftBranch(dragged.Owner, moved, onto.Entry)) { return; }
+        if (!EntryTree.LiftBranch(dragged.Owner, moved, onto.Entry, tree.Parents)) { return; }
 
         List<SpawnEntry> owner = liftedTarget ? dragged.Owner : onto.Owner;
         int index = owner.IndexOf(onto.Entry);
@@ -172,9 +174,9 @@ internal sealed class EntryTreeEditor(SpawnPanelViewModel menu)
     {
         FrameActions.Post(() =>
         {
-            _tree.Rebuild();
+            tree.Rebuild();
 
-            if (_tree.Find(entry, owner) is { } row) { menu.Select(row); }
+            if (tree.Find(entry, owner) is { } row) { select(row); }
         });
     }
 }

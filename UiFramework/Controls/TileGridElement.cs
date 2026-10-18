@@ -25,6 +25,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
 
     private readonly string? _templateKey;
     private int _columns;
+    private int _stamp;
 
     private IEnumerable? _items;
     private INotifyCollectionChanged? _observed;
@@ -253,6 +254,7 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
     {
         _placed.Clear();
         _stale.Clear();
+        _stamp++;
 
         RectTransform sheet = Sheet().RectTransform;
         Point size = new(cell, cell);
@@ -264,6 +266,8 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
 
             if (Take(item) is not { } tile) { continue; }
 
+            tile.Stamp = _stamp;
+
             RectTransform rect = tile.Element.Control.RectTransform;
             rect.Parent = sheet;
             rect.SetPosition(Anchor.TopLeft, Pivot.TopLeft);
@@ -273,14 +277,13 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
             rect.NonScaledSize = size;
             rect.AbsoluteOffset = new Point(index % _columns * stride, index / _columns * stride);
             tile.Element.Control.Visible = true;
-            tile.Element.Control.AutoUpdate = _view.Interactive;
 
             if (tile.Element is ITileCell sized) { sized.SetCellSize(cell, cell); }
         }
 
-        foreach (object item in _live.Keys)
+        foreach (KeyValuePair<object, Cell> pair in _live)
         {
-            if (!_placed.Contains(item)) { _stale.Add(item); }
+            if (pair.Value.Stamp != _stamp) { _stale.Add(pair.Key); }
         }
 
         for (int i = 0; i < _stale.Count; i++)
@@ -408,5 +411,8 @@ internal sealed class TileGridElement : ViewElement, IPropertyObserver
         return _sheet = sheet;
     }
 
-    private sealed record Cell(object Item, ViewElement Element, ViewScope Scope, DataTemplate Template);
+    private sealed record Cell(object Item, ViewElement Element, ViewScope Scope, DataTemplate Template)
+    {
+        internal int Stamp { get; set; }
+    }
 }

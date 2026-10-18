@@ -4,7 +4,7 @@ namespace SandboxMenu.Domain.Editing;
 
 internal readonly record struct AppliedOverride(ISerializableEntity Target, SerializableProperty Property);
 
-internal static class PropertyEditService
+internal static class ItemPropertyWriter
 {
     internal static IReadOnlyList<string> Apply(
         Item item,
@@ -26,18 +26,6 @@ internal static class PropertyEditService
         return problems ?? [];
     }
 
-    internal static bool SetComponentValue(Item item, string componentName, int componentIndex, string propertyName, string value)
-        => Apply(item,
-        [
-            new PropertyOverride
-            {
-                ComponentName = componentName,
-                ComponentIndex = componentIndex,
-                PropertyName = propertyName,
-                Value = value
-            }
-        ]).Count == 0;
-
     private static string? ApplyOne(Item item, PropertyOverride propertyOverride, ICollection<AppliedOverride>? applied)
     {
         object? target = ResolveTarget(item, propertyOverride, out string? resolveError);
@@ -52,7 +40,7 @@ internal static class PropertyEditService
 
         object? before = property.GetValue(target);
 
-        if (string.Equals(propertyOverride.Value, PropertyDefaults.Format(before), StringComparison.Ordinal)
+        if (string.Equals(propertyOverride.Value, PropertyText.Format(before), StringComparison.Ordinal)
             || string.Equals(propertyOverride.Value, DeclaredOf(item, propertyOverride, property), StringComparison.Ordinal))
         {
             return null;
@@ -71,9 +59,9 @@ internal static class PropertyEditService
     }
 
     private static string DeclaredOf(Item item, PropertyOverride propertyOverride, SerializableProperty property)
-        => PropertyDefaults.DeclaredValue(
+        => PropertyText.DeclaredValue(
             property,
-            PropertyDefaults.ElementOf(item.Prefab, propertyOverride.ComponentName, propertyOverride.ComponentIndex));
+            PropertyText.ElementOf(item.Prefab, propertyOverride.ComponentName, propertyOverride.ComponentIndex));
 
     private static object? ResolveTarget(Item item, PropertyOverride propertyOverride, out string? error)
     {

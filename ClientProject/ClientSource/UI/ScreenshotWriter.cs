@@ -4,7 +4,7 @@ namespace SandboxMenu.UI;
 
 internal static class ScreenshotWriter
 {
-    internal static void Write(IReadOnlyList<IDialogWindow> drawn, Action<LocalizedString> report)
+    internal static void Write(IReadOnlyList<IDialogWindow> drawn, Action<StatusKind, LocalizedString> report)
     {
         Rectangle area = drawn[0].Rect;
         foreach (IDialogWindow popup in drawn) { area = Rectangle.Union(area, popup.Rect); }
@@ -62,13 +62,13 @@ internal static class ScreenshotWriter
                 GameMain.Instance.ResetViewPort();
             }
 
-            report(TextManager.GetWithVariable("sandboxmenu.status.screenshot", "[name]", name));
-            DebugConsole.NewMessage($"Saved a screenshot of the menu to '{path}'");
+            report(StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.status.screenshot", "[name]", name));
+            Services.DebugConsole.NewMessage($"Saved a screenshot of the menu to '{path}'");
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Saving a screenshot of the menu failed: {e}");
-            report(TextManager.Get("sandboxmenu.status.screenshotfailed"));
+            Services.DebugConsole.AddWarning($"Saving a screenshot of the menu failed: {e}");
+            report(StatusKind.Failure, TextManager.Get("sandboxmenu.status.screenshotfailed"));
         }
     }
 

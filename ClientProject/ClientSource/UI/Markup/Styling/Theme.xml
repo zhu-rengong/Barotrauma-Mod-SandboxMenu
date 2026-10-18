@@ -1,7 +1,5 @@
 <ResourceDictionary>
 
-  <!-- The styles every view falls back on, the ones the framework used to carry itself: a Text without a FontSize
-       is a body line, and a section header is one size up. -->
   <Style TargetType="Text">
     <Setter Property="FontSize" Value="22" />
     <Setter Property="Wrap" Value="True" />
@@ -53,9 +51,6 @@
     </Style.Triggers>
   </Style>
 
-  <!-- A row's own feedback: the fill under the row and the accent bar a selected row carries. The three states
-       overlap (a hovered row is usually also the selected one), so each trigger carries a priority and the widest
-       state wins: pressed over hover over selected. -->
   <Style TargetType="Row">
     <Setter Property="Fill" Value="Transparent" />
     <Setter Property="SelectedBarFill" Value="Accent" />

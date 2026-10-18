@@ -365,7 +365,7 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Drawing a character tile border failed: {e}");
+            Services.DebugConsole.AddWarning($"Drawing a character tile border failed: {e}");
         }
     }
 
@@ -411,7 +411,7 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Drawing a character preview failed: {e}");
+            Services.DebugConsole.AddWarning($"Drawing a character preview failed: {e}");
         }
     }
 

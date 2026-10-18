@@ -1,43 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal enum AfflictionSort
-{
-    Strength,
-    Name
-}
-
-internal abstract class AfflictionRowViewModel : Notifiable
-{
-}
-
-internal sealed class AfflictionGroupRowViewModel : AfflictionRowViewModel
-{
-    private int _count;
-
-    internal AfflictionGroupRowViewModel(LocalizedString label) => Label = label;
-
-    public LocalizedString Label { get; }
-
-    public RichString Title => Count == 0
-        ? RichString.Rich(Label)
-        : RichString.Rich(Label + " " + TooltipText.Dim(Count.ToString()));
-
-    public bool HasAfflictions => _count > 0;
-
-    public int Count
-    {
-        get => _count;
-        internal set
-        {
-            if (!Set(ref _count, value)) { return; }
-
-            Raise(nameof(Title));
-            Raise(nameof(HasAfflictions));
-        }
-    }
-}
-
-internal sealed class AfflictionItemRowViewModel : AfflictionRowViewModel
+internal sealed class AfflictionItemRowViewModel : Notifiable
 {
     private const float Tolerance = 0.05f;
 
@@ -112,7 +75,7 @@ internal sealed class AfflictionItemRowViewModel : AfflictionRowViewModel
 
     internal AfflictionPrefab Prefab => _affliction.Prefab;
 
-    internal int HealthIndex => _limb?.HealthIndex ?? -1;
+    internal int? LimbHealthIndex => _limb?.HealthIndex;
 
     internal void Refresh()
     {
@@ -156,48 +119,4 @@ internal sealed class AfflictionItemRowViewModel : AfflictionRowViewModel
 
     private Color ImpactLossColor
         => Color.Lerp(GUIStyle.Orange, GUIStyle.Red, _percent / 100f);
-}
-
-internal sealed class AfflictionTileViewModel : Notifiable
-{
-    private readonly Action<AfflictionTileViewModel> _onPicked;
-    private RichString? _toolTip;
-    private float _percent;
-
-    internal AfflictionTileViewModel(AfflictionPrefabEntry entry, float percent, Action<AfflictionTileViewModel> onPicked)
-    {
-        Entry = entry;
-        Display = AfflictionDisplay.For(entry.Prefab);
-        _percent = percent;
-        _onPicked = onPicked;
-        PickCommand = new RelayCommand(() => onPicked(this));
-    }
-
-    internal AfflictionPrefabEntry Entry { get; }
-
-    public AfflictionDisplay Display { get; }
-
-    public Sprite? Icon => Display.Icon;
-
-    public RichString Name => RichString.Rich(Display.Name);
-
-    public Color IconColor => Display.ColorAt(Display.MaxStrength * Math.Clamp(_percent, 0f, 100f) / 100f);
-
-    public RichString StrengthText
-        => RichString.Rich(TooltipText.Number(Display.MaxStrength * Math.Clamp(_percent, 0f, 100f) / 100f) + "/" + TooltipText.Number(Display.MaxStrength));
-
-    public RichString ToolTip => _toolTip ??= Display.ToolTip();
-
-    public RelayCommand PickCommand { get; }
-
-    internal void SetStrength(float percent)
-    {
-        if (Math.Abs(_percent - percent) < 0.5f) { return; }
-
-        _percent = percent;
-
-        if (Display.Icon is not null) { Raise(nameof(IconColor)); }
-
-        Raise(nameof(StrengthText));
-    }
 }

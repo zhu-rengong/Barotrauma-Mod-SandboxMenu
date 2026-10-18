@@ -96,6 +96,8 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver
 
     internal GUIListBox ListBox => _listBox;
 
+    internal ListRowPool RowPool => _rowPool;
+
     internal ViewContext View => _view;
 
     internal List<BuiltRow> Rows => _rows;
@@ -322,7 +324,6 @@ internal sealed class ListBoxElement : ViewElement, IPropertyObserver
                 if (kept is not null)
                 {
                     kept.Element.Control.RectTransform.Parent = _listBox.Content.RectTransform;
-                    kept.Element.Control.AutoUpdate = _view.Interactive;
                     _rows.Add(kept);
                     continue;
                 }

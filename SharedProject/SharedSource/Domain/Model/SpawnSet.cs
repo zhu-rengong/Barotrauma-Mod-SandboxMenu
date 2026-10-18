@@ -30,7 +30,7 @@ internal sealed class SpawnSet
             SpawnEntry? entry = SpawnEntry.FromXml(child);
             if (entry is not null) { set.Entries.Add(entry); continue; }
 
-            DebugConsole.AddWarning($"Skipped unsupported spawn entry '{child.Name.LocalName}' in preset '{set.Name}'.");
+            Services.DebugConsole.AddWarning($"Skipped unsupported spawn entry '{child.Name.LocalName}' in preset '{set.Name}'.");
         }
 
         return set;

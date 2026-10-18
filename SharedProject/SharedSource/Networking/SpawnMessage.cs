@@ -2,9 +2,9 @@ using System.Xml.Linq;
 
 namespace SandboxMenu.Networking;
 
-internal sealed class SpawnPayload
+internal sealed class SpawnMessage
 {
-    internal const string RootName = "SpawnPayload";
+    internal const string RootName = "SpawnMessage";
     internal const string EntriesName = "Entries";
     internal const string TemplatesName = "Templates";
 
@@ -44,9 +44,9 @@ internal sealed class SpawnPayload
         return root;
     }
 
-    internal static SpawnPayload FromXml(XElement root)
+    internal static SpawnMessage FromXml(XElement root)
     {
-        SpawnPayload payload = new();
+        SpawnMessage payload = new();
 
         if (root.Element(TemplatesName) is { } templates)
         {
@@ -74,7 +74,7 @@ internal sealed class SpawnPayload
         {
             foreach (SpawnEntry entry in pending.Pop())
             {
-                if (++count > SpawnPayloadCodec.MaxEntries) { return false; }
+                if (++count > SpawnMessageCodec.MaxEntries) { return false; }
                 if (entry is ItemEntry { Inventory.Count: > 0 } item) { pending.Push(item.Inventory); }
             }
         }

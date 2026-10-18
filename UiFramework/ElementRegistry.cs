@@ -11,6 +11,8 @@ internal static class ElementRegistry
     private static readonly List<Assembly> _sources = [typeof(ElementRegistry).Assembly];
     private static FrozenDictionary<string, ElementMetadata>? _elements;
 
+    internal static int Generation { get; private set; }
+
     internal static FrozenDictionary<string, ElementMetadata> Elements => _elements ??= Scan();
 
     internal static ElementMetadata? Find(string name) => Elements.GetValueOrDefault(name);
@@ -24,6 +26,7 @@ internal static class ElementRegistry
 
         _sources.Add(assembly);
         _elements = null;
+        Generation++;
     }
 
     private static FrozenDictionary<string, ElementMetadata> Scan()
@@ -38,7 +41,7 @@ internal static class ElementRegistry
 
                 try
                 {
-                    elements[element.Name] = new ElementMetadata(element.Name, FactoryOf(type), PropertiesOf(type));
+                    elements[element.Name] = new ElementMetadata(FactoryOf(type), PropertiesOf(type));
                 }
                 catch (Exception e)
                 {

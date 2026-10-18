@@ -22,11 +22,4 @@ internal static class SpawnPlanner
 
     internal static int StacksToItemCount(float stackCount, int perStack)
         => Math.Max(0, (int)MathF.Round(stackCount * perStack, MidpointRounding.AwayFromZero));
-
-    internal static int StackCapacity(ItemPrefab prefab, Inventory destination)
-    {
-        int limit = Math.Max(1, prefab.GetMaxStackSize(destination));
-        int free = destination.HowManyCanBePut(prefab);
-        return Math.Max(1, Math.Min(limit, free + 1));
-    }
 }

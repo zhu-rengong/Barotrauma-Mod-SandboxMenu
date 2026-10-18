@@ -18,5 +18,5 @@ public interface IItemDropTarget
 
 public interface IListBackground
 {
-    void ShowBackgroundMenu(Vector2 position);
+    void ShowContextMenu(Vector2 position);
 }

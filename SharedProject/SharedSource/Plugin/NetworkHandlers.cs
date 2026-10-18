@@ -2,10 +2,9 @@ using SandboxMenu.Domain.Afflictions;
 
 namespace SandboxMenu;
 
-[RunConstructorOnInit]
-internal static class Network
+internal static class NetworkHandlers
 {
-    static Network()
+    internal static void Register()
     {
         Services.GameNetwork.RegisterNetworkHeaders<NetworkHeaders>();
 

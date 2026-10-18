@@ -12,7 +12,7 @@ internal static class TemplateStore
 
     private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 
-    private static readonly Dictionary<string, (long Stamp, SpawnSet? Set)> _shared = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, SpawnSet?> _shared = new(StringComparer.OrdinalIgnoreCase);
 
     public static string Folder => Path.Combine(Services.Settings.SaveFolder, "Presets");
 
@@ -37,7 +37,7 @@ internal static class TemplateStore
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Listing the presets failed: {e}");
+            Services.DebugConsole.AddWarning($"Listing the presets failed: {e}");
             return [];
         }
     }
@@ -54,7 +54,7 @@ internal static class TemplateStore
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Failed to load preset '{name}': {e}");
+            Services.DebugConsole.AddWarning($"Failed to load preset '{name}': {e}");
             set = null;
         }
 
@@ -71,29 +71,26 @@ internal static class TemplateStore
             DropOtherSpelling(path);
 
             SafeXML.SaveSafe(new XDocument(set.ToXml()), path, throwExceptions: true);
+
+            _shared[set.Name] = set;
+
             return true;
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Failed to save preset '{set.Name}': {e}");
+            Services.DebugConsole.AddWarning($"Failed to save preset '{set.Name}': {e}");
             return false;
         }
     }
 
     internal static bool TryLoadShared(string name, out SpawnSet? set)
     {
-        long stamp = StampOf(name);
+        if (_shared.TryGetValue(name, out set)) { return set is not null; }
 
-        if (_shared.TryGetValue(name, out (long Stamp, SpawnSet? Set) cached) && cached.Stamp == stamp)
-        {
-            set = cached.Set;
-            return set is not null;
-        }
+        TryLoad(name, out set);
+        _shared[name] = set;
 
-        bool ok = TryLoad(name, out set);
-        _shared[name] = (stamp, set);
-
-        return ok;
+        return set is not null;
     }
 
     private static string ReplaceInvalid(string name)
@@ -106,20 +103,6 @@ internal static class TemplateStore
         }
 
         return new string(chars);
-    }
-
-    private static long StampOf(string name)
-    {
-        try
-        {
-            string path = PathFor(name);
-
-            return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
-        }
-        catch (Exception)
-        {
-            return 0L;
-        }
     }
 
     internal static bool ReachesTemplate(SpawnSet set, string name)

@@ -9,7 +9,7 @@ internal sealed class ListDrag(ListBoxElement list)
 
     private readonly GUIListBox _listBox = list.ListBox;
     private readonly ViewContext _view = list.View;
-    private readonly Dictionary<object, GUIButton?> _rows = new(ReferenceEqualityComparer.Instance);
+    private readonly ListRowPool _rows = list.RowPool;
 
     private IItemDropTarget? _target;
     private IListBackground? _background;
@@ -31,8 +31,6 @@ internal sealed class ListDrag(ListBoxElement list)
     {
         _target = dataContext as IItemDropTarget;
         _background = dataContext as IListBackground;
-
-        _rows.Clear();
     }
 
     private bool IsShown()
@@ -47,9 +45,7 @@ internal sealed class ListDrag(ListBoxElement list)
 
     internal void Update()
     {
-        _rows.Clear();
-
-        if (_view.IsInputBlocked()) { return; }
+        if (_view.IsListDragBlocked()) { return; }
 
         if (IsDragging) { ContinueDrag(PlayerInput.MousePosition); return; }
 
@@ -90,16 +86,14 @@ internal sealed class ListDrag(ListBoxElement list)
 
     internal void UpdateBackgroundClick()
     {
-        _rows.Clear();
-
-        if (!IsShown() || _view.IsInputBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
+        if (!IsShown() || _view.IsListDragBlocked() || !PlayerInput.SecondaryMouseButtonClicked()) { return; }
 
         Vector2 mouse = PlayerInput.MousePosition;
 
         if (!_listBox.Rect.Contains(mouse.ToPoint())) { return; }
         if (ItemAt(mouse) is not null) { return; }
 
-        _background?.ShowBackgroundMenu(mouse);
+        _background?.ShowContextMenu(mouse);
     }
 
     internal void Reset()
@@ -107,7 +101,6 @@ internal sealed class ListDrag(ListBoxElement list)
         RestoreHighlight();
         Restore(_draggedSkin, RowOf(_dragged));
         _draggedSkin = null;
-        _rows.Clear();
 
         IsDragging = false;
         _dragged = null;
@@ -235,25 +228,7 @@ internal sealed class ListDrag(ListBoxElement list)
         saved.ApplyTo(label);
     }
 
-    private GUIButton? RowOf(object? item)
-    {
-        if (item is null) { return null; }
-        if (_rows.TryGetValue(item, out GUIButton? cached)) { return cached; }
-
-        GUIButton? row = null;
-
-        for (int i = 0; i < list.Rows.Count; i++)
-        {
-            if (!ReferenceEquals(list.Rows[i].Element.DataContext, item)) { continue; }
-
-            row = list.Rows[i].Button;
-            break;
-        }
-
-        _rows[item] = row;
-
-        return row;
-    }
+    private GUIButton? RowOf(object? item) => _rows.Find(item)?.Button;
 
     private object? ItemAt(Vector2 mouse)
     {
@@ -262,14 +237,27 @@ internal sealed class ListDrag(ListBoxElement list)
 
         if (!viewport.Contains(point)) { return null; }
 
-        for (int i = list.Rows.Count - 1; i >= 0; i--)
-        {
-            if (ReferenceEquals(list.Rows[i].Item, _dragged)) { continue; }
+        List<BuiltRow> rows = list.Rows;
+        if (rows.Count == 0) { return null; }
 
-            GUIComponent component = list.Rows[i].Element.Control;
+        Rectangle first = rows[0].Element.Control.Rect;
+        int stride = first.Height + _listBox.Spacing;
+
+        if (first.Height <= 0 || stride <= 0) { return null; }
+
+        int index = Math.Clamp((point.Y - first.Top) / stride, 0, rows.Count - 1);
+        int last = Math.Min(rows.Count - 1, index + 1);
+
+        for (int i = Math.Max(0, index - 1); i <= last; i++)
+        {
+            BuiltRow row = rows[i];
+
+            if (ReferenceEquals(row.Item, _dragged)) { continue; }
+
+            GUIComponent component = row.Element.Control;
             if (!component.Visible) { continue; }
             if (!viewport.Intersects(component.Rect)) { continue; }
-            if (component.Rect.Contains(point)) { return list.Rows[i].Item; }
+            if (component.Rect.Contains(point)) { return row.Item; }
         }
 
         return null;

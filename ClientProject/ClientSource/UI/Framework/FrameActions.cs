@@ -19,7 +19,7 @@ internal static class FrameActions
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Running a menu command failed: {e}");
+            Services.DebugConsole.AddWarning($"Running a menu command failed: {e}");
         }
     }
 
@@ -31,7 +31,7 @@ internal static class FrameActions
         }
         catch (Exception e)
         {
-            DebugConsole.AddWarning($"Running a menu command failed: {e}");
+            Services.DebugConsole.AddWarning($"Running a menu command failed: {e}");
         }
     }
 

@@ -43,6 +43,6 @@ internal sealed class RangeRowViewModel(EntryEditorViewModel editor, LocalizedSt
     {
         LabelActive = _enabled;
         _apply(_enabled ? new ValueRange(_min, _max) : null);
-        _editor.NotifyEdited();
+        _editor.Refresh();
     }
 }

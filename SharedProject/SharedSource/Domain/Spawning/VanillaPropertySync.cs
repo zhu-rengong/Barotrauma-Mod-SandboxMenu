@@ -1,8 +1,8 @@
 using Barotrauma.Networking;
 
-namespace SandboxMenu.Networking;
+namespace SandboxMenu.Domain.Spawning;
 
-internal static class SpawnPropertySync
+internal static class VanillaPropertySync
 {
     internal static void Publish(Item item, IReadOnlyList<AppliedOverride> applied, SpawnResult result)
     {
@@ -26,7 +26,7 @@ internal static class SpawnPropertySync
                 continue;
             }
 
-            if (!Travels(property.GetValue(propertyOverride.Target)))
+            if (!PropertyText.Travels(property.GetValue(propertyOverride.Target)))
             {
                 result.Report(StaysOnServer(item, $"the value type '{property.PropertyType.Name}' cannot be written"));
                 continue;
@@ -48,12 +48,4 @@ internal static class SpawnPropertySync
 
     private static string StaysOnServer(Item item, string reason)
         => $"A property override of '{item.Prefab?.Identifier.Value}' stays on the server ({reason}).";
-
-    private static bool Travels(object? value) => value switch
-    {
-        string or Identifier or float or int or bool or Color or Vector2 or Vector3 or Vector4 or Point or Rectangle
-            or string[] => true,
-        Enum => true,
-        _ => false
-    };
 }
