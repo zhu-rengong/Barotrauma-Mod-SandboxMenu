@@ -4,6 +4,7 @@
   <sandboxmenu.close>關閉</sandboxmenu.close>
   <sandboxmenu.function.spawn>生成</sandboxmenu.function.spawn>
   <sandboxmenu.function.afflictions>狀態效果</sandboxmenu.function.afflictions>
+  <sandboxmenu.function.talents>天賦</sandboxmenu.function.talents>
   <sandboxmenu.give>生成到背包</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>生成到滑鼠位置</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>未選中條目。在左側清單的空白處點擊滑鼠右鍵即可開啟選單，新增物品或模板引用。</sandboxmenu.empty>
@@ -172,6 +173,21 @@
   <sandboxmenu.afflictions.status.serverunknown>伺服器不認識該狀態效果。</sandboxmenu.afflictions.status.serverunknown>
   <sandboxmenu.afflictions.status.servernocharacter>伺服器找不到該角色。</sandboxmenu.afflictions.status.servernocharacter>
   <sandboxmenu.afflictions.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.afflictions.status.serverthrottled>
+
+  <sandboxmenu.talents.characters>選擇角色</sandboxmenu.talents.characters>
+  <sandboxmenu.talents.characters.controlled>當前角色</sandboxmenu.talents.characters.controlled>
+  <sandboxmenu.talents.none>尚未選擇角色。</sandboxmenu.talents.none>
+  <sandboxmenu.talents.filter.jobs>職業天賦樹</sandboxmenu.talents.filter.jobs>
+  <sandboxmenu.talents.filter.subtrees>子天賦樹</sandboxmenu.talents.filter.subtrees>
+  <sandboxmenu.talents.extra>額外天賦</sandboxmenu.talents.extra>
+  <sandboxmenu.talents.apply.hint>[滑鼠左鍵] 把該天賦授予所選角色。</sandboxmenu.talents.apply.hint>
+  <sandboxmenu.talents.rows.empty>請先選擇一個角色，才能查看其天賦。</sandboxmenu.talents.rows.empty>
+  <sandboxmenu.talents.rows.none>該角色還沒有天賦。</sandboxmenu.talents.rows.none>
+  <sandboxmenu.talents.tiles.empty>沒有符合篩選的天賦。</sandboxmenu.talents.tiles.empty>
+  <sandboxmenu.talents.status.granted>已授予 [value]。</sandboxmenu.talents.status.granted>
+  <sandboxmenu.talents.status.already>該角色已經擁有 [value]。</sandboxmenu.talents.status.already>
+  <sandboxmenu.talents.status.noinfo>該角色沒有角色資訊，無法授予天賦。</sandboxmenu.talents.status.noinfo>
+  <sandboxmenu.talents.status.failed>無法授予該天賦，詳見日誌。</sandboxmenu.talents.status.failed>
 
   <sandboxmenu.limb.none>其他</sandboxmenu.limb.none>
   <sandboxmenu.limb.head>頭部</sandboxmenu.limb.head>

@@ -13,6 +13,7 @@ internal sealed class SandboxMenuViewModel : Notifiable, IItemDropTarget, IListB
         Functions = new FunctionSelectorViewModel();
         Spawn = new SpawnPanelViewModel(host, Report);
         Afflictions = new AfflictionPanelViewModel(host, Report);
+        Talents = new TalentPanelViewModel(host, Report);
     }
 
     public FunctionSelectorViewModel Functions { get; }
@@ -20,6 +21,8 @@ internal sealed class SandboxMenuViewModel : Notifiable, IItemDropTarget, IListB
     public SpawnPanelViewModel Spawn { get; }
 
     public AfflictionPanelViewModel Afflictions { get; }
+
+    public TalentPanelViewModel Talents { get; }
 
     public LocalizedString Status
     {

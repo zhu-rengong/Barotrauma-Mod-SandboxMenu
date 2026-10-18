@@ -6,8 +6,10 @@ internal static class ContentCaches
     {
         ItemPrefabCatalog.Reset();
         AfflictionPrefabCatalog.Reset();
+        TalentPrefabCatalog.Reset();
         ItemDisplay.Reset();
         AfflictionDisplay.Reset();
+        TalentDisplay.Reset();
         PropertyCatalog.Reset();
         ContainerRules.Reset();
     }

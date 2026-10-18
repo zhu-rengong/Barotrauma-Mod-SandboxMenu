@@ -14,6 +14,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     private IReadOnlyList<CharacterTileViewModel> _visible = [];
     private IReadOnlyList<PackageLabel> _packageOptions = [];
     private Action<Character> _onPicked = static _ => { };
+    private Func<Character, bool>? _filter;
     private string _query = string.Empty;
     private float _scroll;
     private int _packageSignature;
@@ -62,7 +63,11 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         set => Set(ref _scroll, value);
     }
 
-    internal void PickInto(Action<Character> onPicked) => _onPicked = onPicked;
+    internal void PickInto(Action<Character> onPicked, Func<Character, bool>? filter = null)
+    {
+        _onPicked = onPicked;
+        _filter = filter;
+    }
 
     internal void RefreshTiles()
     {
@@ -87,6 +92,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         foreach (Character character in Character.CharacterList)
         {
             if (character is null || character.Removed) { continue; }
+            if (_filter is { } filter && !filter(character)) { continue; }
 
             if (!_displays.TryGetValue(character, out CharacterDisplay? display))
             {
@@ -148,6 +154,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         _packageOptions = [];
         _visible = [];
         _displays.Clear();
+        _filter = null;
         _packageSignature = 0;
 
         _packages.Clear();

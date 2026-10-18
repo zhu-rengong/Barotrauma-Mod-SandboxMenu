@@ -6,7 +6,7 @@ internal interface IDialogHost
 {
     void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null, Action<string>? onSelf = null);
 
-    void ShowCharacterBrowser(Action<Character> onPicked);
+    void ShowCharacterBrowser(Action<Character> onPicked, Func<Character, bool>? filter = null);
 
     void ShowOptions(LocalizedString title, IEnumerable<PickerOption> options, bool filterable = false);
 

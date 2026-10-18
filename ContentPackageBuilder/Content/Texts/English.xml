@@ -4,6 +4,7 @@
   <sandboxmenu.close>Close</sandboxmenu.close>
   <sandboxmenu.function.spawn>Spawn</sandboxmenu.function.spawn>
   <sandboxmenu.function.afflictions>Afflictions</sandboxmenu.function.afflictions>
+  <sandboxmenu.function.talents>Talents</sandboxmenu.function.talents>
   <sandboxmenu.give>Spawn into inventory</sandboxmenu.give>
   <sandboxmenu.spawnatcursor>Spawn at the cursor</sandboxmenu.spawnatcursor>
   <sandboxmenu.empty>Nothing is selected. Right-click the empty space in the list on the left to open the menu and add an item or a template reference.</sandboxmenu.empty>
@@ -173,6 +174,21 @@
   <sandboxmenu.afflictions.status.serverunknown>The server does not know that affliction.</sandboxmenu.afflictions.status.serverunknown>
   <sandboxmenu.afflictions.status.servernocharacter>The server could not find that character.</sandboxmenu.afflictions.status.servernocharacter>
   <sandboxmenu.afflictions.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.afflictions.status.serverthrottled>
+
+  <sandboxmenu.talents.characters>Select character</sandboxmenu.talents.characters>
+  <sandboxmenu.talents.characters.controlled>Current character</sandboxmenu.talents.characters.controlled>
+  <sandboxmenu.talents.none>No character is selected.</sandboxmenu.talents.none>
+  <sandboxmenu.talents.filter.jobs>Job tree</sandboxmenu.talents.filter.jobs>
+  <sandboxmenu.talents.filter.subtrees>Specialization</sandboxmenu.talents.filter.subtrees>
+  <sandboxmenu.talents.extra>Extra talent</sandboxmenu.talents.extra>
+  <sandboxmenu.talents.apply.hint>[Left-click] Grant this talent to the character.</sandboxmenu.talents.apply.hint>
+  <sandboxmenu.talents.rows.empty>Select a character to see their talents.</sandboxmenu.talents.rows.empty>
+  <sandboxmenu.talents.rows.none>This character has no talents.</sandboxmenu.talents.rows.none>
+  <sandboxmenu.talents.tiles.empty>No talent got through the filters.</sandboxmenu.talents.tiles.empty>
+  <sandboxmenu.talents.status.granted>Granted [value].</sandboxmenu.talents.status.granted>
+  <sandboxmenu.talents.status.already>The character already has [value].</sandboxmenu.talents.status.already>
+  <sandboxmenu.talents.status.noinfo>This character has no character info to grant talents to.</sandboxmenu.talents.status.noinfo>
+  <sandboxmenu.talents.status.failed>Could not grant the talent. See the log for details.</sandboxmenu.talents.status.failed>
 
   <sandboxmenu.limb.none>Other</sandboxmenu.limb.none>
   <sandboxmenu.limb.head>Head</sandboxmenu.limb.head>

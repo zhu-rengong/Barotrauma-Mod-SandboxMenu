@@ -132,8 +132,34 @@
         </Tile.Triggers>
       </Tile>
     </DataTemplate>
+
+    <DataTemplate DataType="TalentRowViewModel">
+      <Row Text="{Binding Title}" SubText="{Binding SubText}" Icon="{Binding Icon}" IconColor="{Binding IconColor}"
+        ToolTip="{Binding ToolTip}" IconSize="26" FontSize="20" IconShadow="False" Height="0.09" />
+    </DataTemplate>
+
+    <DataTemplate Key="TalentTile">
+      <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" ToolTip="{Binding ToolTip}"
+        Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6" SlotFill="14,14,16,200" SlotLine="62,62,66,255"
+        IconShadow="False">
+        <Tile.Triggers>
+          <EventTrigger Event="Click">
+            <EventTrigger.Actions>
+              <BeginStoryboard>
+                <Storyboard>
+                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
+                    <EasingColorKeyFrame KeyTime="0" Value="Accent" />
+                    <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
+                  </ColorAnimationUsingKeyFrames>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger.Actions>
+          </EventTrigger>
+        </Tile.Triggers>
+      </Tile>
+    </DataTemplate>
   </Stack.Resources>
-  <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
+  <Stack Orientation="Horizontal" Height="0.08" ChildAnchor="CenterLeft">
     <Panel Skin="None" Width="0.24" Height="1">
       <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
     </Panel>
@@ -144,7 +170,7 @@
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
   </Stack>
 
-  <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowSpawn}">
+  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowSpawn}">
 
     <Stack.InputBindings>
       <KeyBinding Key="Up" Command="{Binding Spawn.StepUpCommand}" />
@@ -191,7 +217,7 @@
     </Panel>
   </Stack>
 
-  <Stack Orientation="Vertical" Height="92*" Visible="{Binding Functions.ShowAfflictions}">
+  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowAfflictions}">
 
     <Stack.InputBindings>
       <KeyBinding Key="Delete" Command="{Binding Afflictions.RemovePickedCommand}" RequiresNoTextInput="True" />
@@ -265,6 +291,64 @@
                       Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
           </Stack>
           <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
+                Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+        </Panel>
+      </Stack>
+    </Panel>
+  </Stack>
+
+  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowTalents}">
+
+    <Panel Skin="InnerFrame" Width="1" Height="1">
+      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10">
+
+        <Stack Orientation="Vertical" Width="36*" Spacing="6">
+
+          <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
+            <Button Text="sandboxmenu.talents.characters" Command="{Binding Talents.OpenBrowserCommand}"
+                    Width="1*" Height="1" SelfToolTip="False" />
+            <Button Text="sandboxmenu.talents.characters.controlled" Command="{Binding Talents.SelectControlledCommand}"
+                    Width="1*" Height="1" SelfToolTip="False" />
+          </Stack>
+
+          <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
+            <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Talents.ShowIcon}">
+              <CharacterTile Character="{Binding Talents.Display}" ToolTip="{Binding Talents.IconToolTip}"
+                             ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                             BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+            </Panel>
+            <Text Text="{Binding Talents.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+          </Stack>
+
+          <Panel Skin="GUIFrameListBox" Width="1" Height="85*">
+            <List Items="{Binding Talents.Rows}" Scroll="{Binding Talents.RowScroll, Mode=TwoWay}" Width="0.95" Height="0.96"
+                  Align="Center" Spacing="3" Padding="6,6" />
+            <Text Text="{Binding Talents.RowsEmptyHint}" Visible="{Binding Talents.RowsEmpty}" FontSize="20"
+                  Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+          </Panel>
+        </Stack>
+
+        <Panel Skin="GUIFrameListBox" Width="64*">
+          <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="4">
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <Button Text="{Binding Talents.PackageFilter}" Command="{Binding Talents.PickPackagesCommand}"
+                      Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Tick Text="{Binding Talents.HiddenFilterLabel}" Selected="{Binding Talents.HideHidden, Mode=TwoWay}"
+                    Width="1.4*" />
+            </Stack>
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <Button Text="{Binding Talents.JobFilter}" Command="{Binding Talents.PickJobsCommand}"
+                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+              <Button Text="{Binding Talents.SubTreeFilter}" Command="{Binding Talents.PickSubTreesCommand}"
+                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+            </Stack>
+            <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
+              <TextBox Text="{Binding Talents.Query, Mode=TwoWay}" Width="1*" Height="0.8" Clear="True" />
+            </Stack>
+            <TileGrid Items="{Binding Talents.Tiles}" Scroll="{Binding Talents.TileScroll, Mode=TwoWay}"
+                      Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="TalentTile" />
+          </Stack>
+          <Text Text="{Binding Talents.TilesEmptyHint}" Visible="{Binding Talents.TilesEmpty}" FontSize="20"
                 Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
         </Panel>
       </Stack>

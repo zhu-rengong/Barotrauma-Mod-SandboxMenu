@@ -3,17 +3,20 @@ namespace SandboxMenu.UI.ViewModels;
 internal enum FunctionTab
 {
     Spawn,
-    Afflictions
+    Afflictions,
+    Talents
 }
 
 internal sealed class FunctionSelectorViewModel : Notifiable
 {
     private FunctionTab _active = FunctionTab.Spawn;
+    private FunctionTab? _shown = FunctionTab.Spawn;
 
     public IReadOnlyList<LocalizedString> Items =>
     [
         TextManager.Get("sandboxmenu.function.spawn"),
-        TextManager.Get("sandboxmenu.function.afflictions")
+        TextManager.Get("sandboxmenu.function.afflictions"),
+        TextManager.Get("sandboxmenu.function.talents")
     ];
 
     public int SelectedIndex
@@ -25,13 +28,24 @@ internal sealed class FunctionSelectorViewModel : Notifiable
 
             _active = (FunctionTab)value;
 
-            Raise(nameof(SelectedIndex));
-            Raise(nameof(ShowSpawn));
-            Raise(nameof(ShowAfflictions));
+            RaiseDirect(nameof(SelectedIndex));
+            SetShown(null);
+            SetShown(_active);
         }
     }
 
-    public bool ShowSpawn => _active == FunctionTab.Spawn;
+    public bool ShowSpawn => _shown == FunctionTab.Spawn;
 
-    public bool ShowAfflictions => _active == FunctionTab.Afflictions;
+    public bool ShowAfflictions => _shown == FunctionTab.Afflictions;
+
+    public bool ShowTalents => _shown == FunctionTab.Talents;
+
+    private void SetShown(FunctionTab? tab)
+    {
+        _shown = tab;
+
+        RaiseDirect(nameof(ShowSpawn));
+        RaiseDirect(nameof(ShowAfflictions));
+        RaiseDirect(nameof(ShowTalents));
+    }
 }

@@ -124,7 +124,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         _browserModel?.RefreshHints();
     }
 
-    public void ShowCharacterBrowser(Action<Character> onPicked)
+    public void ShowCharacterBrowser(Action<Character> onPicked, Func<Character, bool>? filter = null)
     {
         if (_characterBrowser is null || _characterBrowserModel is null)
         {
@@ -132,12 +132,13 @@ internal sealed class SandboxMenuHost : IDialogHost
             _characterBrowser = new MarkupWindow("CharacterBrowser.xml", DialogOrder, _characterBrowserModel);
         }
 
-        _characterBrowserModel.Rebuild();
         _characterBrowserModel.PickInto(character =>
         {
             ClosePopups();
             onPicked(character);
-        });
+        }, filter);
+
+        _characterBrowserModel.Rebuild();
 
         ShowPopup(_characterBrowser, reusable: true, closed: _characterBrowserModel.Release);
     }
@@ -164,6 +165,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         menu._viewModel.Spawn.ReleaseContent();
         menu._viewModel.Spawn.Rebuild();
         menu._viewModel.Afflictions.ReleaseContent();
+        menu._viewModel.Talents.ReleaseContent();
     }
 
     internal static void ResolutionChanged() => _instance?.Reset();
@@ -272,6 +274,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         _panelTickAt = now;
 
         RefreshAfflictions();
+        RefreshTalents();
         RefreshCharacterToolTips();
     }
 
@@ -283,6 +286,14 @@ internal sealed class SandboxMenuHost : IDialogHost
         _viewModel.Afflictions.Tick();
 
         if (_window.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { _viewModel.Afflictions.RefreshIconToolTip(); }
+    }
+
+    private void RefreshTalents()
+    {
+        if (_window is not { IsOpen: true }) { return; }
+        if (!_viewModel.Functions.ShowTalents) { return; }
+
+        _viewModel.Talents.Tick();
     }
 
     private void RefreshCharacterToolTips()
