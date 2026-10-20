@@ -41,19 +41,17 @@ internal sealed class ItemDisplay
 
     private string IdentifierSuffix => $" ‖color:{UiMetrics.TextDim.ToStringHex()}‖{Identifier}‖color:end‖";
 
-    public RichString ToolTip => RichString.Rich(ToolTipText + SkillHints + PackageText);
+    public RichString ToolTip(Character? player)
+        => RichString.Rich(ToolTipText + SkillHints(player) + PackageText);
 
-    public RichString TileToolTip
+    public RichString TileToolTip(Character? player)
     {
-        get
-        {
-            LocalizedString text = _tileToolTipText ??= TileToolTipText;
-            LocalizedString hints = SkillHints;
+        LocalizedString text = _tileToolTipText ??= TileToolTipText;
+        LocalizedString hints = SkillHints(player);
 
-            return hints.Value.Length == 0
-                ? _tileToolTip ??= RichString.Rich(text + PackageText)
-                : RichString.Rich(text + hints + PackageText);
-        }
+        return hints.Value.Length == 0
+            ? _tileToolTip ??= RichString.Rich(text + PackageText)
+            : RichString.Rich(text + hints + PackageText);
     }
 
     private LocalizedString TileToolTipText
@@ -87,17 +85,11 @@ internal sealed class ItemDisplay
         }
     }
 
-    private LocalizedString SkillHints
+    private LocalizedString SkillHints(Character? player)
     {
-        get
-        {
-            if (_prefab.SkillRequirementHints.IsDefaultOrEmpty || Character.Controlled is not { } player)
-            {
-                return LocalizedString.EmptyString;
-            }
+        if (player is null || _prefab.SkillRequirementHints.IsDefaultOrEmpty) { return LocalizedString.EmptyString; }
 
-            return _prefab.GetSkillRequirementHints(player);
-        }
+        return _prefab.GetSkillRequirementHints(player);
     }
 
     private LocalizedString PackageText

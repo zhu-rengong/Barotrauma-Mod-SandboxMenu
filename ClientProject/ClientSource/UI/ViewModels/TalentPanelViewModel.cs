@@ -62,8 +62,6 @@ internal sealed class TalentPanelViewModel : Notifiable
 
     public bool ShowIcon => _display is not null;
 
-    public RichString IconToolTip => _display?.ToolTip ?? RichString.Rich(string.Empty);
-
     public RichString Title => _display is null
         ? RichString.Rich(TextManager.Get("sandboxmenu.talents.none"))
         : RichString.Rich(TooltipText.Bright(_display.Name));
@@ -154,7 +152,6 @@ internal sealed class TalentPanelViewModel : Notifiable
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
             Raise(nameof(Rows));
             Raise(nameof(RowsEmpty));
@@ -188,7 +185,6 @@ internal sealed class TalentPanelViewModel : Notifiable
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
         }
 

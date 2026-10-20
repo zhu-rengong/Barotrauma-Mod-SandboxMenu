@@ -5,15 +5,15 @@ internal sealed class ItemPreviewRowViewModel : ItemRowViewModel
     private string _fallbackTitle = string.Empty;
     private LocalizedString _fallbackSubText = LocalizedString.EmptyString;
 
-    private ItemPreviewRowViewModel() { }
+    private ItemPreviewRowViewModel(Func<Character?> hintTarget) : base(hintTarget) { }
 
     public override RichString Title => Display is null ? _fallbackTitle : base.Title;
 
     public override RichString SubText => Display is null ? RichString.Rich(_fallbackSubText) : base.SubText;
 
-    internal static ItemPreviewRowViewModel For(string identifier)
+    internal static ItemPreviewRowViewModel For(string identifier, Func<Character?> hintTarget)
     {
-        ItemPreviewRowViewModel row = new();
+        ItemPreviewRowViewModel row = new(hintTarget);
         row.Show(identifier);
         return row;
     }

@@ -41,7 +41,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="ItemRowViewModel">
-      <Row Text="{Binding Title}" Icon="{Binding Icon}" SubText="{Binding SubText}" ToolTip="{Binding SelfToolTip}"
+      <Row Text="{Binding Title}" Icon="{Binding Icon}" SubText="{Binding SubText}" ToolTip="{Binding TileSelfToolTip}"
         Command="{Binding PickCommand}" SecondaryCommand="{Binding SelfCommand}" Height="0.12" IconSize="30" />
     </DataTemplate>
   </Stack.Resources>

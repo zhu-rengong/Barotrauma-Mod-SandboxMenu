@@ -4,7 +4,7 @@
 
   <Stack.Resources>
     <DataTemplate Key="CharacterTileTemplate">
-      <CharacterTile Character="{Binding Display}" ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}"
+      <CharacterTile Character="{Binding Display}" Command="{Binding PickCommand}"
                      Disabled="{Binding Disabled}" IconShadow="False">
         <CharacterTile.Triggers>
           <Trigger Property="IsMouseOver" Value="True">

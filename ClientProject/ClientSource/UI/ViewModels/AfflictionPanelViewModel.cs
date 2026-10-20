@@ -10,7 +10,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private readonly List<Notifiable> _rows = [];
 
     private FilteredCatalog<AfflictionPrefabEntry, AfflictionTileViewModel>? _catalog;
-    private int _tickParity;
 
     private IReadOnlyList<AfflictionTileViewModel> _visibleTiles = [];
     private WeakReference<Character>? _selectedRef;
@@ -34,7 +33,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     private float _percent = -1f;
     private float _tileScroll;
     private float _rowScroll;
-    private float _iconToolTipHealth = float.NaN;
     private int _shape;
     private bool _sortByName;
     private bool _hideEmptyLimbs = true;
@@ -78,8 +76,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
     public CharacterDisplay? Display => _display;
 
     public bool ShowIcon => _display is not null;
-
-    public RichString IconToolTip => _display?.ToolTip ?? RichString.Rich(string.Empty);
 
     public RichString Title => _display is null
         ? RichString.Rich(TextManager.Get("sandboxmenu.afflictions.none"))
@@ -182,23 +178,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         else if (_display is null) { SelectCore(current); }
 
         Prepare();
-
-        _tickParity ^= 1;
-
-        if (_tickParity == 0) { RefreshRows(); }
-    }
-
-    internal void RefreshIconToolTip()
-    {
-        if (_selected is not { } selected) { return; }
-
-        float health = selected.Vitality;
-
-        if (health == _iconToolTipHealth) { return; }
-
-        _iconToolTipHealth = health;
-
-        Raise(nameof(IconToolTip));
+        RefreshRows();
     }
 
     internal void Select(Character? character)
@@ -213,14 +193,12 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _display = character is null ? null : new CharacterDisplay(character);
         _targets.Clear();
         _picked = null;
-        _iconToolTipHealth = float.NaN;
         _shape = 0;
 
         using (NotificationBatch.Begin())
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
             Raise(nameof(TargetLabel));
         }
@@ -276,7 +254,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         _selectedRef = null;
         _targets.Clear();
         _picked = null;
-        _iconToolTipHealth = float.NaN;
         _shape = 0;
         _rows.Clear();
 
@@ -284,7 +261,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
             Raise(nameof(TargetLabel));
             Raise(nameof(Rows));
@@ -406,8 +382,6 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
         AfflictionPrefab prefab = row.Prefab;
 
-        if (row.Selected) { _picked = null; }
-
         AfflictionOutcome outcome = ClientAfflictionDispatcher.Remove(character, prefab, row.LimbHealthIndex);
 
         (StatusKind kind, LocalizedString message) = outcome switch
@@ -435,6 +409,17 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         {
             if (_rows[i] is AfflictionItemRowViewModel item) { item.Refresh(); }
         }
+
+        ReconcilePick();
+    }
+
+    private void ReconcilePick()
+    {
+        if (_picked is not { } picked) { return; }
+        if (picked.Affliction.Strength > 0f && _rows.Contains(picked)) { return; }
+
+        picked.Selected = false;
+        _picked = null;
     }
 
     private void RebuildRows()

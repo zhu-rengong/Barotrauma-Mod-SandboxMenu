@@ -7,7 +7,8 @@ internal sealed class EditorRows(
     EntryEditorViewModel editor,
     IDialogHost host,
     Action<ItemEntry> giveToCharacter,
-    Action<StatusKind, LocalizedString> report)
+    Action<StatusKind, LocalizedString> report,
+    Func<Character?> hintTarget)
 {
     private const float AmountLimit = 100000f;
 
@@ -69,7 +70,7 @@ internal sealed class EditorRows(
 
     private void AddTargetRows(ItemEntry item, ItemEntry? container)
     {
-        ItemPreviewRowViewModel preview = ItemPreviewRowViewModel.For(item.Identifier);
+        ItemPreviewRowViewModel preview = ItemPreviewRowViewModel.For(item.Identifier, hintTarget);
 
         void Take(string identifier)
         {

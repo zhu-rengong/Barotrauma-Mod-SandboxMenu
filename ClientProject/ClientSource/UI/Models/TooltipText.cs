@@ -24,6 +24,21 @@ internal static class TooltipText
     internal static LocalizedString Bright(LocalizedString text)
         => "‖color:" + ((Color)GUIStyle.TextColorBright).ToStringHex() + "‖" + text + "‖color:end‖";
 
+    internal static LocalizedString Join(LocalizedString separator, IReadOnlyList<LocalizedString> parts)
+    {
+        if (parts.Count == 0) { return LocalizedString.EmptyString; }
+
+        LocalizedString text = parts[0];
+
+        for (int i = 1; i < parts.Count; i++)
+        {
+            text += separator;
+            text += parts[i];
+        }
+
+        return text;
+    }
+
     internal static string Number(float value, string format = "0.#")
         => value.ToString(format, CultureInfo.InvariantCulture);
 }

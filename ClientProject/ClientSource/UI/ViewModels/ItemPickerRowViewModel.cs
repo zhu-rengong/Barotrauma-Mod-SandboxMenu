@@ -2,7 +2,8 @@ namespace SandboxMenu.UI.ViewModels;
 
 internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 {
-    public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked, Action<string> onSelf)
+    public ItemPickerRowViewModel(ItemPrefabEntry entry, Action<string> onPicked, Action<string> onSelf, Func<Character?> hintTarget)
+        : base(hintTarget)
     {
         Entry = entry;
         Display = ItemDisplay.For(entry.Prefab);
@@ -16,15 +17,12 @@ internal sealed class ItemPickerRowViewModel : ItemRowViewModel
 
     public RelayCommand SelfCommand { get; }
 
-    public RichString SelfToolTip => WithSelfHint(ToolTip);
-
     public RichString TileSelfToolTip => WithSelfHint(TileToolTip);
 
     internal override void RefreshHints()
     {
         base.RefreshHints();
 
-        Raise(nameof(SelfToolTip));
         Raise(nameof(TileSelfToolTip));
     }
 

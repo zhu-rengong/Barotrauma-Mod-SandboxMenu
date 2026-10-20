@@ -5,7 +5,8 @@ namespace SandboxMenu.UI.ViewModels;
 internal sealed class TreeRows(
     SpawnSet set,
     Action<TreeEntryViewModel> select,
-    Action<TreeEntryViewModel> showContextMenu)
+    Action<TreeEntryViewModel> showContextMenu,
+    Func<Character?> hintTarget)
 {
     private readonly ObservableCollection<TreeEntryViewModel> _rows = [];
     private readonly Dictionary<TreeEntryViewModel, int> _index = new(ReferenceEqualityComparer.Instance);
@@ -65,7 +66,7 @@ internal sealed class TreeRows(
     {
         foreach (SpawnEntry entry in entries)
         {
-            TreeEntryViewModel row = new(entry, entries, depth, container, select, showContextMenu);
+            TreeEntryViewModel row = new(entry, entries, depth, container, select, showContextMenu, hintTarget);
 
             _index[row] = _rows.Count;
             _rows.Add(row);

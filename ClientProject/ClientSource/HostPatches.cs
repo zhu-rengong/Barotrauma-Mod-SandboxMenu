@@ -17,19 +17,3 @@ internal static class ContentPackageSortPatch
         }
     }
 }
-
-[HarmonyPatch(typeof(TextManager), nameof(TextManager.IncrementLanguageVersion))]
-internal static class LanguageVersionPatch
-{
-    private static void Postfix()
-    {
-        try
-        {
-            SandboxMenuHost.Invalidated();
-        }
-        catch (Exception e)
-        {
-            Services.DebugConsole.AddWarning($"Reloading the sandbox menu failed: {e}");
-        }
-    }
-}

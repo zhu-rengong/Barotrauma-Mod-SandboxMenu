@@ -10,7 +10,9 @@ internal sealed class TreeEntryViewModel : ItemRowViewModel
         int depth,
         ItemEntry? container,
         Action<TreeEntryViewModel> select,
-        Action<TreeEntryViewModel> showContextMenu)
+        Action<TreeEntryViewModel> showContextMenu,
+        Func<Character?> hintTarget)
+        : base(hintTarget)
     {
         Entry = entry;
         Owner = owner;

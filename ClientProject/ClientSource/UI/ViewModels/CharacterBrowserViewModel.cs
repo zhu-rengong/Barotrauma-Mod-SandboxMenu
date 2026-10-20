@@ -77,11 +77,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
     internal void RefreshTiles()
     {
-        for (int i = 0; i < _rows.Count; i++)
-        {
-            _rows[i].RefreshDisabled();
-            _rows[i].RaiseToolTipIfHealthChanged();
-        }
+        for (int i = 0; i < _rows.Count; i++) { _rows[i].RefreshDisabled(); }
     }
 
     internal void Rebuild()

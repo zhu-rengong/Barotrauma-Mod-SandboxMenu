@@ -193,7 +193,7 @@
 
             <Stack Orientation="Horizontal" Height="12*" ChildAnchor="CenterLeft" Spacing="6">
               <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Spawn.ShowIcon}">
-                <CharacterTile Character="{Binding Spawn.Display}" ToolTip="{Binding Spawn.IconToolTip}"
+                <CharacterTile Character="{Binding Spawn.Display}"
                   ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
                   BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
               </Panel>
@@ -201,12 +201,14 @@
             </Stack>
 
             <Panel Skin="GUIFrameListBox" Width="1" Height="80*">
-              <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
+              <List Items="{Binding Spawn.Entries}" Scroll="{Binding Spawn.EntryScroll, Mode=TwoWay}" Height="1" Spacing="4"
+                    Padding="8" Draggable="True" BackgroundMenu="True" />
             </Panel>
           </Stack>
 
           <Panel Skin="GUIFrameListBox" Width="64*">
-            <List Items="{Binding Spawn.Editor.Rows}" Height="1" Spacing="4" Padding="8" />
+            <List Items="{Binding Spawn.Editor.Rows}" Scroll="{Binding Spawn.Editor.RowScroll, Mode=TwoWay}" Height="1"
+                  Spacing="4" Padding="8" />
             <Text Text="{Binding Spawn.Editor.EmptyHint}" Visible="{Binding Spawn.Editor.IsEmpty}" FontSize="22"
                   Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" Padding="8" />
           </Panel>
@@ -248,7 +250,7 @@
 
           <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
             <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Afflictions.ShowIcon}">
-              <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
+              <CharacterTile Character="{Binding Afflictions.Display}"
                 ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
                 BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
             </Panel>
@@ -319,7 +321,7 @@
 
           <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
             <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Talents.ShowIcon}">
-              <CharacterTile Character="{Binding Talents.Display}" ToolTip="{Binding Talents.IconToolTip}"
+              <CharacterTile Character="{Binding Talents.Display}"
                 ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
                 BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
             </Panel>

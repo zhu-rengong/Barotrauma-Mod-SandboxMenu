@@ -3,6 +3,7 @@ namespace SandboxMenu.UI.ViewModels;
 internal sealed class ItemBrowserViewModel : Notifiable
 {
     private readonly IDialogHost _host;
+    private readonly Func<Character?> _hintTarget;
     private readonly HashSet<string> _packages;
     private readonly FilteredCatalog<ItemPrefabEntry, ItemPickerRowViewModel> _catalog;
 
@@ -21,9 +22,10 @@ internal sealed class ItemBrowserViewModel : Notifiable
     private HashSet<ItemPrefab> _fits = new(ReferenceEqualityComparer.Instance);
     private ContainerRules? _fitsRules;
 
-    public ItemBrowserViewModel(IDialogHost host)
+    public ItemBrowserViewModel(IDialogHost host, Func<Character?> hintTarget)
     {
         _host = host;
+        _hintTarget = hintTarget;
 
         _packages = new HashSet<string>(PackageLabels.KeyComparer);
 
@@ -232,7 +234,7 @@ internal sealed class ItemBrowserViewModel : Notifiable
 
         _visible = _catalog.Select(
             entry => Shows(entry, filter, query),
-            entry => new ItemPickerRowViewModel(entry, Picked, UseOnSelf));
+            entry => new ItemPickerRowViewModel(entry, Picked, UseOnSelf, _hintTarget));
 
         using (NotificationBatch.Begin())
         {

@@ -72,6 +72,8 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
 
         Control.RectTransform.SizeChanged += Layout;
 
+        _tile.OnDrawToolTip = OnDrawToolTip;
+
         Layout();
     }
 
@@ -197,9 +199,6 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
     }
 
     [ElementProperty]
-    public RichString ToolTip { set => _tile.ToolTip = value; }
-
-    [ElementProperty]
     public Color Fill
     {
         get => _tile.Fill;
@@ -308,6 +307,7 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
         Control.RectTransform.SizeChanged -= Layout;
 
         _tile.OnClicked = null;
+        _tile.OnDrawToolTip = null;
 
         if (_preview is not null) { _preview.OnDraw = null; }
         if (_border is not null) { _border.OnDraw = null; }
@@ -316,6 +316,9 @@ public sealed class CharacterTileElement : ViewElement, ITileCell
         _job = null;
         _display = null;
     }
+
+    private void OnDrawToolTip(GUIComponent component)
+        => _tile.ToolTip = _display is { } display ? display.ToolTip : RichString.Rich(string.Empty);
 
     private void ApplyJobIcon()
     {

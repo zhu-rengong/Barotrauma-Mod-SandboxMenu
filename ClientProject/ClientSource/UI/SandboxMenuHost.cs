@@ -40,6 +40,15 @@ internal sealed class SandboxMenuHost : IDialogHost
         ClientSpawnDispatcher.Settled += _viewModel.Spawn.ApplySpawnResult;
         ClientAfflictionDispatcher.Settled += _viewModel.Afflictions.ApplyResult;
         ClientTalentDispatcher.Settled += _viewModel.Talents.ApplyResult;
+
+        _viewModel.Spawn.TargetChanged += RefreshBrowserHints;
+    }
+
+    private void RefreshBrowserHints()
+    {
+        if (_browser is not { IsOpen: true }) { return; }
+
+        _browserModel?.RefreshHints();
     }
 
     public bool IsOpen => _window?.IsOpen == true;
@@ -128,9 +137,9 @@ internal sealed class SandboxMenuHost : IDialogHost
 
     public void ShowCharacterBrowser(Action<Character> onPicked, Func<Character, bool>? filter = null)
     {
-        if (_characterBrowser is null || _characterBrowserModel is null)
+        if (_characterBrowserModel is null) { _characterBrowserModel = new CharacterBrowserViewModel(this); }
+        if (_characterBrowser is null)
         {
-            _characterBrowserModel = new CharacterBrowserViewModel(this);
             _characterBrowser = new MarkupWindow("CharacterBrowser.xml", DialogOrder, _characterBrowserModel);
         }
 
@@ -153,6 +162,8 @@ internal sealed class SandboxMenuHost : IDialogHost
         ClientAfflictionDispatcher.Settled -= menu._viewModel.Afflictions.ApplyResult;
         ClientTalentDispatcher.Settled -= menu._viewModel.Talents.ApplyResult;
 
+        menu._viewModel.Spawn.TargetChanged -= menu.RefreshBrowserHints;
+
         menu.Reset();
 
         _instance = null;
@@ -171,7 +182,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         menu._viewModel.Talents.ReleaseContent();
     }
 
-    internal static void ResolutionChanged() => _instance?.Reset();
+    internal static void ResolutionChanged() => _instance?.Relayout();
 
     public void AddToUpdateList()
     {
@@ -183,13 +194,21 @@ internal sealed class SandboxMenuHost : IDialogHost
 
     private void Reset()
     {
-        DropWindows();
+        DropWindows(keepPopups: false);
         FrameActions.Clear();
         NotificationBatch.Reset();
         UpdateInputState();
     }
 
-    private void DropWindows()
+    private void Relayout()
+    {
+        DropWindows(keepPopups: true);
+        FrameActions.Clear();
+        NotificationBatch.Reset();
+        UpdateInputState();
+    }
+
+    private void DropWindows(bool keepPopups)
     {
         ClosePopups();
 
@@ -200,11 +219,11 @@ internal sealed class SandboxMenuHost : IDialogHost
 
         _browser?.Dispose();
         _browser = null;
-        _browserModel = null;
+        if (!keepPopups) { _browserModel = null; }
 
         _characterBrowser?.Dispose();
         _characterBrowser = null;
-        _characterBrowserModel = null;
+        if (!keepPopups) { _characterBrowserModel = null; }
 
         _multiPicker?.Dispose();
         _multiPicker = null;
@@ -279,7 +298,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         RefreshSpawn();
         RefreshAfflictions();
         RefreshTalents();
-        RefreshCharacterToolTips();
+        RefreshCharacterBrowser();
     }
 
     private void RefreshSpawn()
@@ -288,8 +307,6 @@ internal sealed class SandboxMenuHost : IDialogHost
         if (!_viewModel.Functions.ShowSpawn) { return; }
 
         _viewModel.Spawn.Tick();
-
-        if (_window.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { _viewModel.Spawn.RefreshIconToolTip(); }
     }
 
     private void RefreshAfflictions()
@@ -298,8 +315,6 @@ internal sealed class SandboxMenuHost : IDialogHost
         if (!_viewModel.Functions.ShowAfflictions) { return; }
 
         _viewModel.Afflictions.Tick();
-
-        if (_window.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { _viewModel.Afflictions.RefreshIconToolTip(); }
     }
 
     private void RefreshTalents()
@@ -310,10 +325,9 @@ internal sealed class SandboxMenuHost : IDialogHost
         _viewModel.Talents.Tick();
     }
 
-    private void RefreshCharacterToolTips()
+    private void RefreshCharacterBrowser()
     {
         if (_characterBrowserModel is null || _characterBrowser is not { IsOpen: true }) { return; }
-        if (!_characterBrowser.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { return; }
 
         _characterBrowserModel.RefreshTiles();
     }
@@ -335,11 +349,8 @@ internal sealed class SandboxMenuHost : IDialogHost
 
     public void ShowItemBrowser(Action<string> onPicked, ItemEntry? container = null, Action<string>? onSelf = null)
     {
-        if (_browser is null || _browserModel is null)
-        {
-            _browserModel = new ItemBrowserViewModel(this);
-            _browser = new MarkupWindow("Browser.xml", DialogOrder, _browserModel);
-        }
+        if (_browserModel is null) { _browserModel = new ItemBrowserViewModel(this, () => _viewModel.Spawn.Target); }
+        if (_browser is null) { _browser = new MarkupWindow("Browser.xml", DialogOrder, _browserModel); }
 
         _browserModel.UseParent(container);
         _browserModel.UseOnSelf(onSelf);

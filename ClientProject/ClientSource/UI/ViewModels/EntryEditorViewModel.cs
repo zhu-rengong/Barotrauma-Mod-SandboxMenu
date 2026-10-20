@@ -10,6 +10,7 @@ internal sealed class EntryEditorViewModel : Notifiable
 
     private SpawnEntry? _entry;
     private ItemEntry? _container;
+    private float _rowScroll;
     private bool _rebuildQueued;
 
     internal EntryEditorViewModel(
@@ -17,16 +18,23 @@ internal sealed class EntryEditorViewModel : Notifiable
         Action<ItemEntry> giveToCharacter,
         Action<StatusKind, LocalizedString> report,
         Action<SpawnEntry> refreshEntry,
-        Action refreshEntries)
+        Action refreshEntries,
+        Func<Character?> hintTarget)
     {
         _refreshEntry = refreshEntry;
         _refreshEntries = refreshEntries;
-        _rowBuilder = new EditorRows(this, host, giveToCharacter, report);
+        _rowBuilder = new EditorRows(this, host, giveToCharacter, report, hintTarget);
 
         Rebuild();
     }
 
     public ObservableCollection<IEditorRow> Rows { get; } = [];
+
+    public float RowScroll
+    {
+        get => _rowScroll;
+        set => Set(ref _rowScroll, value);
+    }
 
     public LocalizedString EmptyHint => TextManager.Get("sandboxmenu.empty");
 
@@ -37,6 +45,8 @@ internal sealed class EntryEditorViewModel : Notifiable
         _entry = entry;
         _container = container;
 
+        RowScroll = 0f;
+
         QueueRebuild();
     }
 
@@ -44,6 +54,8 @@ internal sealed class EntryEditorViewModel : Notifiable
     {
         _entry = null;
         _container = null;
+
+        RowScroll = 0f;
 
         QueueRebuild();
     }

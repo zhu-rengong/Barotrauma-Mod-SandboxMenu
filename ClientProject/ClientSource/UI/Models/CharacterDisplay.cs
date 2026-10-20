@@ -221,9 +221,7 @@ public sealed class CharacterDisplay(Character character)
 
         foreach (Limb limb in limbs) { labels.Add(LimbLabel(limb)); }
 
-        return labels.Count == 0
-            ? LocalizedString.EmptyString
-            : LocalizedString.Join(TextManager.Get("sandboxmenu.list.separator").Value, labels);
+        return TooltipText.Join(TextManager.Get("sandboxmenu.list.separator"), labels);
     }
 
     internal static LocalizedString LimbLabel(Limb limb)

@@ -24,6 +24,6 @@ internal sealed class TalentRowViewModel(TalentPrefabEntry entry, CharacterInfo?
 
         foreach (Identifier subTree in entry.SubTrees) { labels.Add(TalentPrefabCatalog.SubTreeLabel(subTree)); }
 
-        return RichString.Rich(LocalizedString.Join(TextManager.Get("sandboxmenu.list.separator").Value, labels));
+        return RichString.Rich(TooltipText.Join(TextManager.Get("sandboxmenu.list.separator"), labels));
     }
 }

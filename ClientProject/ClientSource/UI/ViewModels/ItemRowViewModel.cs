@@ -1,6 +1,6 @@
 namespace SandboxMenu.UI.ViewModels;
 
-internal abstract class ItemRowViewModel : Notifiable, IEditorRow
+internal abstract class ItemRowViewModel(Func<Character?> hintTarget) : Notifiable, IEditorRow
 {
     private ItemDisplay? _display;
 
@@ -33,7 +33,7 @@ internal abstract class ItemRowViewModel : Notifiable, IEditorRow
 
     public virtual Sprite? Icon => Display?.Icon;
 
-    public virtual RichString ToolTip => Display?.ToolTip ?? string.Empty;
+    public virtual RichString ToolTip => Display?.ToolTip(hintTarget()) ?? string.Empty;
 
-    public virtual RichString TileToolTip => Display?.TileToolTip ?? string.Empty;
+    public virtual RichString TileToolTip => Display?.TileToolTip(hintTarget()) ?? string.Empty;
 }

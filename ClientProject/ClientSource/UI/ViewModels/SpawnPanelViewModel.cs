@@ -15,7 +15,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     private TreeEntryViewModel? _selectedEntry;
     private WeakReference<Character>? _selectedRef;
     private CharacterDisplay? _display;
-    private float _iconToolTipHealth = float.NaN;
+    private float _entryScroll;
 
     private Character? _selected
     {
@@ -34,8 +34,8 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     {
         _host = host;
         _report = report;
-        _tree = new TreeRows(Set, Select, row => ShowContextMenu(row));
-        Editor = new EntryEditorViewModel(host, GiveToCharacter, report, RefreshEntry, RefreshEntries);
+        _tree = new TreeRows(Set, Select, row => ShowContextMenu(row), () => _selected);
+        Editor = new EntryEditorViewModel(host, GiveToCharacter, report, RefreshEntry, RefreshEntries, () => _selected);
         _treeEditor = new TreeDragDrop(Set, _tree, () => SelectedEntry, Select, ClearSelection);
         _presets = new PresetFiles(report, host, Set, ReloadSet);
         _requests = new SpawnActions(report, host, Set, () => _selected);
@@ -86,11 +86,11 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public RelayCommand SelectControlledCommand { get; }
 
+    internal Character? Target => _selected;
+
     public CharacterDisplay? Display => _display;
 
     public bool ShowIcon => _display is not null;
-
-    public RichString IconToolTip => _display?.ToolTip ?? RichString.Rich(string.Empty);
 
     public RichString Title => _display is null
         ? RichString.Rich(TextManager.Get("sandboxmenu.itemspawn.none"))
@@ -104,18 +104,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         else if (_display is null) { SelectCore(current); }
     }
 
-    internal void RefreshIconToolTip()
-    {
-        if (_display is not { } display) { return; }
-
-        float health = display.Health;
-
-        if (health == _iconToolTipHealth) { return; }
-
-        _iconToolTipHealth = health;
-
-        Raise(nameof(IconToolTip));
-    }
+    internal event Action? TargetChanged;
 
     internal void Select(Character? character)
         => SelectCore(character, force: _selectedRef is not null && _selected is null);
@@ -127,15 +116,17 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
         _selectedRef = character is null ? null : new WeakReference<Character>(character);
         _display = character is null ? null : new CharacterDisplay(character);
-        _iconToolTipHealth = float.NaN;
 
         using (NotificationBatch.Begin())
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
         }
+
+        RefreshHints();
+
+        TargetChanged?.Invoke();
     }
 
     internal void RefreshHints()
@@ -145,6 +136,12 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     }
 
     public ObservableCollection<TreeEntryViewModel> Entries => _tree.Rows;
+
+    public float EntryScroll
+    {
+        get => _entryScroll;
+        set => Set(ref _entryScroll, value);
+    }
 
     public RelayCommand SavePresetCommand { get; }
 
@@ -238,13 +235,11 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
         _display = null;
         _selectedRef = null;
-        _iconToolTipHealth = float.NaN;
 
         using (NotificationBatch.Begin())
         {
             Raise(nameof(Display));
             Raise(nameof(ShowIcon));
-            Raise(nameof(IconToolTip));
             Raise(nameof(Title));
         }
     }
