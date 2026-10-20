@@ -6,7 +6,8 @@ public enum TalentStatus
     Denied = 1,
     UnknownTalent = 2,
     NoCharacter = 3,
-    Throttled = 4
+    Incompatible = 4,
+    NoResponse = 5
 }
 
 public readonly record struct TalentResponse(

@@ -7,13 +7,17 @@ internal enum TalentOutcome
     AlreadyKnown,
     NoCharacter,
     Failed,
+    Denied,
     NotSent
 }
 
 internal static class ClientTalentDispatcher
 {
+    private const double Timeout = 3.0;
+
     private static uint _nextRequestId;
     private static uint _waitingFor;
+    private static double _sentAt;
 
     internal static event Action<TalentStatus>? Settled;
 
@@ -21,12 +25,26 @@ internal static class ClientTalentDispatcher
 
     internal static TalentOutcome Grant(Character character, TalentPrefab prefab)
     {
-        if (IsRemote) { return TrySend(character, prefab) ? TalentOutcome.Sent : TalentOutcome.NotSent; }
+        if (IsRemote)
+        {
+            if (!ClientRequestPolicy.CanRequest) { return TalentOutcome.Denied; }
+
+            return TrySend(character, prefab) ? TalentOutcome.Sent : TalentOutcome.NotSent;
+        }
 
         if (character.Info is null) { return TalentOutcome.NoCharacter; }
         if (character.HasTalent(prefab.Identifier)) { return TalentOutcome.AlreadyKnown; }
 
         return character.GiveTalent(prefab, true) ? TalentOutcome.Applied : TalentOutcome.Failed;
+    }
+
+    internal static void Tick()
+    {
+        if (_waitingFor == 0 || Timing.TotalTime - _sentAt < Timeout) { return; }
+
+        _waitingFor = 0;
+
+        Settled?.Invoke(TalentStatus.NoResponse);
     }
 
     internal static void OnResponse(TalentResponse response)
@@ -40,11 +58,15 @@ internal static class ClientTalentDispatcher
 
     private static bool TrySend(Character character, TalentPrefab prefab)
     {
-        _waitingFor = 0;
-
         uint requestId = ++_nextRequestId;
 
-        TalentRequest request = new(prefab.UintIdentifier, Protocol.Version, character.ID, requestId);
+        TalentRequest request = new(
+            prefab.UintIdentifier,
+            Protocol.Version,
+            character.ID,
+            requestId,
+            ModCompatibility.Version,
+            ModCompatibility.Hash);
 
         try
         {
@@ -57,6 +79,7 @@ internal static class ClientTalentDispatcher
         }
 
         _waitingFor = requestId;
+        _sentAt = Timing.TotalTime;
 
         return true;
     }

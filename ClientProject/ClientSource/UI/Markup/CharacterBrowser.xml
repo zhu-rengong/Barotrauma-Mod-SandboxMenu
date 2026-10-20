@@ -30,6 +30,8 @@
 
   <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
     <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="1*" Height="1" Padding="8" />
+    <Image Skin="CodeModModifiedWarningIcon" Width="0.04" Height="24dip" Align="Center"
+           Color="{Binding PermissionTint}" ToolTip="{Binding PermissionHint}" />
     <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.6"
             SelfToolTip="False" />
   </Stack>

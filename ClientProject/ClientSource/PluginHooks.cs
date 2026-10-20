@@ -51,6 +51,10 @@ internal static class PluginHooks
             CharacterPreview.RenderPending();
             SandboxMenuHost.Instance.ServePendingScreenshot();
 
+            ClientSpawnDispatcher.Tick();
+            ClientAfflictionDispatcher.Tick();
+            ClientTalentDispatcher.Tick();
+
             if (Screen.Selected != GameMain.GameScreen) { return; }
 
             HandleHotkeys();

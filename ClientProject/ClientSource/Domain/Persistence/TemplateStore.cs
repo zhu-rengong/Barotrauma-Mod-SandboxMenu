@@ -61,6 +61,67 @@ internal static class TemplateStore
         return set is not null;
     }
 
+    public static string? ReadText(string name)
+    {
+        string path = PathFor(name);
+
+        if (!File.Exists(path)) { return null; }
+
+        try
+        {
+            return Format(File.ReadAllText(path));
+        }
+        catch (Exception e)
+        {
+            Services.DebugConsole.AddWarning($"Failed to read preset '{name}': {e}");
+            return null;
+        }
+    }
+
+    public static bool TryParse(string name, string text, out SpawnSet? set)
+    {
+        try
+        {
+            if (XDocument.Parse(text).Root is not { } root) { set = null; return false; }
+            if (!string.Equals(root.Name.LocalName, "SpawnSet", StringComparison.Ordinal)) { set = null; return false; }
+
+            set = SpawnSet.FromXml(root);
+            set.Name = name;
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Services.DebugConsole.AddWarning($"The text given for preset '{name}' is not valid: {e}");
+            set = null;
+            return false;
+        }
+    }
+
+    public static bool WriteText(string name, string text)
+    {
+        if (!TryParse(name, text, out SpawnSet? set) || set is null) { return false; }
+
+        try
+        {
+            Directory.CreateDirectory(Folder);
+
+            string path = PathFor(name);
+            DropOtherSpelling(path);
+
+            File.WriteAllText(path, Normalize(text));
+
+            _shared[name] = set;
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Services.DebugConsole.AddWarning($"Failed to save preset '{name}': {e}");
+            return false;
+        }
+    }
+
     public static bool Save(SpawnSet set)
     {
         try
@@ -127,6 +188,21 @@ internal static class TemplateStore
         }
 
         return false;
+    }
+
+    internal static string Normalize(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
+    private static string Format(string text)
+    {
+        try
+        {
+            return Normalize(XDocument.Parse(text).ToString());
+        }
+        catch (Exception e)
+        {
+            Services.DebugConsole.AddWarning($"Preset text is not valid XML and is shown as-is: {e.Message}");
+            return Normalize(text);
+        }
     }
 
     private static string PathFor(string name) => Path.Combine(Folder, Sanitize(name) + Extension);

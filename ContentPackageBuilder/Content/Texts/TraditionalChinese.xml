@@ -2,11 +2,14 @@
 <infotexts language="Traditional Chinese" nowhitespace="true" translatedname="中文（繁體）">
   <sandboxmenu.title>沙盒選單</sandboxmenu.title>
   <sandboxmenu.close>關閉</sandboxmenu.close>
-  <sandboxmenu.function.spawn>生成</sandboxmenu.function.spawn>
+  <sandboxmenu.function.itemspawn>物品生成</sandboxmenu.function.itemspawn>
   <sandboxmenu.function.afflictions>狀態效果</sandboxmenu.function.afflictions>
   <sandboxmenu.function.talents>天賦</sandboxmenu.function.talents>
   <sandboxmenu.give>生成到背包</sandboxmenu.give>
-  <sandboxmenu.spawnatcursor>生成到滑鼠位置</sandboxmenu.spawnatcursor>
+  <sandboxmenu.itemspawn.atcursor>生成到滑鼠位置</sandboxmenu.itemspawn.atcursor>
+  <sandboxmenu.itemspawn.characters>選擇角色</sandboxmenu.itemspawn.characters>
+  <sandboxmenu.itemspawn.characters.controlled>當前角色</sandboxmenu.itemspawn.characters.controlled>
+  <sandboxmenu.itemspawn.none>尚未選擇角色。</sandboxmenu.itemspawn.none>
   <sandboxmenu.empty>未選中條目。在左側清單的空白處點擊滑鼠右鍵即可開啟選單，新增物品或模板引用。</sandboxmenu.empty>
 
   <sandboxmenu.additem>+ 新增物品</sandboxmenu.additem>
@@ -14,7 +17,7 @@
   <sandboxmenu.duplicate>複製條目</sandboxmenu.duplicate>
   <sandboxmenu.delete>刪除</sandboxmenu.delete>
 
-  <sandboxmenu.section.spawn>生成</sandboxmenu.section.spawn>
+  <sandboxmenu.section.itemspawn>物品生成</sandboxmenu.section.itemspawn>
   <sandboxmenu.section.behaviour>行為</sandboxmenu.section.behaviour>
   <sandboxmenu.section.properties>屬性覆蓋</sandboxmenu.section.properties>
 
@@ -51,6 +54,7 @@
   <sandboxmenu.shortcut.add>+</sandboxmenu.shortcut.add>
   <sandboxmenu.shortcut.addchild>Shift +</sandboxmenu.shortcut.addchild>
   <sandboxmenu.shortcut.delete>Del</sandboxmenu.shortcut.delete>
+  <sandboxmenu.shortcut.duplicate>Ctrl + D</sandboxmenu.shortcut.duplicate>
   <sandboxmenu.shortcut.up>Up</sandboxmenu.shortcut.up>
   <sandboxmenu.shortcut.down>Down</sandboxmenu.shortcut.down>
   <sandboxmenu.shortcut.moveup>Alt + Up</sandboxmenu.shortcut.moveup>
@@ -91,6 +95,10 @@
   <sandboxmenu.preset.load>載入預設</sandboxmenu.preset.load>
   <sandboxmenu.preset.reload>重載預設</sandboxmenu.preset.reload>
   <sandboxmenu.preset.copypath>複製預設路徑</sandboxmenu.preset.copypath>
+  <sandboxmenu.preset.open>開啟預設</sandboxmenu.preset.open>
+  <sandboxmenu.preset.editor.title>預設「[name]」</sandboxmenu.preset.editor.title>
+  <sandboxmenu.preset.editor.save>儲存</sandboxmenu.preset.editor.save>
+  <sandboxmenu.preset.editor.revert>還原</sandboxmenu.preset.editor.revert>
   <sandboxmenu.status.presetsaved>預設已儲存。</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>已清空生成集合。</sandboxmenu.status.cleared>
   <sandboxmenu.status.screenshot>截圖已儲存為「[name]」。</sandboxmenu.status.screenshot>
@@ -106,6 +114,9 @@
   <sandboxmenu.status.presetpathcopyfailed>複製預設「[name]」的路徑失敗，詳見日誌。</sandboxmenu.status.presetpathcopyfailed>
   <sandboxmenu.status.nopresetname>請先填寫預設名稱。</sandboxmenu.status.nopresetname>
   <sandboxmenu.status.nopresets>沒有找到任何預設。</sandboxmenu.status.nopresets>
+  <sandboxmenu.status.presettextsaved>預設「[name]」已儲存並重新載入。</sandboxmenu.status.presettextsaved>
+  <sandboxmenu.status.presettextinvalid>文字不是有效的預設文件，尚未儲存。</sandboxmenu.status.presettextinvalid>
+  <sandboxmenu.status.presetreadfailed>讀取預設「[name]」失敗，詳見日誌。</sandboxmenu.status.presetreadfailed>
 
   <sandboxmenu.status.senttoserver>生成請求已傳送到伺服器。</sandboxmenu.status.senttoserver>
   <sandboxmenu.status.serverok>伺服器已排入 [count] 個物品。</sandboxmenu.status.serverok>
@@ -113,15 +124,19 @@
   <sandboxmenu.status.serverbadpayload>伺服器無法讀取這次請求，詳見日誌。</sandboxmenu.status.serverbadpayload>
   <sandboxmenu.status.servernocharacter>伺服器沒有你的受控角色可用於生成。</sandboxmenu.status.servernocharacter>
   <sandboxmenu.status.servernospawner>伺服器目前無法生成物品。</sandboxmenu.status.servernospawner>
-  <sandboxmenu.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.status.serverthrottled>
   <sandboxmenu.status.servertoolarge>請求過大，伺服器無法讀取。</sandboxmenu.status.servertoolarge>
   <sandboxmenu.status.serverfailed>伺服器拒絕了這次請求，詳見日誌。</sandboxmenu.status.serverfailed>
+  <sandboxmenu.status.nopermission>你在目前伺服器上沒有使用沙盒選單的權限。</sandboxmenu.status.nopermission>
+  <sandboxmenu.status.noresponse>伺服器沒有回應，它可能沒有啟用沙盒選單 Mod。</sandboxmenu.status.noresponse>
+  <sandboxmenu.status.incompatible>伺服器執行的是另一個版本的沙盒選單 Mod。</sandboxmenu.status.incompatible>
   <sandboxmenu.status.spawntoolarge>生成集合過大，無法傳送給伺服器。</sandboxmenu.status.spawntoolarge>
   <sandboxmenu.status.sendfailed>無法把請求傳送給伺服器，詳見日誌。</sandboxmenu.status.sendfailed>
   <sandboxmenu.status.serverproblems>伺服器報告了 [count] 個問題，詳見日誌。</sandboxmenu.status.serverproblems>
 
   <sandboxmenu.characters.title>選擇角色</sandboxmenu.characters.title>
   <sandboxmenu.characters.empty>沒有符合篩選的角色。</sandboxmenu.characters.empty>
+  <sandboxmenu.characters.permission.restricted>你在目前伺服器上沒有主控台命令權限，因此其他玩家的角色已被隱藏。</sandboxmenu.characters.permission.restricted>
+  <sandboxmenu.characters.permission.allowed>你在目前伺服器上擁有主控台命令權限，可以選擇任意角色。</sandboxmenu.characters.permission.allowed>
   <sandboxmenu.filter.species>種族</sandboxmenu.filter.species>
   <sandboxmenu.filter.teams>隊伍</sandboxmenu.filter.teams>
 
@@ -172,7 +187,6 @@
   <sandboxmenu.afflictions.status.serverdenied>伺服器不允許你施加狀態效果。</sandboxmenu.afflictions.status.serverdenied>
   <sandboxmenu.afflictions.status.serverunknown>伺服器不認識該狀態效果。</sandboxmenu.afflictions.status.serverunknown>
   <sandboxmenu.afflictions.status.servernocharacter>伺服器找不到該角色。</sandboxmenu.afflictions.status.servernocharacter>
-  <sandboxmenu.afflictions.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.afflictions.status.serverthrottled>
 
   <sandboxmenu.talents.characters>選擇角色</sandboxmenu.talents.characters>
   <sandboxmenu.talents.characters.controlled>當前角色</sandboxmenu.talents.characters.controlled>
@@ -193,7 +207,6 @@
   <sandboxmenu.talents.status.serverdenied>伺服器不允許你授予天賦。</sandboxmenu.talents.status.serverdenied>
   <sandboxmenu.talents.status.serverunknown>伺服器不認識該天賦。</sandboxmenu.talents.status.serverunknown>
   <sandboxmenu.talents.status.servernocharacter>伺服器找不到該角色。</sandboxmenu.talents.status.servernocharacter>
-  <sandboxmenu.talents.status.serverthrottled>伺服器仍在處理上一個請求。</sandboxmenu.talents.status.serverthrottled>
   <sandboxmenu.talents.status.sendfailed>無法把請求傳送給伺服器，詳見日誌。</sandboxmenu.talents.status.sendfailed>
 
   <sandboxmenu.limb.none>其他</sandboxmenu.limb.none>
@@ -216,6 +229,4 @@
   <sandboxmenu.limb.leftfoot>左腳</sandboxmenu.limb.leftfoot>
   <sandboxmenu.limb.rightfoot>右腳</sandboxmenu.limb.rightfoot>
 
-  <sandboxmenu.allowallclients.displayname>允許所有客戶端生成物品</sandboxmenu.allowallclients.displayname>
-  <sandboxmenu.allowallclients.tooltip>關閉時，只有擁有主控台命令權限的客戶端（主機與管理員）才能用沙盒選單生成物品。</sandboxmenu.allowallclients.tooltip>
 </infotexts>

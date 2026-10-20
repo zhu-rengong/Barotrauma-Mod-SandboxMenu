@@ -14,7 +14,7 @@ internal sealed class FunctionSelectorViewModel : Notifiable
 
     public IReadOnlyList<LocalizedString> Items =>
     [
-        TextManager.Get("sandboxmenu.function.spawn"),
+        TextManager.Get("sandboxmenu.function.itemspawn"),
         TextManager.Get("sandboxmenu.function.afflictions"),
         TextManager.Get("sandboxmenu.function.talents")
     ];

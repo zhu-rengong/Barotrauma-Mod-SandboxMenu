@@ -12,5 +12,5 @@ public enum NetworkHeaders : byte
 
 internal static class Protocol
 {
-    internal const ushort Version = 3;
+    internal const ushort Version = 4;
 }

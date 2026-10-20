@@ -22,6 +22,11 @@ internal sealed class TreeDragDrop(
         if (selected() is { } current) { Delete(current); }
     }
 
+    internal void DuplicateSelected()
+    {
+        if (selected() is { } current) { Duplicate(current); }
+    }
+
     internal void Add(SpawnEntry entry, TreeEntryViewModel? after)
     {
         List<SpawnEntry> owner = after?.Owner ?? set.Entries;

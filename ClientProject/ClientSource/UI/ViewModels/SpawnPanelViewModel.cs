@@ -10,9 +10,25 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     private readonly TreeDragDrop _treeEditor;
     private readonly PresetFiles _presets;
     private readonly SpawnActions _requests;
+    private readonly Action<StatusKind, LocalizedString> _report;
 
     private TreeEntryViewModel? _selectedEntry;
-    private readonly Action<StatusKind, LocalizedString> _report;
+    private WeakReference<Character>? _selectedRef;
+    private CharacterDisplay? _display;
+    private float _iconToolTipHealth = float.NaN;
+
+    private Character? _selected
+    {
+        get
+        {
+            if (_selectedRef is not { } reference) { return null; }
+            if (!reference.TryGetTarget(out Character? character) || character is null) { return null; }
+
+            return character.Removed || !Character.CharacterList.Contains(character) || !ClientRequestPolicy.CanTarget(character)
+                ? null
+                : character;
+        }
+    }
 
     internal SpawnPanelViewModel(IDialogHost host, Action<StatusKind, LocalizedString> report)
     {
@@ -22,12 +38,14 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         Editor = new EntryEditorViewModel(host, GiveToCharacter, report, RefreshEntry, RefreshEntries);
         _treeEditor = new TreeDragDrop(Set, _tree, () => SelectedEntry, Select, ClearSelection);
         _presets = new PresetFiles(report, host, Set, ReloadSet);
-        _requests = new SpawnActions(report, host, Set);
+        _requests = new SpawnActions(report, host, Set, () => _selected);
 
+        OpenBrowserCommand = new RelayCommand(() => _host.ShowCharacterBrowser(Select));
+        SelectControlledCommand = new RelayCommand(() => Select(Character.Controlled));
         SavePresetCommand = new RelayCommand(_presets.Save);
         LoadPresetCommand = new RelayCommand(_presets.Load);
         ReloadPresetCommand = new RelayCommand(_presets.Reload);
-        CopyPresetPathCommand = new RelayCommand(_presets.CopyPath);
+        OpenPresetCommand = new RelayCommand(_presets.Open);
         ClearSetCommand = new RelayCommand(ClearSet);
         SpawnIntoInventoryCommand = new RelayCommand(_requests.Give);
         SpawnAtCursorCommand = new RelayCommand(_requests.AtCursor);
@@ -38,6 +56,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
         MoveDownCommand = new RelayCommand(() => _treeEditor.MoveSelection(1));
         FocusIdentifierCommand = new RelayCommand(FocusIdentifier);
         DeleteSelectedCommand = new RelayCommand(_treeEditor.DeleteSelected);
+        DuplicateSelectedCommand = new RelayCommand(_treeEditor.DuplicateSelected);
         AddItemCommand = new RelayCommand(() => _treeEditor.AddItem(asChild: false));
         AddChildCommand = new RelayCommand(() => _treeEditor.AddItem(asChild: true));
 
@@ -63,7 +82,61 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public EntryEditorViewModel Editor { get; }
 
+    public RelayCommand OpenBrowserCommand { get; }
+
+    public RelayCommand SelectControlledCommand { get; }
+
+    public CharacterDisplay? Display => _display;
+
+    public bool ShowIcon => _display is not null;
+
+    public RichString IconToolTip => _display?.ToolTip ?? RichString.Rich(string.Empty);
+
+    public RichString Title => _display is null
+        ? RichString.Rich(TextManager.Get("sandboxmenu.itemspawn.none"))
+        : RichString.Rich(TooltipText.Bright(_display.Name));
+
     internal TreeRows Tree => _tree;
+
+    internal void Tick()
+    {
+        if (_selected is not { } current) { SelectCore(Character.Controlled, force: _selectedRef is not null); }
+        else if (_display is null) { SelectCore(current); }
+    }
+
+    internal void RefreshIconToolTip()
+    {
+        if (_display is not { } display) { return; }
+
+        float health = display.Health;
+
+        if (health == _iconToolTipHealth) { return; }
+
+        _iconToolTipHealth = health;
+
+        Raise(nameof(IconToolTip));
+    }
+
+    internal void Select(Character? character)
+        => SelectCore(character, force: _selectedRef is not null && _selected is null);
+
+    private void SelectCore(Character? character, bool force = false)
+    {
+        if (!ClientRequestPolicy.CanTarget(character)) { return; }
+        if (!force && ReferenceEquals(_selected, character) && (character is null || _display is not null)) { return; }
+
+        _selectedRef = character is null ? null : new WeakReference<Character>(character);
+        _display = character is null ? null : new CharacterDisplay(character);
+        _iconToolTipHealth = float.NaN;
+
+        using (NotificationBatch.Begin())
+        {
+            Raise(nameof(Display));
+            Raise(nameof(ShowIcon));
+            Raise(nameof(IconToolTip));
+            Raise(nameof(Title));
+        }
+    }
 
     internal void RefreshHints()
     {
@@ -79,7 +152,7 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
 
     public RelayCommand ReloadPresetCommand { get; }
 
-    public RelayCommand CopyPresetPathCommand { get; }
+    public RelayCommand OpenPresetCommand { get; }
 
     public RelayCommand ClearSetCommand { get; }
 
@@ -100,6 +173,8 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     public RelayCommand FocusIdentifierCommand { get; }
 
     public RelayCommand DeleteSelectedCommand { get; }
+
+    public RelayCommand DuplicateSelectedCommand { get; }
 
     public RelayCommand AddItemCommand { get; }
 
@@ -160,6 +235,18 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
     {
         _tree.Release();
         Editor.ReleaseContent();
+
+        _display = null;
+        _selectedRef = null;
+        _iconToolTipHealth = float.NaN;
+
+        using (NotificationBatch.Begin())
+        {
+            Raise(nameof(Display));
+            Raise(nameof(ShowIcon));
+            Raise(nameof(IconToolTip));
+            Raise(nameof(Title));
+        }
     }
 
     public void ShowContextMenu(Vector2 position) => ShowContextMenu(null, position);
@@ -185,12 +272,13 @@ internal sealed class SpawnPanelViewModel : Notifiable, IItemDropTarget, IListBa
                 actions.Add(new MenuCommand("sandboxmenu.addchild", () => _treeEditor.AddChild(row), TextManager.Get("sandboxmenu.shortcut.addchild")));
             }
 
-            actions.Add(new MenuCommand("sandboxmenu.duplicate", () => _treeEditor.Duplicate(row)));
+            actions.Add(new MenuCommand("sandboxmenu.duplicate", () => _treeEditor.Duplicate(row),
+                TextManager.Get("sandboxmenu.shortcut.duplicate")));
 
             actions.Add(new MenuCommand("sandboxmenu.focusidentifier", FocusIdentifier, TextManager.Get("sandboxmenu.shortcut.enter")));
 
             actions.Add(new MenuCommand("sandboxmenu.give", () => _requests.Give([row.Entry])));
-            actions.Add(new MenuCommand("sandboxmenu.spawnatcursor", () => _requests.AtCursor([row.Entry])));
+            actions.Add(new MenuCommand("sandboxmenu.itemspawn.atcursor", () => _requests.AtCursor([row.Entry])));
 
             actions.Add(new MenuCommand("sandboxmenu.delete", () => _treeEditor.Delete(row), TextManager.Get("sandboxmenu.shortcut.delete")));
 

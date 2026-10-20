@@ -28,6 +28,10 @@ internal sealed class EntryEditorViewModel : Notifiable
 
     public ObservableCollection<IEditorRow> Rows { get; } = [];
 
+    public LocalizedString EmptyHint => TextManager.Get("sandboxmenu.empty");
+
+    public bool IsEmpty => Rows.Count == 0;
+
     internal void Show(SpawnEntry entry, ItemEntry? container = null)
     {
         _entry = entry;
@@ -100,5 +104,7 @@ internal sealed class EntryEditorViewModel : Notifiable
         _refreshEntries();
 
         _rowBuilder.Build(_entry, _container);
+
+        Raise(nameof(IsEmpty));
     }
 }

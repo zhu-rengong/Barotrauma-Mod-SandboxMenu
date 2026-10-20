@@ -3,31 +3,52 @@ namespace SandboxMenu.Domain.Spawning;
 internal enum SpawnRefusal
 {
     TooLarge,
-    NotSent
+    NotSent,
+    Denied
 }
 
 internal static class ClientSpawnDispatcher
 {
+    private const double Timeout = 3.0;
+
     private static uint _nextRequestId;
     private static uint _waitingFor;
+    private static double _sentAt;
 
     internal static event Action<SpawnStatus, int, int>? Settled;
 
     internal static bool IsRemote => GameMain.NetworkMember is { IsClient: true };
 
     internal static SpawnRefusal? IntoInventory(IReadOnlyList<SpawnEntry> entries, Character character)
-        => IsRemote
-            ? TrySend(entries, SpawnTargetKind.Inventory, Vector2.Zero, character.ID)
-            : Local(entries, character);
+    {
+        if (!IsRemote) { return Local(entries, character); }
+        if (!ClientRequestPolicy.CanRequest) { return SpawnRefusal.Denied; }
+
+        return TrySend(entries, SpawnTargetKind.Inventory, Vector2.Zero, character.ID);
+    }
 
     internal static SpawnRefusal? ToWorld(IReadOnlyList<SpawnEntry> entries, Vector2 worldPosition, Character? character)
     {
-        if (IsRemote) { return TrySend(entries, SpawnTargetKind.World, worldPosition, character?.ID ?? 0); }
+        if (!IsRemote)
+        {
+            SpawnExecutor executor = new(new SpawnTarget.AtWorld(worldPosition, character), ResolveTemplate);
+            executor.Run(entries);
 
-        SpawnExecutor executor = new(new SpawnTarget.AtWorld(worldPosition, character), ResolveTemplate);
-        executor.Run(entries);
+            return null;
+        }
 
-        return null;
+        if (!ClientRequestPolicy.CanRequest) { return SpawnRefusal.Denied; }
+
+        return TrySend(entries, SpawnTargetKind.World, worldPosition, character?.ID ?? 0);
+    }
+
+    internal static void Tick()
+    {
+        if (_waitingFor == 0 || Timing.TotalTime - _sentAt < Timeout) { return; }
+
+        _waitingFor = 0;
+
+        Settled?.Invoke(SpawnStatus.NoResponse, 0, 0);
     }
 
     internal static void OnResponse(SpawnResponse response)
@@ -60,8 +81,6 @@ internal static class ClientSpawnDispatcher
         Vector2 worldPosition,
         ushort characterId)
     {
-        _waitingFor = 0;
-
         SpawnMessage payload = new();
         CollectTemplates(payload, entries, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         payload.Entries.AddRange(entries);
@@ -75,7 +94,9 @@ internal static class ClientSpawnDispatcher
             (byte)target,
             worldPosition,
             characterId,
-            requestId);
+            requestId,
+            ModCompatibility.Version,
+            ModCompatibility.Hash);
 
         try
         {
@@ -88,6 +109,7 @@ internal static class ClientSpawnDispatcher
         }
 
         _waitingFor = requestId;
+        _sentAt = Timing.TotalTime;
 
         return null;
     }

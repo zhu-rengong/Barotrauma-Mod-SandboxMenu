@@ -5,8 +5,6 @@ namespace SandboxMenu;
 
 internal static class ServerAfflictionHandler
 {
-    private const string CooldownField = $"{ModInfo.Prefix}.afflictioncooldown";
-
     internal static void Handle(AfflictionRequest request, Client client)
         => ServerPolicy.Guard("Handling an affliction request", () => Respond(request, client));
 
@@ -14,24 +12,23 @@ internal static class ServerAfflictionHandler
     {
         if (client is null) { return; }
 
-        if (!ServerPolicy.IsAllowed(client))
+        if (!ServerPolicy.HasPermission(client))
         {
             Services.DebugConsole.NewMessage($"{client.Name} asked to apply an affliction without the permission to do so.");
             Reply(client, request.RequestId, AfflictionStatus.Denied);
             return;
         }
 
-        if (request.ProtocolVersion != Protocol.Version)
+        if (!ModCompatibility.Matches(request.ProtocolVersion, request.ModVersion, request.ModHash, client.Name, "affliction"))
         {
-            Services.DebugConsole.AddWarning(
-                $"{client.Name} runs an affliction protocol version this server does not speak ({request.ProtocolVersion} against {Protocol.Version}).");
-            Reply(client, request.RequestId, AfflictionStatus.Denied);
+            Reply(client, request.RequestId, AfflictionStatus.Incompatible);
             return;
         }
 
-        if (ServerPolicy.IsThrottled(client, CooldownField))
+        if (!SpawnMessageValidator.TryValidate(request, out string problem))
         {
-            Reply(client, request.RequestId, AfflictionStatus.Throttled);
+            Services.DebugConsole.AddWarning($"{client.Name} sent an affliction request the mod rejects: {problem}.");
+            Reply(client, request.RequestId, AfflictionStatus.BadPayload);
             return;
         }
 

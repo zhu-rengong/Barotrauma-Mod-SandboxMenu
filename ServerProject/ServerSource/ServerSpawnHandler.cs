@@ -4,8 +4,6 @@ namespace SandboxMenu;
 
 internal static class ServerSpawnHandler
 {
-    private const string CooldownField = $"{ModInfo.Prefix}.spawncooldown";
-
     internal static void Handle(SpawnRequest request, Client client)
         => ServerPolicy.Guard("Handling a spawn request", () => Respond(request, client));
 
@@ -13,24 +11,16 @@ internal static class ServerSpawnHandler
     {
         if (client is null) { return; }
 
-        if (!ServerPolicy.IsAllowed(client))
+        if (!ServerPolicy.HasPermission(client))
         {
             Services.DebugConsole.NewMessage($"{client.Name} asked to spawn items without the permission to do so.");
             Reply(client, request.RequestId, SpawnStatus.Denied);
             return;
         }
 
-        if (request.ProtocolVersion != Protocol.Version)
+        if (!ModCompatibility.Matches(request.ProtocolVersion, request.ModVersion, request.ModHash, client.Name, "spawn"))
         {
-            Services.DebugConsole.AddWarning(
-                $"{client.Name} runs a spawn protocol version this server does not speak ({request.ProtocolVersion} against {Protocol.Version}).");
-            Reply(client, request.RequestId, SpawnStatus.BadPayload);
-            return;
-        }
-
-        if (ServerPolicy.IsThrottled(client, CooldownField))
-        {
-            Reply(client, request.RequestId, SpawnStatus.Throttled);
+            Reply(client, request.RequestId, SpawnStatus.Incompatible);
             return;
         }
 
@@ -40,10 +30,24 @@ internal static class ServerSpawnHandler
             return;
         }
 
-        if (client.Character is not { } character)
+        if (!SpawnMessageValidator.TryValidate(request, payload, out string problem))
         {
-            Reply(client, request.RequestId, SpawnStatus.NoCharacter);
+            Services.DebugConsole.AddWarning($"{client.Name} sent a spawn request the mod rejects: {problem}.");
+            Reply(client, request.RequestId, SpawnStatus.BadPayload);
             return;
+        }
+
+        Character? character = null;
+
+        if (request.CharacterId != 0)
+        {
+            if (Entity.FindEntityByID(request.CharacterId) is not Character found || found.Removed)
+            {
+                Reply(client, request.RequestId, SpawnStatus.NoCharacter);
+                return;
+            }
+
+            character = found;
         }
 
         if (Entity.Spawner is null)
@@ -52,15 +56,10 @@ internal static class ServerSpawnHandler
             return;
         }
 
-        if (request.CharacterId != character.ID)
-        {
-            Services.DebugConsole.NewMessage($"{client.Name} spawned for character {request.CharacterId}, but this server sees {character.ID}.");
-        }
-
         SpawnTarget? target = (SpawnTargetKind)request.Target switch
         {
             SpawnTargetKind.World => new SpawnTarget.AtWorld(request.Position, character),
-            _ => character.Inventory is { } inventory ? new SpawnTarget.IntoInventory(inventory, character) : null
+            _ => character?.Inventory is { } inventory ? new SpawnTarget.IntoInventory(inventory, character) : null
         };
 
         if (target is null)

@@ -15,13 +15,9 @@ internal sealed class EditorRows(
 
     internal void Build(SpawnEntry? entry, ItemEntry? container)
     {
-        if (entry is null)
-        {
-            _rows.Add(new HintRowViewModel(TextManager.Get("sandboxmenu.empty")));
-            return;
-        }
+        if (entry is null) { return; }
 
-        _rows.Add(new SectionRowViewModel(TextManager.Get("sandboxmenu.section.spawn")));
+        _rows.Add(new SectionRowViewModel(TextManager.Get("sandboxmenu.section.itemspawn")));
 
         switch (entry)
         {

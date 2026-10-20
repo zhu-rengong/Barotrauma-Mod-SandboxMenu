@@ -66,6 +66,7 @@ public static class ViewMarkup
         else if (text.Equals("dim", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.TextDim; }
         else if (text.Equals("accent", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Accent; }
         else if (text.Equals("danger", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Danger; }
+        else if (text.Equals("warning", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.Warning; }
         else if (text.Equals("disabled", StringComparison.OrdinalIgnoreCase)) { themed = UiMetrics.TextDisabled; }
 
         if (themed is { } color) { return color; }

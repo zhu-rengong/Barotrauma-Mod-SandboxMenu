@@ -12,6 +12,8 @@ internal sealed class SpawnMessage
 
     internal List<SpawnEntry> Entries { get; } = [];
 
+    internal IEnumerable<SpawnSet> Templates => _templates.Values;
+
     internal int TemplateCount => _templates.Count;
 
     internal void AddTemplate(SpawnSet template)

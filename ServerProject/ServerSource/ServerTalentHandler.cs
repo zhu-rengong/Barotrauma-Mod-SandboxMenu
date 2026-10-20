@@ -1,12 +1,9 @@
 using Barotrauma.Networking;
-using SandboxMenu.Networking;
 
 namespace SandboxMenu;
 
 internal static class ServerTalentHandler
 {
-    private const string CooldownField = $"{ModInfo.Prefix}.talentcooldown";
-
     internal static void Handle(TalentRequest request, Client client)
         => ServerPolicy.Guard("Handling a talent request", () => Respond(request, client));
 
@@ -14,24 +11,16 @@ internal static class ServerTalentHandler
     {
         if (client is null) { return; }
 
-        if (!ServerPolicy.IsAllowed(client))
+        if (!ServerPolicy.HasPermission(client))
         {
             Services.DebugConsole.NewMessage($"{client.Name} asked to grant a talent without the permission to do so.");
             Reply(client, request.RequestId, TalentStatus.Denied);
             return;
         }
 
-        if (request.ProtocolVersion != Protocol.Version)
+        if (!ModCompatibility.Matches(request.ProtocolVersion, request.ModVersion, request.ModHash, client.Name, "talent"))
         {
-            Services.DebugConsole.AddWarning(
-                $"{client.Name} runs a talent protocol version this server does not speak ({request.ProtocolVersion} against {Protocol.Version}).");
-            Reply(client, request.RequestId, TalentStatus.Denied);
-            return;
-        }
-
-        if (ServerPolicy.IsThrottled(client, CooldownField))
-        {
-            Reply(client, request.RequestId, TalentStatus.Throttled);
+            Reply(client, request.RequestId, TalentStatus.Incompatible);
             return;
         }
 

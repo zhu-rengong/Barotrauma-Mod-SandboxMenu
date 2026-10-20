@@ -22,7 +22,9 @@ internal sealed class AfflictionPanelViewModel : Notifiable
             if (_selectedRef is not { } reference) { return null; }
             if (!reference.TryGetTarget(out Character? character) || character is null) { return null; }
 
-            return character.Removed || !Character.CharacterList.Contains(character) ? null : character;
+            return character.Removed || !Character.CharacterList.Contains(character) || !ClientRequestPolicy.CanTarget(character)
+                ? null
+                : character;
         }
     }
     private CharacterDisplay? _display;
@@ -204,6 +206,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
 
     private void SelectCore(Character? character, bool force = false)
     {
+        if (!ClientRequestPolicy.CanTarget(character)) { return; }
         if (!force && ReferenceEquals(_selected, character) && (character is null || _display is not null)) { return; }
 
         _selectedRef = character is null ? null : new WeakReference<Character>(character);
@@ -248,7 +251,9 @@ internal sealed class AfflictionPanelViewModel : Notifiable
             AfflictionStatus.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.serverdenied")),
             AfflictionStatus.UnknownAffliction => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.serverunknown")),
             AfflictionStatus.NoCharacter => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.servernocharacter")),
-            AfflictionStatus.Throttled => (StatusKind.Warning, TextManager.Get("sandboxmenu.afflictions.status.serverthrottled")),
+            AfflictionStatus.Incompatible => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.incompatible")),
+            AfflictionStatus.NoResponse => (StatusKind.Warning, TextManager.Get("sandboxmenu.status.noresponse")),
+            AfflictionStatus.BadPayload => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.serverbadpayload")),
             AfflictionStatus.Blocked => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.blocked")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
         };
@@ -344,6 +349,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
             AfflictionOutcome.Sent => (StatusKind.Success, TextManager.Get("sandboxmenu.afflictions.status.senttoserver")),
             AfflictionOutcome.Applied => (StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.afflictions.status.applied", "[value]", tile.Display.Name)),
             AfflictionOutcome.Blocked => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.blocked")),
+            AfflictionOutcome.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.nopermission")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
         };
 
@@ -408,6 +414,7 @@ internal sealed class AfflictionPanelViewModel : Notifiable
         {
             AfflictionOutcome.Sent => (StatusKind.Success, TextManager.Get("sandboxmenu.afflictions.status.senttoserver")),
             AfflictionOutcome.Removed => (StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.afflictions.status.removed", "[value]", row.Display.Name)),
+            AfflictionOutcome.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.nopermission")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.afflictions.status.sendfailed"))
         };
 

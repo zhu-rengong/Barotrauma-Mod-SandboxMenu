@@ -36,6 +36,8 @@ internal sealed class SpawnExecutor(
 
     private void RunSingle(SpawnEntry entry)
     {
+        if (_result.IsFull) { return; }
+
         switch (entry)
         {
             case ReferenceEntry reference:
@@ -67,6 +69,8 @@ internal sealed class SpawnExecutor(
         SpawnExecutor templateExecutor = new(_target, _resolveTemplate, _result, [.. _templateChain, reference.TemplateName]);
         for (int i = 0; i < count; i++)
         {
+            if (_result.IsFull) { return; }
+
             templateExecutor.Run(template.Entries);
         }
     }
@@ -85,12 +89,15 @@ internal sealed class SpawnExecutor(
         if (entry.Stacks is { } stacksRange)
         {
             float stackCount = MathF.Max(0f, stacksRange.Roll(entry.AmountRound));
-            if (stackCount > 0f) { QueueStacks(prefab, entry, stackCount); }
+            if (float.IsFinite(stackCount) && stackCount > 0f) { QueueStacks(prefab, entry, stackCount); }
             return;
         }
 
         float amount = SpawnPlanner.ResolveAmount(entry, prefab, _inventory);
-        int whole = (int)MathF.Ceiling(amount);
+
+        if (!float.IsFinite(amount)) { return; }
+
+        int whole = Limited((int)MathF.Ceiling(amount));
         if (whole <= 0) { return; }
 
         for (int i = 1; i <= whole; i++)
@@ -101,6 +108,8 @@ internal sealed class SpawnExecutor(
 
     private void QueueOne(ItemPrefab prefab, ItemEntry entry, float? condition, Inventory? destination = null)
     {
+        if (_result.IsFull) { return; }
+
         if (destination is not null)
         {
             Entity.Spawner.AddItemToSpawnQueue(prefab, destination, condition, entry.Quality, item => Settle(item, entry));
@@ -130,10 +139,17 @@ internal sealed class SpawnExecutor(
 
     private void QueueStacks(ItemPrefab prefab, ItemEntry entry, float stackCount)
     {
+        if (_result.IsFull) { return; }
+
         if (_inventory is null)
         {
-            int worldTotal = SpawnPlanner.StacksToItemCount(stackCount, Math.Max(1, prefab.MaxStackSize));
-            for (int i = 0; i < worldTotal; i++) { QueueOne(prefab, entry, null); }
+            int worldTotal = Limited(SpawnPlanner.StacksToItemCount(stackCount, Math.Max(1, prefab.MaxStackSize)));
+
+            for (int i = 0; i < worldTotal; i++)
+            {
+                QueueOne(prefab, entry, null);
+            }
+
             return;
         }
 
@@ -144,14 +160,19 @@ internal sealed class SpawnExecutor(
             Inventory? destination = item.ParentInventory ?? _inventory;
             if (destination is null)
             {
-                int worldRemaining = SpawnPlanner.StacksToItemCount(stackCount, Math.Max(1, prefab.MaxStackSize)) - 1;
-                for (int i = 0; i < worldRemaining; i++) { QueueOne(prefab, entry, null); }
+                int worldRemaining = Math.Max(0, Limited(SpawnPlanner.StacksToItemCount(stackCount, Math.Max(1, prefab.MaxStackSize)) - 1));
+
+                for (int i = 0; i < worldRemaining; i++)
+                {
+                    QueueOne(prefab, entry, null);
+                }
+
                 return;
             }
 
             int freeAfterFirst = destination.HowManyCanBePut(prefab);
             int perStack = Math.Max(1, Math.Min(Math.Max(1, prefab.GetMaxStackSize(destination)), freeAfterFirst + 1));
-            int total = Math.Max(1, SpawnPlanner.StacksToItemCount(stackCount, perStack));
+            int total = Limited(Math.Max(1, SpawnPlanner.StacksToItemCount(stackCount, perStack)));
 
             if (total > freeAfterFirst + 1)
             {
@@ -262,6 +283,17 @@ internal sealed class SpawnExecutor(
         };
 
         nestedExecutor.Run(entry.Inventory);
+    }
+
+    private int Limited(int count)
+    {
+        int remaining = _result.Remaining;
+
+        if (count <= remaining) { return count; }
+
+        _result.Report($"The request asked for more than the {_result.Limit} item(s) a single request may spawn, so the rest was left out.");
+
+        return remaining;
     }
 
     private static bool Contains(string[] chain, string name)

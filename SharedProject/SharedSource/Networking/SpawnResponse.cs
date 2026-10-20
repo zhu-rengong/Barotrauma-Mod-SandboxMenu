@@ -8,7 +8,8 @@ public enum SpawnStatus
     NoCharacter = 3,
     NoSpawner = 4,
     TooLarge = 5,
-    Throttled = 6
+    Incompatible = 6,
+    NoResponse = 7
 }
 
 public readonly record struct SpawnResponse(

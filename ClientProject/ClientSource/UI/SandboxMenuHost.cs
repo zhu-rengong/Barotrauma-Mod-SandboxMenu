@@ -59,6 +59,7 @@ internal sealed class SandboxMenuHost : IDialogHost
         _window ??= new MarkupWindow("MainWindow.xml", WindowOrder, _viewModel);
 
         _viewModel.Spawn.RefreshShortcuts();
+        _viewModel.Spawn.Tick();
         RefreshHints();
         _window.Open();
         UpdateInputState();
@@ -275,9 +276,20 @@ internal sealed class SandboxMenuHost : IDialogHost
 
         _panelTickAt = now;
 
+        RefreshSpawn();
         RefreshAfflictions();
         RefreshTalents();
         RefreshCharacterToolTips();
+    }
+
+    private void RefreshSpawn()
+    {
+        if (_window is not { IsOpen: true }) { return; }
+        if (!_viewModel.Functions.ShowSpawn) { return; }
+
+        _viewModel.Spawn.Tick();
+
+        if (_window.Rect.Contains(PlayerInput.MousePosition.ToPoint())) { _viewModel.Spawn.RefreshIconToolTip(); }
     }
 
     private void RefreshAfflictions()
@@ -368,6 +380,9 @@ internal sealed class SandboxMenuHost : IDialogHost
 
     public void ShowColorPicker(Color current, Action<Color> onPicked)
         => ShowPopup(new MarkupWindow("ColorPicker.xml", DialogOrder, new ColorPickerViewModel(current, onPicked)));
+
+    public void ShowPresetEditor(PresetEditorRequest request)
+        => ShowPopup(new MarkupWindow("PresetEditor.xml", DialogOrder, new PresetEditorViewModel(request)));
 
     public void ShowContextMenu(IEnumerable<MenuCommand> actions, Vector2? position = null)
     {

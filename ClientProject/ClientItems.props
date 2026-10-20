@@ -18,6 +18,7 @@
     <EmbeddedResource Include="ClientSource\UI\Markup\Options.xml" LogicalName="SandboxMenu.Options.xml" />
     <EmbeddedResource Include="ClientSource\UI\Markup\MultiPicker.xml" LogicalName="SandboxMenu.MultiPicker.xml" />
     <EmbeddedResource Include="ClientSource\UI\Markup\ColorPicker.xml" LogicalName="SandboxMenu.ColorPicker.xml" />
+    <EmbeddedResource Include="ClientSource\UI\Markup\PresetEditor.xml" LogicalName="SandboxMenu.PresetEditor.xml" />
     <EmbeddedResource Include="ClientSource\UI\Markup\Styling\Theme.xml" LogicalName="SandboxMenu.Theme.xml" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,27 @@
+<Window ContentInset="16" Width="760dip" Height="600dip">
+
+<Stack Orientation="Vertical">
+
+  <Stack Orientation="Horizontal" Height="16*" ChildAnchor="CenterLeft">
+    <Text Text="{Binding Title}" Font="SubHeading" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.2" Height="0.8"
+            SelfToolTip="False" />
+  </Stack>
+
+  <Panel Skin="InnerFrame" Width="1" Height="84*" Padding="17,19,20,16">
+    <Stack Orientation="Vertical" Spacing="6">
+
+      <TextArea Text="{Binding Text, Mode=TwoWay}" Height="88*" Font="small" Focus="True" />
+
+      <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
+        <Button Text="sandboxmenu.preset.editor.save" Command="{Binding SaveCommand}" Width="1*" Height="0.66" />
+        <Button Text="sandboxmenu.preset.editor.revert" Command="{Binding RevertCommand}" Width="1*" Height="0.66" />
+        <Button Text="sandboxmenu.preset.copypath" Command="{Binding CopyPathCommand}" Width="1.6*" Height="0.66" />
+      </Stack>
+
+    </Stack>
+  </Panel>
+
+</Stack>
+
+</Window>

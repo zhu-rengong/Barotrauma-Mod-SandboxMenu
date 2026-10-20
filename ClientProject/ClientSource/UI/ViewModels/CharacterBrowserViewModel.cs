@@ -18,6 +18,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     private string _query = string.Empty;
     private float _scroll;
     private int _packageSignature;
+    private bool _restricted;
 
     internal CharacterBrowserViewModel(IDialogHost host)
     {
@@ -29,6 +30,11 @@ internal sealed class CharacterBrowserViewModel : Notifiable
     }
 
     public LocalizedString Title => TextManager.Get("sandboxmenu.characters.title");
+
+    public Color PermissionTint => _restricted ? UiMetrics.Warning : UiMetrics.Text;
+
+    public LocalizedString PermissionHint => TextManager.Get(
+        _restricted ? "sandboxmenu.characters.permission.restricted" : "sandboxmenu.characters.permission.allowed");
 
     public LocalizedString PackageFilter => FilterSummary.Label("sandboxmenu.filter.packages", _packages.Count);
 
@@ -80,6 +86,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
 
     internal void Rebuild()
     {
+        SetRestricted(!ClientRequestPolicy.CanRequest);
         PruneDisplays();
 
         _rows.Clear();
@@ -92,6 +99,7 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         foreach (Character character in Character.CharacterList)
         {
             if (character is null || character.Removed) { continue; }
+            if (_restricted && character.IsRemotePlayer) { continue; }
             if (_filter is { } filter && !filter(character)) { continue; }
 
             if (!_displays.TryGetValue(character, out CharacterDisplay? display))
@@ -128,6 +136,19 @@ internal sealed class CharacterBrowserViewModel : Notifiable
         _teams.Clear();
 
         Refresh();
+    }
+
+    private void SetRestricted(bool restricted)
+    {
+        if (_restricted == restricted) { return; }
+
+        _restricted = restricted;
+
+        using (NotificationBatch.Begin())
+        {
+            Raise(nameof(PermissionTint));
+            Raise(nameof(PermissionHint));
+        }
     }
 
     private void PruneDisplays()

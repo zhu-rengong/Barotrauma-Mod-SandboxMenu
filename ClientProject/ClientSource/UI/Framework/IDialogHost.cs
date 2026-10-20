@@ -17,9 +17,18 @@ internal interface IDialogHost
     void ShowColorPicker(Color current, Action<Color> onPicked);
 
     void PickWorldPosition(Action<Vector2> onPicked);
+
+    void ShowPresetEditor(PresetEditorRequest request);
 }
 
 internal sealed record MenuCommand(string Label, Action Invoke, LocalizedString? Shortcut = null);
+
+internal sealed record PresetEditorRequest(
+    LocalizedString Title,
+    string Text,
+    Func<string?> Revert,
+    Func<string, string?> Save,
+    Action CopyPath);
 
 internal sealed record PickerOption(LocalizedString Label, Action Picked, bool Editable = true, bool Saveable = true);
 

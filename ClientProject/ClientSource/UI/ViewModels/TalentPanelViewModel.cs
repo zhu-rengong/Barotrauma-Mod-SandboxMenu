@@ -22,7 +22,9 @@ internal sealed class TalentPanelViewModel : Notifiable
             if (_selectedRef is not { } reference) { return null; }
             if (!reference.TryGetTarget(out Character? character) || character is null) { return null; }
 
-            return character.Removed || !Character.CharacterList.Contains(character) ? null : character;
+            return character.Removed || !Character.CharacterList.Contains(character) || !ClientRequestPolicy.CanTarget(character)
+                ? null
+                : character;
         }
     }
     private CharacterDisplay? _display;
@@ -173,6 +175,7 @@ internal sealed class TalentPanelViewModel : Notifiable
 
     private void SelectCore(Character? character, bool force = false)
     {
+        if (!ClientRequestPolicy.CanTarget(character)) { return; }
         if (!force && ReferenceEquals(_selected, character) && (character is null || _display is not null)) { return; }
 
         _selectedRef = character is null ? null : new WeakReference<Character>(character);
@@ -244,6 +247,7 @@ internal sealed class TalentPanelViewModel : Notifiable
             TalentOutcome.AlreadyKnown => (StatusKind.Warning, TextManager.GetWithVariable("sandboxmenu.talents.status.already", TooltipText.ValuePlaceholder, tile.Display.Name)),
             TalentOutcome.NoCharacter => (StatusKind.Warning, TextManager.Get("sandboxmenu.talents.status.noinfo")),
             TalentOutcome.Failed => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.failed")),
+            TalentOutcome.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.nopermission")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.sendfailed"))
         };
 
@@ -260,7 +264,8 @@ internal sealed class TalentPanelViewModel : Notifiable
             TalentStatus.Denied => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.serverdenied")),
             TalentStatus.UnknownTalent => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.serverunknown")),
             TalentStatus.NoCharacter => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.servernocharacter")),
-            TalentStatus.Throttled => (StatusKind.Warning, TextManager.Get("sandboxmenu.talents.status.serverthrottled")),
+            TalentStatus.Incompatible => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.incompatible")),
+            TalentStatus.NoResponse => (StatusKind.Warning, TextManager.Get("sandboxmenu.status.noresponse")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.talents.status.sendfailed"))
         };
 

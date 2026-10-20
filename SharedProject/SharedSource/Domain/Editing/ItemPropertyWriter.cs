@@ -48,6 +48,12 @@ internal static class ItemPropertyWriter
 
         if (!property.TrySetValue(target, propertyOverride.Value)) { return $"Failed to set '{propertyOverride}'"; }
 
+        if (!IsFinite(property.GetValue(target)))
+        {
+            property.SetValue(target, before);
+            return $"'{propertyOverride}' would store a value that is not a number; kept the old one";
+        }
+
         if (property.GetValue(target) is null && before is not null && GameMain.NetworkMember is not null)
         {
             property.SetValue(target, before);
@@ -57,6 +63,16 @@ internal static class ItemPropertyWriter
         applied?.Add(new AppliedOverride(serializable, property));
         return null;
     }
+
+    private static bool IsFinite(object? value) => value switch
+    {
+        float number => float.IsFinite(number),
+        double number => double.IsFinite(number),
+        Vector2 vector => float.IsFinite(vector.X) && float.IsFinite(vector.Y),
+        Vector3 vector => float.IsFinite(vector.X) && float.IsFinite(vector.Y) && float.IsFinite(vector.Z),
+        Vector4 vector => float.IsFinite(vector.X) && float.IsFinite(vector.Y) && float.IsFinite(vector.Z) && float.IsFinite(vector.W),
+        _ => true
+    };
 
     private static string DeclaredOf(Item item, PropertyOverride propertyOverride, SerializableProperty property)
         => PropertyText.DeclaredValue(

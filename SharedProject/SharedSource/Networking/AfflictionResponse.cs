@@ -6,8 +6,10 @@ public enum AfflictionStatus
     Denied = 1,
     UnknownAffliction = 2,
     NoCharacter = 3,
-    Throttled = 4,
-    Blocked = 5
+    Blocked = 4,
+    Incompatible = 5,
+    NoResponse = 6,
+    BadPayload = 7
 }
 
 public readonly record struct AfflictionResponse(

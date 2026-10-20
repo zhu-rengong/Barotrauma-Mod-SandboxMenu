@@ -2,11 +2,14 @@
 <infotexts language="English" nowhitespace="false" translatedname="English">
   <sandboxmenu.title>Sandbox Menu</sandboxmenu.title>
   <sandboxmenu.close>Close</sandboxmenu.close>
-  <sandboxmenu.function.spawn>Spawn</sandboxmenu.function.spawn>
+  <sandboxmenu.function.itemspawn>Item Spawn</sandboxmenu.function.itemspawn>
   <sandboxmenu.function.afflictions>Afflictions</sandboxmenu.function.afflictions>
   <sandboxmenu.function.talents>Talents</sandboxmenu.function.talents>
   <sandboxmenu.give>Spawn into inventory</sandboxmenu.give>
-  <sandboxmenu.spawnatcursor>Spawn at the cursor</sandboxmenu.spawnatcursor>
+  <sandboxmenu.itemspawn.atcursor>Spawn at the cursor</sandboxmenu.itemspawn.atcursor>
+  <sandboxmenu.itemspawn.characters>Select character</sandboxmenu.itemspawn.characters>
+  <sandboxmenu.itemspawn.characters.controlled>Current character</sandboxmenu.itemspawn.characters.controlled>
+  <sandboxmenu.itemspawn.none>No character is selected.</sandboxmenu.itemspawn.none>
   <sandboxmenu.empty>Nothing is selected. Right-click the empty space in the list on the left to open the menu and add an item or a template reference.</sandboxmenu.empty>
 
   <sandboxmenu.additem>+Add item</sandboxmenu.additem>
@@ -14,7 +17,7 @@
   <sandboxmenu.duplicate>Duplicate entry</sandboxmenu.duplicate>
   <sandboxmenu.delete>Delete</sandboxmenu.delete>
 
-  <sandboxmenu.section.spawn>Spawn</sandboxmenu.section.spawn>
+  <sandboxmenu.section.itemspawn>Item Spawn</sandboxmenu.section.itemspawn>
   <sandboxmenu.section.behaviour>Behaviour</sandboxmenu.section.behaviour>
   <sandboxmenu.section.properties>Property overrides</sandboxmenu.section.properties>
 
@@ -57,6 +60,7 @@
   <sandboxmenu.shortcut.add>+</sandboxmenu.shortcut.add>
   <sandboxmenu.shortcut.addchild>Shift +</sandboxmenu.shortcut.addchild>
   <sandboxmenu.shortcut.delete>Del</sandboxmenu.shortcut.delete>
+  <sandboxmenu.shortcut.duplicate>Ctrl + D</sandboxmenu.shortcut.duplicate>
   <sandboxmenu.shortcut.up>Up</sandboxmenu.shortcut.up>
   <sandboxmenu.shortcut.down>Down</sandboxmenu.shortcut.down>
   <sandboxmenu.shortcut.moveup>Alt + Up</sandboxmenu.shortcut.moveup>
@@ -92,6 +96,10 @@
   <sandboxmenu.preset.load>Load preset</sandboxmenu.preset.load>
   <sandboxmenu.preset.reload>Reload preset</sandboxmenu.preset.reload>
   <sandboxmenu.preset.copypath>Copy preset path</sandboxmenu.preset.copypath>
+  <sandboxmenu.preset.open>Open preset</sandboxmenu.preset.open>
+  <sandboxmenu.preset.editor.title>Preset "[name]"</sandboxmenu.preset.editor.title>
+  <sandboxmenu.preset.editor.save>Save</sandboxmenu.preset.editor.save>
+  <sandboxmenu.preset.editor.revert>Revert</sandboxmenu.preset.editor.revert>
   <sandboxmenu.status.presetsaved>Preset saved.</sandboxmenu.status.presetsaved>
   <sandboxmenu.status.cleared>Spawn set cleared.</sandboxmenu.status.cleared>
   <sandboxmenu.status.screenshot>Screenshot saved as "[name]".</sandboxmenu.status.screenshot>
@@ -107,6 +115,9 @@
   <sandboxmenu.status.presetpathcopyfailed>Could not copy the path of the preset "[name]". See the log for details.</sandboxmenu.status.presetpathcopyfailed>
   <sandboxmenu.status.nopresetname>Enter a preset name first.</sandboxmenu.status.nopresetname>
   <sandboxmenu.status.nopresets>No presets were found.</sandboxmenu.status.nopresets>
+  <sandboxmenu.status.presettextsaved>The preset "[name]" was saved and reloaded.</sandboxmenu.status.presettextsaved>
+  <sandboxmenu.status.presettextinvalid>The text is not a valid preset document, so nothing was saved.</sandboxmenu.status.presettextinvalid>
+  <sandboxmenu.status.presetreadfailed>Could not read the preset "[name]". See the log for details.</sandboxmenu.status.presetreadfailed>
 
   <sandboxmenu.status.senttoserver>The spawn request was sent to the server.</sandboxmenu.status.senttoserver>
   <sandboxmenu.status.serverok>The server queued [count] item(s).</sandboxmenu.status.serverok>
@@ -114,15 +125,19 @@
   <sandboxmenu.status.serverbadpayload>The server could not read the request. See the log for details.</sandboxmenu.status.serverbadpayload>
   <sandboxmenu.status.servernocharacter>The server has no character of yours to spawn into.</sandboxmenu.status.servernocharacter>
   <sandboxmenu.status.servernospawner>The server cannot spawn items right now.</sandboxmenu.status.servernospawner>
-  <sandboxmenu.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.status.serverthrottled>
   <sandboxmenu.status.servertoolarge>The request was too large for the server to read.</sandboxmenu.status.servertoolarge>
   <sandboxmenu.status.serverfailed>The server refused the request. See the log for details.</sandboxmenu.status.serverfailed>
+  <sandboxmenu.status.nopermission>You do not have the permission to use the sandbox menu on this server.</sandboxmenu.status.nopermission>
+  <sandboxmenu.status.noresponse>The server did not answer, so it probably does not run the sandbox menu mod.</sandboxmenu.status.noresponse>
+  <sandboxmenu.status.incompatible>The server runs a different version of the sandbox menu mod.</sandboxmenu.status.incompatible>
   <sandboxmenu.status.spawntoolarge>The spawn set is too large to send to the server.</sandboxmenu.status.spawntoolarge>
   <sandboxmenu.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.status.sendfailed>
   <sandboxmenu.status.serverproblems>The server reported [count] problem(s). See the log for details.</sandboxmenu.status.serverproblems>
 
   <sandboxmenu.characters.title>Select a character</sandboxmenu.characters.title>
   <sandboxmenu.characters.empty>No character got through the filters.</sandboxmenu.characters.empty>
+  <sandboxmenu.characters.permission.restricted>You do not have the console commands permission on this server, so other players' characters are hidden.</sandboxmenu.characters.permission.restricted>
+  <sandboxmenu.characters.permission.allowed>You have the console commands permission on this server, so you can pick any character.</sandboxmenu.characters.permission.allowed>
   <sandboxmenu.filter.species>Species</sandboxmenu.filter.species>
   <sandboxmenu.filter.teams>Teams</sandboxmenu.filter.teams>
 
@@ -173,7 +188,6 @@
   <sandboxmenu.afflictions.status.serverdenied>The server does not let you apply afflictions.</sandboxmenu.afflictions.status.serverdenied>
   <sandboxmenu.afflictions.status.serverunknown>The server does not know that affliction.</sandboxmenu.afflictions.status.serverunknown>
   <sandboxmenu.afflictions.status.servernocharacter>The server could not find that character.</sandboxmenu.afflictions.status.servernocharacter>
-  <sandboxmenu.afflictions.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.afflictions.status.serverthrottled>
 
   <sandboxmenu.talents.characters>Select character</sandboxmenu.talents.characters>
   <sandboxmenu.talents.characters.controlled>Current character</sandboxmenu.talents.characters.controlled>
@@ -194,7 +208,6 @@
   <sandboxmenu.talents.status.serverdenied>The server does not let you grant talents.</sandboxmenu.talents.status.serverdenied>
   <sandboxmenu.talents.status.serverunknown>The server does not know that talent.</sandboxmenu.talents.status.serverunknown>
   <sandboxmenu.talents.status.servernocharacter>The server could not find that character.</sandboxmenu.talents.status.servernocharacter>
-  <sandboxmenu.talents.status.serverthrottled>The server is still busy with the previous request.</sandboxmenu.talents.status.serverthrottled>
   <sandboxmenu.talents.status.sendfailed>Could not send the request to the server. See the log for details.</sandboxmenu.talents.status.sendfailed>
 
   <sandboxmenu.limb.none>Other</sandboxmenu.limb.none>
@@ -217,6 +230,4 @@
   <sandboxmenu.limb.leftfoot>Left foot</sandboxmenu.limb.leftfoot>
   <sandboxmenu.limb.rightfoot>Right foot</sandboxmenu.limb.rightfoot>
 
-  <sandboxmenu.allowallclients.displayname>Let every client spawn items</sandboxmenu.allowallclients.displayname>
-  <sandboxmenu.allowallclients.tooltip>When off, only clients with the console commands permission (the host and the admins) can spawn items with the sandbox menu.</sandboxmenu.allowallclients.tooltip>
 </infotexts>

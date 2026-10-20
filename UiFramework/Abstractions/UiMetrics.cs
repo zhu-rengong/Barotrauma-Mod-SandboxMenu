@@ -40,6 +40,8 @@ public static class UiMetrics
 
     public static Color Danger => GUIStyle.Red;
 
+    public static Color Warning => GUIStyle.Orange;
+
     public static Color TextDisabled => GUIStyle.TextColorDim;
 
     private static void Refresh(float raw)

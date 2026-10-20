@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<PluginInfos notsyncedinmultiplayer="false">
+<PluginInfos notsyncedinmultiplayer="true">
   <MainAssemblyInfo assemblypath="%ModDir%/bin/Windows/SandboxMenuClient.dll" platforms="Windows" targets="Client" />
   <MainAssemblyInfo assemblypath="%ModDir%/bin/Linux/SandboxMenuClient.dll" platforms="Linux" targets="Client" />
   <MainAssemblyInfo assemblypath="%ModDir%/bin/Mac/SandboxMenuClient.dll" platforms="Mac" targets="Client" />

@@ -1,4 +1,5 @@
 global using SandboxMenu.Domain.Afflictions;
+global using SandboxMenu.Domain.Networking;
 global using SandboxMenu.Domain.Persistence;
 global using SandboxMenu.Domain.Prefabs;
 global using SandboxMenu.Domain.Talents;

@@ -3,7 +3,8 @@ namespace SandboxMenu.UI.ViewModels;
 internal sealed class SpawnActions(
     Action<StatusKind, LocalizedString> report,
     IDialogHost host,
-    SpawnSet set)
+    SpawnSet set,
+    Func<Character?> target)
 {
     internal void Give() => Give(set.Entries);
 
@@ -11,7 +12,7 @@ internal sealed class SpawnActions(
 
     internal void Give(IReadOnlyList<SpawnEntry> entries)
     {
-        if (Character.Controlled is not { } character)
+        if (target() is not { Inventory: not null } character)
         {
             report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.nocharacter"));
             return;
@@ -30,21 +31,17 @@ internal sealed class SpawnActions(
 
     internal void AtCursor(IReadOnlyList<SpawnEntry> entries)
     {
-        if (Character.Controlled is null)
-        {
-            report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.nocharacter"));
-            return;
-        }
-
         if (entries.Count == 0)
         {
             report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.empty"));
             return;
         }
 
+        Character? character = target();
+
         host.PickWorldPosition(worldPosition =>
         {
-            SpawnRefusal? refusal = ClientSpawnDispatcher.ToWorld(entries, worldPosition, Character.Controlled);
+            SpawnRefusal? refusal = ClientSpawnDispatcher.ToWorld(entries, worldPosition, character);
 
             report(KindOf(refusal), Describe(refusal));
         });
@@ -59,7 +56,8 @@ internal sealed class SpawnActions(
             SpawnStatus.BadPayload => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.serverbadpayload")),
             SpawnStatus.NoCharacter => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.servernocharacter")),
             SpawnStatus.NoSpawner => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.servernospawner")),
-            SpawnStatus.Throttled => (StatusKind.Warning, TextManager.Get("sandboxmenu.status.serverthrottled")),
+            SpawnStatus.Incompatible => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.incompatible")),
+            SpawnStatus.NoResponse => (StatusKind.Warning, TextManager.Get("sandboxmenu.status.noresponse")),
             SpawnStatus.TooLarge => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.servertoolarge")),
             _ => (StatusKind.Failure, TextManager.Get("sandboxmenu.status.serverfailed"))
         };
@@ -77,6 +75,7 @@ internal sealed class SpawnActions(
     {
         SpawnRefusal.TooLarge => TextManager.Get("sandboxmenu.status.spawntoolarge"),
         SpawnRefusal.NotSent => TextManager.Get("sandboxmenu.status.sendfailed"),
+        SpawnRefusal.Denied => TextManager.Get("sandboxmenu.status.nopermission"),
         _ => TextManager.Get(ClientSpawnDispatcher.IsRemote ? "sandboxmenu.status.senttoserver" : "sandboxmenu.status.spawnqueued")
     };
 }

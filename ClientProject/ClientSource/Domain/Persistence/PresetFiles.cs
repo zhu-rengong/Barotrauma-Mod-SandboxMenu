@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Microsoft.Xna.Framework.Input;
 
 namespace SandboxMenu.Domain.Persistence;
@@ -64,7 +65,69 @@ internal sealed class PresetFiles(
         }
     }
 
-    internal void CopyPath()
+    internal void Open()
+    {
+        string name = set.Name;
+        bool named = !string.IsNullOrWhiteSpace(name);
+
+        host.ShowPresetEditor(new PresetEditorRequest(
+            named
+                ? TextManager.GetWithVariable("sandboxmenu.preset.editor.title", "[name]", name)
+                : TextManager.Get("sandboxmenu.preset.open"),
+            named ? Read(name) : CurrentText(),
+            () => named ? Read(name) : CurrentText(),
+            text => SaveText(name, text),
+            CopyPath));
+    }
+
+    private string Read(string name)
+    {
+        if (TemplateStore.ReadText(name) is { } text) { return text; }
+
+        if (TemplateStore.Exists(name))
+        {
+            report(StatusKind.Warning, TextManager.GetWithVariable("sandboxmenu.status.presetreadfailed", "[name]", name));
+        }
+
+        return CurrentText();
+    }
+
+    private string? SaveText(string name, string text)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.nopresetname"));
+            return null;
+        }
+
+        if (!TemplateStore.TryParse(name, text, out SpawnSet? parsed) || parsed is null)
+        {
+            report(StatusKind.Failure, TextManager.Get("sandboxmenu.status.presettextinvalid"));
+            return null;
+        }
+
+        if (TemplateStore.ReachesTemplate(parsed, name))
+        {
+            report(StatusKind.Warning, TextManager.Get("sandboxmenu.status.templatecycle"));
+            return null;
+        }
+
+        if (!TemplateStore.WriteText(name, text))
+        {
+            report(StatusKind.Failure, TextManager.GetWithVariable("sandboxmenu.status.presetsavefailed", "[name]", name));
+            return null;
+        }
+
+        if (!Apply(name)) { return null; }
+
+        report(StatusKind.Success, TextManager.GetWithVariable("sandboxmenu.status.presettextsaved", "[name]", name));
+
+        return TemplateStore.ReadText(name) ?? TemplateStore.Normalize(text);
+    }
+
+    private string CurrentText() => TemplateStore.Normalize(new XDocument(set.ToXml()).ToString());
+
+    private void CopyPath()
     {
         string name = set.Name;
 

@@ -1,198 +1,214 @@
 <Window ContentInset="16" Width="1008dip" Height="624dip">
 
-<Stack Orientation="Vertical">
+  <Stack Orientation="Vertical">
 
-  <Stack.Resources>
-    <DataTemplate DataType="SectionRowViewModel">
-      <Text Text="{Binding Label}" Font="SubHeading" FontSize="24" Height="section" Padding="8" TextAlign="Center" />
-    </DataTemplate>
+    <Stack.Resources>
+      <DataTemplate DataType="SectionRowViewModel">
+        <Text Text="{Binding Label}" Font="SubHeading" FontSize="24" Height="section" Padding="8" TextAlign="Center" />
+      </DataTemplate>
 
-    <DataTemplate DataType="HintRowViewModel">
-      <Text Text="{Binding Label}" FontSize="22" Height="fill" TextAlign="Center"
-        Wrap="True" Scale="False" Padding="8" />
-    </DataTemplate>
+      <DataTemplate DataType="TickRowViewModel">
+        <Field LabelText="{Binding Label}">
+          <Tick Selected="{Binding Value, Mode=TwoWay}" Width="0.16" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="TickRowViewModel">
-      <Field LabelText="{Binding Label}">
-        <Tick Selected="{Binding Value, Mode=TwoWay}" Width="0.16" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="TextRowViewModel">
+        <Field LabelText="{Binding Label}">
+          <TextBox Text="{Binding Text, Mode=TwoWay}" Width="1" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="TextRowViewModel">
-      <Field LabelText="{Binding Label}">
-        <TextBox Text="{Binding Text, Mode=TwoWay}" Width="1" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="SlotRowViewModel">
+        <Field LabelText="{Binding Label}">
+          <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" Skin="GUITextBoxNoIcon" Scale="False" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="SlotRowViewModel">
-      <Field LabelText="{Binding Label}">
-        <Button Text="{Binding Summary}" Command="{Binding BrowseCommand}" Width="1" Skin="GUITextBoxNoIcon" Scale="False" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="RangeRowViewModel">
+        <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
+          <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
+          <Number Value="{Binding Min, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
+          <Number Value="{Binding Max, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="RangeRowViewModel">
-      <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
-        <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
-        <Number Value="{Binding Min, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
-        <Number Value="{Binding Max, Mode=TwoWay}" Width="0.24" Min="0" Max="{Binding Limit}" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="IntRowViewModel">
+        <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
+          <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
+          <Number Value="{Binding Value, Mode=TwoWay}" Width="0.3" Integer="True" Min="0" Max="{Binding Limit}" />
+        </Field>
+      </DataTemplate>
+      <DataTemplate DataType="BrowseRowViewModel">
+        <Field LabelText="{Binding Label}">
+          <TextBox Text="{Binding Text, Mode=TwoWay}" Focus="{Binding TakeFocus, Mode=TwoWay}" Width="0.72" />
+          <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" Skin="GUIButtonSmall" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="IntRowViewModel">
-      <Field LabelText="{Binding Label}" LabelActive="{Binding LabelActive}">
-        <Tick Selected="{Binding Enabled, Mode=TwoWay}" Width="0.16" />
-        <Number Value="{Binding Value, Mode=TwoWay}" Width="0.3" Integer="True" Min="0" Max="{Binding Limit}" />
-      </Field>
-    </DataTemplate>
-    <DataTemplate DataType="BrowseRowViewModel">
-      <Field LabelText="{Binding Label}">
-        <TextBox Text="{Binding Text, Mode=TwoWay}" Focus="{Binding TakeFocus, Mode=TwoWay}" Width="0.72" />
-        <Button Text="sandboxmenu.browse" Command="{Binding BrowseCommand}" Width="0.26" Skin="GUIButtonSmall" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="ItemPreviewRowViewModel">
+        <Row Text="{Binding Title}" FontSize="16" Icon="{Binding Icon}" SubText="{Binding SubText}"
+          ToolTip="{Binding ToolTip}" Height="0.12" />
+      </DataTemplate>
 
-    <DataTemplate DataType="ItemPreviewRowViewModel">
-      <Row Text="{Binding Title}" FontSize="16" Icon="{Binding Icon}" SubText="{Binding SubText}"
-        ToolTip="{Binding ToolTip}" Height="0.12" />
-    </DataTemplate>
+      <DataTemplate DataType="PropertyRowViewModel">
+        <Field LabelText="{Binding Label}" LabelWidth="0.07" ControlWidth="0.91">
+          <Button Text="{Binding ComponentLabel}" Command="{Binding BrowseComponentCommand}" Width="0.24" Height="1"
+            Skin="GUITextBoxNoIcon" Scale="False" />
+          <Button Text="{Binding PropertyLabel}" Command="{Binding BrowsePropertyCommand}" Width="0.26" Height="1"
+            Skin="GUITextBoxNoIcon" Scale="False" />
+          <Stack Orientation="Horizontal" Width="0.36" Height="1" ChildAnchor="CenterLeft">
+            <TextBox Text="{Binding FloatText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsFloat}"
+              Width="1*" Height="1" />
+            <Number Value="{Binding IntValue, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+              Step="{Binding Step}" Visible="{Binding IsInt}" Width="1*" Height="1" />
+            <TextBox Text="{Binding Text, Mode=TwoWay}" Visible="{Binding IsText}" Width="1*" Height="1" />
+            <Tick Selected="{Binding Checked, Mode=TwoWay}" Visible="{Binding IsBool}" Width="1*" Height="1" />
+            <TextBox Text="{Binding VectorXText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
+              Width="1*" Height="1" />
+            <TextBox Text="{Binding VectorYText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
+              Width="1*" Height="1" />
+            <Number Value="{Binding PointX, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+              Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
+            <Number Value="{Binding PointY, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
+              Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
+            <Button Text="{Binding EnumLabel}" Command="{Binding BrowseEnumCommand}" Visible="{Binding IsEnum}"
+              Width="1*" Height="1" Skin="GUITextBoxNoIcon" Scale="False" />
+            <ColorSwatch Color="{Binding Swatch}" Label="{Binding ColorLabel}" Command="{Binding PickColorCommand}"
+              Visible="{Binding IsColor}" Width="1*" Height="1" />
+          </Stack>
+          <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.14" Height="1" Skin="GUIButtonSmall" />
+        </Field>
+      </DataTemplate>
 
-    <DataTemplate DataType="PropertyRowViewModel">
-      <Field LabelText="{Binding Label}" LabelWidth="0.07" ControlWidth="0.91">
-        <Button Text="{Binding ComponentLabel}" Command="{Binding BrowseComponentCommand}" Width="0.24" Height="1"
-                Skin="GUITextBoxNoIcon" Scale="False" />
-        <Button Text="{Binding PropertyLabel}" Command="{Binding BrowsePropertyCommand}" Width="0.26" Height="1"
-                Skin="GUITextBoxNoIcon" Scale="False" />
-        <Stack Orientation="Horizontal" Width="0.36" Height="1" ChildAnchor="CenterLeft">
-          <TextBox Text="{Binding FloatText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsFloat}"
-                   Width="1*" Height="1" />
-          <Number Value="{Binding IntValue, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
-                  Step="{Binding Step}" Visible="{Binding IsInt}" Width="1*" Height="1" />
-          <TextBox Text="{Binding Text, Mode=TwoWay}" Visible="{Binding IsText}" Width="1*" Height="1" />
-          <Tick Selected="{Binding Checked, Mode=TwoWay}" Visible="{Binding IsBool}" Width="1*" Height="1" />
-          <TextBox Text="{Binding VectorXText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
-                   Width="1*" Height="1" />
-          <TextBox Text="{Binding VectorYText, Mode=TwoWay}" Committed="{Binding CommitEdit}" Visible="{Binding IsVector}"
-                   Width="1*" Height="1" />
-          <Number Value="{Binding PointX, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
-                  Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
-          <Number Value="{Binding PointY, Mode=TwoWay}" Integer="True" Min="{Binding Min}" Max="{Binding Max}"
-                  Step="{Binding Step}" Visible="{Binding IsPoint}" Width="1*" Height="1" />
-          <Button Text="{Binding EnumLabel}" Command="{Binding BrowseEnumCommand}" Visible="{Binding IsEnum}"
-                  Width="1*" Height="1" Skin="GUITextBoxNoIcon" Scale="False" />
-          <ColorSwatch Color="{Binding Swatch}" Label="{Binding ColorLabel}" Command="{Binding PickColorCommand}"
-                       Visible="{Binding IsColor}" Width="1*" Height="1" />
-        </Stack>
-        <Button Text="sandboxmenu.delete" Command="{Binding DeleteCommand}" Width="0.14" Height="1" Skin="GUIButtonSmall" />
-      </Field>
-    </DataTemplate>
+      <DataTemplate DataType="ButtonRowViewModel">
+        <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" Skin="GUIButtonSmall" />
+      </DataTemplate>
+      <DataTemplate DataType="TreeEntryViewModel">
+        <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" IndentLevel="{Binding Depth}"
+          Selected="{Binding IsSelected}" Command="{Binding SelectCommand}" SecondaryCommand="{Binding OpenMenuCommand}"
+          Height="row">
+          <Row.Triggers>
+            <DataTrigger Binding="IsReference" Value="True">
+              <Setter Property="TextColor" Value="Dim" />
+            </DataTrigger>
+          </Row.Triggers>
+        </Row>
+      </DataTemplate>
 
-    <DataTemplate DataType="ButtonRowViewModel">
-      <Button Text="{Binding Label}" Command="{Binding InvokeCommand}" Width="1" Height="row" Skin="GUIButtonSmall" />
-    </DataTemplate>
-    <DataTemplate DataType="TreeEntryViewModel">
-      <Row Text="{Binding Title}" Icon="{Binding Icon}" ToolTip="{Binding ToolTip}" IndentLevel="{Binding Depth}"
-        Selected="{Binding IsSelected}" Command="{Binding SelectCommand}" SecondaryCommand="{Binding OpenMenuCommand}"
-        Height="row">
-        <Row.Triggers>
-          <DataTrigger Binding="IsReference" Value="True">
-            <Setter Property="TextColor" Value="Dim" />
-          </DataTrigger>
-        </Row.Triggers>
-      </Row>
-    </DataTemplate>
+      <DataTemplate DataType="AfflictionGroupRowViewModel">
+        <Row Text="{Binding Title}" TextColor="Accent" FontSize="20" Height="0.07" />
+      </DataTemplate>
 
-    <DataTemplate DataType="AfflictionGroupRowViewModel">
-      <Row Text="{Binding Title}" TextColor="Accent" FontSize="20" Height="0.07" />
-    </DataTemplate>
+      <DataTemplate DataType="AfflictionItemRowViewModel">
+        <Row Text="{Binding Title}" SubText="{Binding SubText}" Icon="{Binding Icon}" IconColor="{Binding IconColor}"
+          ToolTip="{Binding ToolTip}" Command="{Binding SelectCommand}" SecondaryCommand="{Binding MenuCommand}"
+          Selected="{Binding Selected}" SelectedBar="CenterLeft" Indent="10" IconSize="26" FontSize="20"
+          IconShadow="False" Height="0.09" />
+      </DataTemplate>
 
-    <DataTemplate DataType="AfflictionItemRowViewModel">
-      <Row Text="{Binding Title}" SubText="{Binding SubText}" Icon="{Binding Icon}" IconColor="{Binding IconColor}"
-        ToolTip="{Binding ToolTip}" Command="{Binding SelectCommand}" SecondaryCommand="{Binding MenuCommand}"
-        Selected="{Binding Selected}" SelectedBar="CenterLeft" Indent="10" IconSize="26" FontSize="20"
-        IconShadow="False" Height="0.09" />
-    </DataTemplate>
+      <DataTemplate Key="AfflictionTile">
+        <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" Value="{Binding StrengthText}"
+          ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6"
+          SlotFill="14,14,16,200" SlotLine="62,62,66,255" IconShadow="False">
+          <Tile.Triggers>
+            <EventTrigger Event="Click">
+              <EventTrigger.Actions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
+                      <EasingColorKeyFrame KeyTime="0" Value="Accent" />
+                      <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
+                    </ColorAnimationUsingKeyFrames>
+                  </Storyboard>
+                </BeginStoryboard>
+              </EventTrigger.Actions>
+            </EventTrigger>
+          </Tile.Triggers>
+        </Tile>
+      </DataTemplate>
 
-    <DataTemplate Key="AfflictionTile">
-      <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" Value="{Binding StrengthText}"
-        ToolTip="{Binding ToolTip}" Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6"
-        SlotFill="14,14,16,200" SlotLine="62,62,66,255" IconShadow="False">
-        <Tile.Triggers>
-          <EventTrigger Event="Click">
-            <EventTrigger.Actions>
-              <BeginStoryboard>
-                <Storyboard>
-                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
-                    <EasingColorKeyFrame KeyTime="0" Value="Accent" />
-                    <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
-                  </ColorAnimationUsingKeyFrames>
-                </Storyboard>
-              </BeginStoryboard>
-            </EventTrigger.Actions>
-          </EventTrigger>
-        </Tile.Triggers>
-      </Tile>
-    </DataTemplate>
+      <DataTemplate DataType="TalentRowViewModel">
+        <Row Text="{Binding Title}" SubText="{Binding SubText}" Icon="{Binding Icon}" IconColor="{Binding IconColor}"
+          ToolTip="{Binding ToolTip}" IconSize="26" FontSize="20" IconShadow="False" Height="0.09" />
+      </DataTemplate>
 
-    <DataTemplate DataType="TalentRowViewModel">
-      <Row Text="{Binding Title}" SubText="{Binding SubText}" Icon="{Binding Icon}" IconColor="{Binding IconColor}"
-        ToolTip="{Binding ToolTip}" IconSize="26" FontSize="20" IconShadow="False" Height="0.09" />
-    </DataTemplate>
+      <DataTemplate Key="TalentTile">
+        <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" ToolTip="{Binding ToolTip}"
+          Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6" SlotFill="14,14,16,200" SlotLine="62,62,66,255"
+          IconShadow="False">
+          <Tile.Triggers>
+            <EventTrigger Event="Click">
+              <EventTrigger.Actions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
+                      <EasingColorKeyFrame KeyTime="0" Value="Accent" />
+                      <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
+                    </ColorAnimationUsingKeyFrames>
+                  </Storyboard>
+                </BeginStoryboard>
+              </EventTrigger.Actions>
+            </EventTrigger>
+          </Tile.Triggers>
+        </Tile>
+      </DataTemplate>
+    </Stack.Resources>
+    <Stack Orientation="Horizontal" Height="0.08" ChildAnchor="CenterLeft">
+      <Panel Skin="None" Width="0.24" Height="1">
+        <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
+      </Panel>
+      <Dropdown Items="{Binding Functions.Items}" SelectedIndex="{Binding Functions.SelectedIndex, Mode=TwoWay}"
+        Width="0.26" Height="0.6" Skin="GUIDropDown" />
+      <Text Text="{Binding Status}" Style="StatusText" Width="1*" Height="1" Padding="12" Color="Accent"
+        Wrap="True" Clip="True" />
+      <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
+    </Stack>
 
-    <DataTemplate Key="TalentTile">
-      <Tile Icon="{Binding Icon}" IconColor="{Binding IconColor}" Text="{Binding Name}" ToolTip="{Binding ToolTip}"
-        Command="{Binding PickCommand}" IconExtent="0.78" SlotPadding="6" SlotFill="14,14,16,200" SlotLine="62,62,66,255"
-        IconShadow="False">
-        <Tile.Triggers>
-          <EventTrigger Event="Click">
-            <EventTrigger.Actions>
-              <BeginStoryboard>
-                <Storyboard>
-                  <ColorAnimationUsingKeyFrames Property="GlowFill" Duration="0.35" FillBehavior="Stop">
-                    <EasingColorKeyFrame KeyTime="0" Value="Accent" />
-                    <EasingColorKeyFrame KeyTime="0.35" Value="Transparent" Easing="SineIn" />
-                  </ColorAnimationUsingKeyFrames>
-                </Storyboard>
-              </BeginStoryboard>
-            </EventTrigger.Actions>
-          </EventTrigger>
-        </Tile.Triggers>
-      </Tile>
-    </DataTemplate>
-  </Stack.Resources>
-  <Stack Orientation="Horizontal" Height="0.08" ChildAnchor="CenterLeft">
-    <Panel Skin="None" Width="0.24" Height="1">
-      <Text Text="sandboxmenu.title" Font="SubHeading" FontSize="26" Width="1" Height="1" Padding="12" />
-    </Panel>
-    <Dropdown Items="{Binding Functions.Items}" SelectedIndex="{Binding Functions.SelectedIndex, Mode=TwoWay}"
-              Width="0.26" Height="0.6" Skin="GUIDropDown" />
-    <Text Text="{Binding Status}" Style="StatusText" Width="1*" Height="1" Padding="12" Color="Accent"
-          Wrap="True" Clip="True" />
-    <Button Text="sandboxmenu.close" Shortcut="sandboxmenu.shortcut.close" CloseView="True" Width="0.16" Height="0.6" />
-  </Stack>
+    <Panel Skin="InnerFrame" Width="1" Height="1*">
 
-  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowSpawn}">
+      <Stack Orientation="Vertical" Width="0.97" Height="0.95" Align="Center" Spacing="6" Visible="{Binding Functions.ShowSpawn}">
 
-    <Stack.InputBindings>
-      <KeyBinding Key="Up" Command="{Binding Spawn.StepUpCommand}" />
-      <KeyBinding Key="Down" Command="{Binding Spawn.StepDownCommand}" />
-      <KeyBinding Key="Up" Modifiers="Alt" Command="{Binding Spawn.MoveUpCommand}" />
-      <KeyBinding Key="Down" Modifiers="Alt" Command="{Binding Spawn.MoveDownCommand}" />
-      <KeyBinding Key="Enter" Command="{Binding Spawn.FocusIdentifierCommand}" />
-      <KeyBinding Key="Delete" Command="{Binding Spawn.DeleteSelectedCommand}" RequiresNoTextInput="True" />
-      <KeyBinding Key="OemPlus,Add" Command="{Binding Spawn.AddItemCommand}" RequiresNoTextInput="True" />
-      <KeyBinding Key="OemPlus,Add" Modifiers="Shift" Command="{Binding Spawn.AddChildCommand}" RequiresNoTextInput="True" />
-    </Stack.InputBindings>
-
-    <Panel Skin="InnerFrame" Width="1" Height="1">
-      <Stack Orientation="Vertical" Width="0.97" Height="0.95" Align="Center" Spacing="6">
+        <Stack.InputBindings>
+          <KeyBinding Key="Up" Command="{Binding Spawn.StepUpCommand}" />
+          <KeyBinding Key="Down" Command="{Binding Spawn.StepDownCommand}" />
+          <KeyBinding Key="Up" Modifiers="Alt" Command="{Binding Spawn.MoveUpCommand}" />
+          <KeyBinding Key="Down" Modifiers="Alt" Command="{Binding Spawn.MoveDownCommand}" />
+          <KeyBinding Key="Enter" Command="{Binding Spawn.FocusIdentifierCommand}" />
+          <KeyBinding Key="Delete" Command="{Binding Spawn.DeleteSelectedCommand}" RequiresNoTextInput="True" />
+          <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding Spawn.DuplicateSelectedCommand}" RequiresNoTextInput="True" />
+          <KeyBinding Key="OemPlus,Add" Command="{Binding Spawn.AddItemCommand}" RequiresNoTextInput="True" />
+          <KeyBinding Key="OemPlus,Add" Modifiers="Shift" Command="{Binding Spawn.AddChildCommand}" RequiresNoTextInput="True" />
+        </Stack.InputBindings>
 
         <Stack Orientation="Horizontal" Height="75*" Spacing="10">
-          <Panel Skin="GUIFrameListBox" Width="36*">
-            <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
-          </Panel>
+          <Stack Orientation="Vertical" Width="36*" Spacing="6">
+
+            <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft" Spacing="6">
+              <Button Text="sandboxmenu.itemspawn.characters" Command="{Binding Spawn.OpenBrowserCommand}"
+                      Width="1*" Height="1" SelfToolTip="False" />
+              <Button Text="sandboxmenu.itemspawn.characters.controlled" Command="{Binding Spawn.SelectControlledCommand}"
+                Width="1*" Height="1" SelfToolTip="False" />
+            </Stack>
+
+            <Stack Orientation="Horizontal" Height="12*" ChildAnchor="CenterLeft" Spacing="6">
+              <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Spawn.ShowIcon}">
+                <CharacterTile Character="{Binding Spawn.Display}" ToolTip="{Binding Spawn.IconToolTip}"
+                  ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                  BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+              </Panel>
+              <Text Text="{Binding Spawn.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
+            </Stack>
+
+            <Panel Skin="GUIFrameListBox" Width="1" Height="80*">
+              <List Items="{Binding Spawn.Entries}" Height="1" Spacing="4" Padding="8" Draggable="True" BackgroundMenu="True" />
+            </Panel>
+          </Stack>
 
           <Panel Skin="GUIFrameListBox" Width="64*">
             <List Items="{Binding Spawn.Editor.Rows}" Height="1" Spacing="4" Padding="8" />
+            <Text Text="{Binding Spawn.Editor.EmptyHint}" Visible="{Binding Spawn.Editor.IsEmpty}" FontSize="22"
+                  Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" Padding="8" />
           </Panel>
         </Stack>
 
@@ -203,43 +219,38 @@
           <Button Text="sandboxmenu.preset.save" Command="{Binding Spawn.SavePresetCommand}" Width="0.15" Height="0.66" />
           <Button Text="sandboxmenu.preset.load" Command="{Binding Spawn.LoadPresetCommand}" Width="0.15" Height="0.66" />
           <Button Text="sandboxmenu.preset.reload" Command="{Binding Spawn.ReloadPresetCommand}" Width="0.15" Height="0.66" />
-          <Button Text="sandboxmenu.preset.copypath" Command="{Binding Spawn.CopyPresetPathCommand}" Width="0.15" Height="0.66" />
+          <Button Text="sandboxmenu.preset.open" Command="{Binding Spawn.OpenPresetCommand}" Width="0.15" Height="0.66" />
         </Stack>
 
         <Stack Orientation="Horizontal" Height="8*" ChildAnchor="CenterLeft">
           <Button Text="sandboxmenu.clear" Command="{Binding Spawn.ClearSetCommand}" Width="15*" Height="0.66" />
           <Button Text="sandboxmenu.give" Command="{Binding Spawn.SpawnIntoInventoryCommand}"
-                  Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
-          <Button Text="sandboxmenu.spawnatcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
+            Shortcut="{Binding Spawn.GiveShortcut}" Width="26*" Height="0.66" />
+          <Button Text="sandboxmenu.itemspawn.atcursor" Command="{Binding Spawn.SpawnAtCursorCommand}" Width="21*" Height="0.66" />
 
         </Stack>
       </Stack>
-    </Panel>
-  </Stack>
 
-  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowAfflictions}">
+      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10" Visible="{Binding Functions.ShowAfflictions}">
 
-    <Stack.InputBindings>
-      <KeyBinding Key="Delete" Command="{Binding Afflictions.RemovePickedCommand}" RequiresNoTextInput="True" />
-    </Stack.InputBindings>
-
-    <Panel Skin="InnerFrame" Width="1" Height="1">
-      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10">
+        <Stack.InputBindings>
+          <KeyBinding Key="Delete" Command="{Binding Afflictions.RemovePickedCommand}" RequiresNoTextInput="True" />
+        </Stack.InputBindings>
 
         <Stack Orientation="Vertical" Width="36*" Spacing="6">
 
           <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
             <Button Text="sandboxmenu.afflictions.characters" Command="{Binding Afflictions.OpenBrowserCommand}"
-                    Width="1*" Height="1" SelfToolTip="False" />
+              Width="1*" Height="1" SelfToolTip="False" />
             <Button Text="sandboxmenu.afflictions.characters.controlled" Command="{Binding Afflictions.SelectControlledCommand}"
-                    Width="1*" Height="1" SelfToolTip="False" />
+              Width="1*" Height="1" SelfToolTip="False" />
           </Stack>
 
           <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
             <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Afflictions.ShowIcon}">
               <CharacterTile Character="{Binding Afflictions.Display}" ToolTip="{Binding Afflictions.IconToolTip}"
-                             ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
-                             BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+                ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
             </Panel>
             <Text Text="{Binding Afflictions.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
           </Stack>
@@ -248,14 +259,14 @@
             <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="0">
               <Stack Orientation="Horizontal" Height="10*" ChildAnchor="CenterLeft" Spacing="6">
                 <Tick Text="sandboxmenu.afflictions.sort.name" Selected="{Binding Afflictions.SortByName, Mode=TwoWay}" Width="1*"
-                      SelfToolTip="False" />
+                  SelfToolTip="False" />
                 <Tick Text="sandboxmenu.afflictions.hide.empty" Selected="{Binding Afflictions.HideEmptyLimbs, Mode=TwoWay}" Width="1.6*" />
               </Stack>
               <List Items="{Binding Afflictions.Rows}" Scroll="{Binding Afflictions.RowScroll, Mode=TwoWay}" Height="90*"
-                    Spacing="3" Padding="6,6" />
+                Spacing="3" Padding="6,6" />
             </Stack>
             <Text Text="{Binding Afflictions.RowsEmptyHint}" Visible="{Binding Afflictions.RowsEmpty}" FontSize="20"
-                  Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+              Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
           </Panel>
         </Stack>
 
@@ -263,18 +274,18 @@
           <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="4">
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <Button Text="{Binding Afflictions.PackageFilter}" Command="{Binding Afflictions.PickPackagesCommand}"
-                      Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Button Text="{Binding Afflictions.TypeFilter}" Command="{Binding Afflictions.PickTypesCommand}"
-                      Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Tick Text="{Binding Afflictions.HiddenFilterLabel}" Selected="{Binding Afflictions.HideHidden, Mode=TwoWay}"
-                    Width="1.4*" />
+                Width="1.4*" />
             </Stack>
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <TextBox Text="{Binding Afflictions.Query, Mode=TwoWay}" Width="1.4*" Height="0.8" Clear="True" />
               <Button Text="{Binding Afflictions.ScopeFilter}" Command="{Binding Afflictions.PickScopesCommand}"
-                      Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1.2*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Button Text="{Binding Afflictions.KindFilter}" Command="{Binding Afflictions.PickKindsCommand}"
-                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
             </Stack>
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <Text Text="sandboxmenu.afflictions.strength" FontSize="18" Width="0.2" Wrap="False" />
@@ -283,48 +294,43 @@
             </Stack>
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <Button Text="{Binding Afflictions.TargetLabel}" Command="{Binding Afflictions.PickTargetsCommand}"
-                      Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1*" Height="0.9" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Tick Text="sandboxmenu.afflictions.multiply.maxvitality" Selected="{Binding Afflictions.MultiplyByMaxVitality, Mode=TwoWay}"
-                    Width="1.4*" SelfToolTip="True" />
+                Width="1.4*" SelfToolTip="True" />
             </Stack>
             <TileGrid Name="AfflictionTiles" Items="{Binding Afflictions.Tiles}" Scroll="{Binding Afflictions.TileScroll, Mode=TwoWay}"
-                      Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
+              Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="AfflictionTile" />
           </Stack>
           <Text Text="{Binding Afflictions.TilesEmptyHint}" Visible="{Binding Afflictions.TilesEmpty}" FontSize="20"
-                Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+            Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
         </Panel>
       </Stack>
-    </Panel>
-  </Stack>
 
-  <Stack Orientation="Vertical" Height="0.92" Visible="{Binding Functions.ShowTalents}">
-
-    <Panel Skin="InnerFrame" Width="1" Height="1">
-      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10">
+      <Stack Orientation="Horizontal" Width="0.97" Height="0.95" Align="Center" Spacing="10" Visible="{Binding Functions.ShowTalents}">
 
         <Stack Orientation="Vertical" Width="36*" Spacing="6">
 
           <Stack Orientation="Horizontal" Height="6*" ChildAnchor="CenterLeft" Spacing="6">
             <Button Text="sandboxmenu.talents.characters" Command="{Binding Talents.OpenBrowserCommand}"
-                    Width="1*" Height="1" SelfToolTip="False" />
+              Width="1*" Height="1" SelfToolTip="False" />
             <Button Text="sandboxmenu.talents.characters.controlled" Command="{Binding Talents.SelectControlledCommand}"
-                    Width="1*" Height="1" SelfToolTip="False" />
+              Width="1*" Height="1" SelfToolTip="False" />
           </Stack>
 
           <Stack Orientation="Horizontal" Height="9*" ChildAnchor="CenterLeft" Spacing="6">
             <Panel Skin="InnerFrame" Width="0.26" Height="1" Visible="{Binding Talents.ShowIcon}">
               <CharacterTile Character="{Binding Talents.Display}" ToolTip="{Binding Talents.IconToolTip}"
-                             ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
-                             BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
+                ShowName="False" SmallBadge="True" Interactive="False" Framing="Head" Stretch="True"
+                BadgeRatio="0.55" IconShadow="False" Width="0.9" Height="0.9" Align="Center" />
             </Panel>
             <Text Text="{Binding Talents.Title}" FontSize="22" Width="1*" Height="1" Padding="8" Wrap="False" Clip="True" />
           </Stack>
 
           <Panel Skin="GUIFrameListBox" Width="1" Height="85*">
             <List Items="{Binding Talents.Rows}" Scroll="{Binding Talents.RowScroll, Mode=TwoWay}" Width="0.95" Height="0.96"
-                  Align="Center" Spacing="3" Padding="6,6" />
+              Align="Center" Spacing="3" Padding="6,6" />
             <Text Text="{Binding Talents.RowsEmptyHint}" Visible="{Binding Talents.RowsEmpty}" FontSize="20"
-                  Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+              Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
           </Panel>
         </Stack>
 
@@ -332,29 +338,28 @@
           <Stack Orientation="Vertical" Width="0.95" Height="0.96" Align="Center" Spacing="4">
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <Button Text="{Binding Talents.PackageFilter}" Command="{Binding Talents.PickPackagesCommand}"
-                      Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1.4*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Tick Text="{Binding Talents.HiddenFilterLabel}" Selected="{Binding Talents.HideHidden, Mode=TwoWay}"
-                    Width="1.4*" />
+                Width="1.4*" />
             </Stack>
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <Button Text="{Binding Talents.JobFilter}" Command="{Binding Talents.PickJobsCommand}"
-                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
               <Button Text="{Binding Talents.SubTreeFilter}" Command="{Binding Talents.PickSubTreesCommand}"
-                      Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
+                Width="1*" Height="0.8" Skin="GUITextBoxNoIcon" Scale="False" SelfToolTip="False" />
             </Stack>
             <Stack Orientation="Horizontal" Height="0.065" ChildAnchor="CenterLeft" Spacing="6">
               <TextBox Text="{Binding Talents.Query, Mode=TwoWay}" Width="1*" Height="0.8" Clear="True" />
             </Stack>
             <TileGrid Items="{Binding Talents.Tiles}" Scroll="{Binding Talents.TileScroll, Mode=TwoWay}"
-                      Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="TalentTile" />
+              Height="1*" Columns="6" Spacing="4" Padding="14,8,10,8" TileTemplate="TalentTile" />
           </Stack>
           <Text Text="{Binding Talents.TilesEmptyHint}" Visible="{Binding Talents.TilesEmpty}" FontSize="20"
-                Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
+            Width="0.8" Height="0.2" Align="Center" TextAlign="Center" Wrap="True" />
         </Panel>
       </Stack>
     </Panel>
-  </Stack>
 
-</Stack>
+  </Stack>
 
 </Window>

@@ -142,6 +142,7 @@ internal static class AnimationMarkup
             || text.Equals("bright", StringComparison.OrdinalIgnoreCase)
             || text.Equals("dim", StringComparison.OrdinalIgnoreCase)
             || text.Equals("danger", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("warning", StringComparison.OrdinalIgnoreCase)
             || text.Equals("disabled", StringComparison.OrdinalIgnoreCase)
             || text.Equals("callout", StringComparison.OrdinalIgnoreCase);
 
